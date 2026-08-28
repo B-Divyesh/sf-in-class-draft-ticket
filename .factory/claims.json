@@ -1,0 +1,58 @@
+[
+  {
+    "id": "sample-demo",
+    "claim": "The demo opens with three fictional draft tickets and saves nothing to a real class.",
+    "where": "landing action and demo banner",
+    "test": "npm test -- --grep @claim:sample-demo",
+    "sandbox": "fresh browser context at /demo; assert three records, demo flag, and demo-only browser namespace"
+  },
+  {
+    "id": "csv-export",
+    "claim": "Teachers can export the full session as CSV.",
+    "where": "teacher toolbar, landing how-it-works, README",
+    "test": "npm test -- --grep @claim:csv-export",
+    "sandbox": "fresh demo workspace; download CSV and assert its header and three rows"
+  },
+  {
+    "id": "pseudonymous-flow",
+    "claim": "Students use a class nickname and record four drafting checkpoints.",
+    "where": "landing facts, student form, README",
+    "test": "npm test -- --grep @claim:pseudonymous-flow",
+    "sandbox": "fresh class; create a session, submit all four fields, and verify them in the teacher view"
+  },
+  {
+    "id": "session-retention",
+    "claim": "Teachers choose one, seven, or thirty days before a session expires and is deleted.",
+    "where": "landing facts, setup, privacy, README",
+    "test": "npm test -- --grep @claim:session-retention",
+    "sandbox": "fresh API session; request one-day retention and assert the returned deletion time"
+  },
+  {
+    "id": "free-capacity",
+    "claim": "Free sessions accept up to 40 tickets.",
+    "where": "landing facts and terms",
+    "test": "npm test -- --grep @claim:free-capacity",
+    "sandbox": "fresh API session; create 40 tickets and assert ticket 41 is rejected"
+  },
+  {
+    "id": "privacy-minimal",
+    "claim": "The app uses no webcam, microphone, keystroke logging, analytics, or third-party tracking.",
+    "where": "landing boundaries and privacy",
+    "test": "npm test -- --grep @claim:privacy-minimal",
+    "sandbox": "fresh landing and demo pages; monitor requests and media APIs, allowing only same-origin traffic"
+  },
+  {
+    "id": "paid-presets",
+    "claim": "A $24 one-time teacher license adds ten local prompt presets.",
+    "where": "landing pricing and terms",
+    "test": "npm test -- --grep @claim:paid-presets",
+    "sandbox": "mock a valid Sociobot license response; save a preset and assert it persists locally"
+  },
+  {
+    "id": "teacher-control",
+    "claim": "Only the private teacher link can read, export, or delete a session.",
+    "where": "teacher view, setup, privacy, README",
+    "test": "npm test -- --grep @claim:teacher-control",
+    "sandbox": "fresh API session; reject unauthenticated read and accept authenticated deletion"
+  }
+]
