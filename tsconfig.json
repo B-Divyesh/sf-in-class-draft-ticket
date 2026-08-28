@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "lib": ["ES2022", "DOM", "ESNext.Disposable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowJs": true,
@@ -8,6 +9,7 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "strict": true,
+    "types": ["node"],
     "noEmit": true
   },
   "include": ["src/**/*.ts", "src/**/*.svelte", "vite.config.ts", "tests/**/*.ts"]

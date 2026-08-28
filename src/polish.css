@@ -1,5 +1,16 @@
 h1[tabindex="-1"]:focus { outline: none; }
 
+/* Links are deliberate touch targets, including the compact navigation. */
+.site-header nav { gap: 12px; }
+.site-header nav a,
+.site-footer nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 6px;
+  text-decoration: none;
+}
+
 .preset-tools {
   padding: 16px;
   margin-bottom: 8px;

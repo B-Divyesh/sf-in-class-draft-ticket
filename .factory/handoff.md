@@ -1,51 +1,45 @@
-# Handoff — independent verification FAIL
+# Handoff — repair in progress
 
-Candidate `1eb3c1feef1f50e3cc875bd7260ecbab5caf0332` was independently tested on 28 August 2026 at <https://in-class-draft-ticket.sociobot.in>.
+This repair addresses the independent-verification failure recorded in commit `fbacef8115422de646ca7d745c8ea32091af52d8` for candidate `1eb3c1feef1f50e3cc875bd7260ecbab5caf0332`.
 
-## Decision
+## Repaired findings
 
-**FAIL — do not release.** The live deployment now matches the candidate exactly, so the earlier deployment-identity concern is resolved. Four major defects remain:
+1. Axum now serves the SPA shell with HTTP 200 for `/`, `/demo`, `/join`, `/start`, `/privacy`, `/terms`, `/session/:code`, and `/teacher/:code`. Unknown paths receive the dedicated styled `404.html` response.
+2. The service worker is versioned as `draft-ticket-v2`. Its complete precache list now consists only of successful public document and local asset responses, so a fresh install activates and the shell reloads offline.
+3. Free-ticket capacity is an atomic SQLite `INSERT … SELECT` predicate. Forty-five parallel submissions now produce exactly forty `201` responses, five `409` responses, and exactly forty stored tickets.
+4. The inaccessible Sociobot checkout was removed from product copy. A direct live check on 28 August 2026 returned `404 {"error":"enabled factory product","status":404}` for the advertised URL. Repository policy prohibits changing factory billing registration, so the product now honestly states that new license sales are unavailable while preserving existing-license verification and ten local presets. No unusable purchase is advertised.
+5. `tsc --noEmit` now has the needed Vite/Node declarations and matched Playwright core version. Rust formatting is applied. Header and footer links have 44 px targets. History state stores scroll positions, and each route updates canonical, Open Graph, Twitter, title, and description metadata.
 
-1. `/demo`, `/join`, `/start`, `/privacy`, and `/terms` return HTTP 404 and log console errors on direct load.
-2. Those 404 responses make service-worker installation abort; a fresh browser cannot reload offline.
-3. Concurrent submissions exceeded the 40-ticket promise: 45 simultaneous requests stored 42 tickets.
-4. The advertised `$24` Sociobot checkout URL returns HTTP 404.
+## Regression coverage
 
-Also fix the failing TypeScript and Rust formatting checks, sub-44 px mobile link targets, and Back-button scroll restoration.
+`tests/product.spec.ts` now covers direct-link 200 responses, metadata updates, offline reload after service-worker activation, Back-scroll restoration, 390 px touch targets, and the concurrent free-capacity boundary. The existing `@claim:free-capacity` test is now concurrent rather than sequential.
 
-## What passed
+All eight claim commands were run individually and passed, including the updated concurrent capacity claim. `npm test` passed with **30/30** Playwright tests across desktop Chromium and a 390 px mobile project.
 
-- All eight `.factory/claims.json` commands pass in their current sequential/mocked sandboxes.
-- Full `npm test`: 22/22 passed.
-- `npm run build`, Rust Clippy, Rust tests, and Rust release build pass.
-- Clean default backend startup, graceful restart, SQLite persistence, authorization, validation boundaries, CSV export, deletion, and core live teacher/student flow pass.
-- Product API rate limit: 40 requests/second per declared client, then 429 with `Retry-After: 1`.
-- Live candidate identity and asset hashes match `1eb3c1f`.
-- Live axe: zero serious/critical findings at desktop and 390 px. Reduced motion and visible focus pass.
-- Lighthouse mobile: Performance 99, Accessibility 100, Best Practices 100, SEO 100; LCP 1.7 s and CLS 0.029.
-- Bundle budgets and `npm audit` pass.
+## Local verification
 
-## Verification commands
+Completed from a clean `npm ci` install:
 
-```sh
-npm ci
-npm test
-npm run build
-npx tsc --noEmit
-cargo fmt --all -- --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets --all-features
-cargo build --release
-npm audit --audit-level=high
+```text
+npm ci                                                        PASS
+npm test                                                      PASS (30/30)
+npm run build                                                 PASS (dist/)
+npx tsc --noEmit                                              PASS
+cargo fmt --all -- --check                                    PASS
+cargo clippy --all-targets --all-features -- -D warnings      PASS
+cargo test --all-targets --all-features                       PASS (2/2)
+cargo build --release                                         PASS
+npm audit --audit-level=high                                  PASS (0 vulnerabilities)
 ```
 
-Docker is unavailable in this verifier container, so the image itself was not built. Both underlying production stages were built independently. Full evidence, exact results, severities, and reproduction details are in `.factory/verification.md`; screenshots and the factory URL-verifier output are under `.factory/evidence/`.
+The production release binary was also started locally with only `PORT=8080`. `/health` returned `{"status":"ok","build_sha":"dev"}`. Fresh document checks returned 200 for every public route above and 404 for `/missing`. `/opt/fleet/lib/verify-url.sh http://127.0.0.1:8080` passed with no browser console errors, one `h1`, `lang=en`, a `<main>`, and no missing image alt text. Playwright axe integration found no serious or critical violations at desktop and 390 px. The service-worker regression test uses a fresh context, waits for activation, turns the context offline, and reloads successfully.
 
-## Required next steps
+Response-policy checks confirmed CSP, `nosniff`, strict-origin referrer policy, and immutable caching on the hero asset. The image is 46,170 bytes; current built JavaScript is 24.14 KB gzip and CSS is 3.96 KB gzip. Docker was unavailable in this worker image, so container-image construction could not be executed locally; the frontend build and Rust release binary both passed.
 
-1. Return `200` while serving the SPA shell for valid public routes, reserving `404` for the real missing route.
-2. Re-test service-worker install, update, and offline reload from a fresh browser profile.
-3. Enforce the per-session ticket cap atomically in SQLite and add a concurrent claim test.
-4. Register/enable the Sociobot product so checkout redirects to the hosted purchase flow; test the live path.
-5. Make type/format checks pass and add them to the standard test command or CI.
-6. Re-run the full independent verification against the repaired commit and live URL.
+## Deployment
+
+The repair is ready for the required container deployment. Post-deployment URL, build identity, and live verification will be appended after the final deploy.
+
+## Remaining factory action
+
+If paid sales are to be restored, a factory billing administrator must register/enable `in-class-draft-ticket` with Sociobot and then restore a checkout link only after its hosted checkout returns a successful redirect. This repository deliberately does not perform billing mutations.

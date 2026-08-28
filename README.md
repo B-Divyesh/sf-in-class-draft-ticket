@@ -47,7 +47,7 @@ The container runs as a non-root user and reads only `PORT`, which defaults to `
 
 Sessions expire after the teacher's chosen one, seven, or thirty days. Free sessions accept up to 40 tickets. Teachers can delete a session early. See `/privacy` and `/terms` for the full plain-language policies.
 
-The optional $24 one-time teacher license adds ten prompt presets stored on the current device. Checkout and license checks use the Sociobot billing API; this repository contains no payment-provider code or product ID.
+An active teacher license can add ten prompt presets stored on the current device. New licenses are not sold from this site while the Sociobot product registration is unavailable; existing licenses are checked through the Sociobot billing API. This repository contains no payment-provider code or product ID.
 
 ## Project notes
 

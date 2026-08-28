@@ -22,20 +22,21 @@
   let presets:{title:string;prompt:string}[] = [];
   let selectedPreset = '';
 
-  const pageMeta = () => {
+  const pageMeta = (): [string, string] => {
     if (path === '/') return ['In-Class Draft Ticket — Record drafting choices','Record in-class drafting without surveillance'];
-    if (path === '/start') return ['Start a session — In-Class Draft Ticket','Start an in-class draft session'];
-    if (path === '/join') return ['Join a session — In-Class Draft Ticket','Open your draft ticket'];
-    if (path === '/demo') return ['Demo — In-Class Draft Ticket','Review a sample draft session'];
-    if (path === '/privacy') return ['Privacy — In-Class Draft Ticket','Privacy in plain words'];
-    if (path === '/terms') return ['Terms — In-Class Draft Ticket','Terms of use'];
-    if (path.startsWith('/session/')) return ['Draft ticket — In-Class Draft Ticket','Record your drafting choices'];
-    if (path.startsWith('/teacher/')) return ['Teacher session — In-Class Draft Ticket','Review this drafting session'];
+    if (path === '/start') return ['Start a session — In-Class Draft Ticket','Set up a short in-class drafting session'];
+    if (path === '/join') return ['Join a session — In-Class Draft Ticket','Open a draft ticket with a class code'];
+    if (path === '/demo') return ['Demo — In-Class Draft Ticket','Review three sample draft tickets'];
+    if (path === '/privacy') return ['Privacy — In-Class Draft Ticket','Read how class session data is handled'];
+    if (path === '/terms') return ['Terms — In-Class Draft Ticket','Read the service terms and session limits'];
+    if (path.startsWith('/session/')) return ['Draft ticket — In-Class Draft Ticket','Record four in-class drafting checkpoints'];
+    if (path.startsWith('/teacher/')) return ['Teacher session — In-Class Draft Ticket','Review and export this class session'];
     return ['Page not found — In-Class Draft Ticket','This point is not connected'];
   };
 
   function navigate(to:string) {
-    history.pushState({}, '', to);
+    history.replaceState({...history.state, scrollY: window.scrollY}, '', location.href);
+    history.pushState({scrollY: 0}, '', to);
     path = to;
     error = ''; notice = ''; session = null; teacherData = null;
     window.scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
@@ -43,10 +44,18 @@
   }
 
   function routeChanged() {
-    document.title = pageMeta()[0];
+    const [title, description] = pageMeta();
+    document.title = title;
+    const setHead = (selector:string, value:string) => document.querySelector(selector)?.setAttribute(selector.startsWith('link') ? 'href' : 'content', value);
+    setHead('meta[name="description"]', description);
+    setHead('link[rel="canonical"]', `https://in-class-draft-ticket.sociobot.in${path}`);
+    setHead('meta[property="og:title"]', title);
+    setHead('meta[property="og:description"]', description);
+    setHead('meta[name="twitter:title"]', title);
+    setHead('meta[name="twitter:description"]', description);
     requestAnimationFrame(() => {
       const h1 = document.querySelector('main h1') as HTMLElement | null;
-      h1?.focus();
+      h1?.focus({preventScroll:true});
       announcement = pageMeta()[1];
     });
     if (path.startsWith('/session/')) loadStudentSession();
@@ -205,6 +214,8 @@
   function date(value:string) { return new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value)); }
 
   onMount(() => {
+    history.scrollRestoration = 'manual';
+    history.replaceState({...history.state, scrollY: window.scrollY}, '', location.href);
     const licenseParam = new URLSearchParams(location.search).get('license');
     if (licenseParam) {
       localStorage.setItem('sb_license:in-class-draft-ticket', licenseParam);
@@ -212,18 +223,17 @@
     }
     checkLicense(licenseParam || localStorage.getItem('sb_license:in-class-draft-ticket') || '');
     try { presets = JSON.parse(localStorage.getItem('paid:prompt-presets') || '[]'); } catch { presets = []; }
-    const pop = () => { path = location.pathname; routeChanged(); };
+    const pop = (event:PopStateEvent) => {
+      path = location.pathname;
+      routeChanged();
+      requestAnimationFrame(() => window.scrollTo({top:event.state?.scrollY || 0, behavior:'auto'}));
+    };
     const status = () => online = navigator.onLine;
     addEventListener('popstate', pop); addEventListener('online', status); addEventListener('offline', status);
     routeChanged();
     return () => { removeEventListener('popstate', pop); removeEventListener('online', status); removeEventListener('offline', status); };
   });
 </script>
-
-<svelte:head>
-  <title>{pageMeta()[0]}</title>
-  <link rel="canonical" href={`https://in-class-draft-ticket.sociobot.in${path}`} />
-</svelte:head>
 
 <a class="skip-link" href="#main">Skip to main content</a>
 <div class="announcement" aria-live="polite">{announcement}</div>
@@ -297,8 +307,8 @@
     </section>
 
     <section class="section-shell pricing" aria-labelledby="price-heading">
-      <div><p class="eyebrow">Optional teacher license</p><h2 id="price-heading">Save reusable prompt presets</h2><p>Free sessions include every student and export feature. A $24 one-time license adds ten local prompt presets.</p></div>
-      <div class="price-placard"><strong>$24</strong><span>one-time purchase</span><a class="button primary" href="https://api.sociobot.in/api/v1/products/in-class-draft-ticket/checkout">Buy teacher license</a><p>Sociobot and Dodo handle checkout and refunds.</p></div>
+      <div><p class="eyebrow">Teacher license</p><h2 id="price-heading">Use your prompt presets</h2><p>Free sessions include every student and export feature. An active teacher license can save ten local prompt presets.</p></div>
+      <div class="price-placard"><strong>License</strong><span>Existing teacher license</span><p>Teacher license sales are not available from this site right now. All class-session tools remain free.</p></div>
       <form class="restore" on:submit={restoreLicense}><label for="license">Have a license?</label><div><input id="license" name="license" autocomplete="off" placeholder="Paste license token" /><button class="button secondary">Verify license</button></div>{#if license.active}<p class="success">Teacher license active. Prompt presets are ready.</p>{/if}</form>
     </section>
   {:else if path === '/start'}
@@ -364,9 +374,9 @@
       {:else if error}<div class="error-panel" role="alert"><p>{error}</p><button class="button secondary" on:click={() => loadDemo(true)}>Reload sample data</button></div>{:else}<div class="loading" role="status">Plotting sample tickets…</div>{/if}
     </section>
   {:else if path === '/privacy'}
-    <article class="legal section-shell narrow"><p class="eyebrow">Effective 28 August 2026</p><h1 tabindex="-1">Privacy in plain words</h1><p>In-Class Draft Ticket stores only what teachers and students enter.</p><h2>What we store</h2><p>We store the class name, writing prompt, class nicknames, ticket answers, and timestamps. We do not ask for student names, email addresses, or accounts.</p><h2>Why we store it</h2><p>The teacher uses this data to discuss and export in-class drafting choices. We do not use it to train models, target ads, or judge authorship.</p><h2>When we delete it</h2><p>The teacher chooses one, seven, or thirty days. The teacher can also delete a session at any time. Demo sessions expire after one day.</p><h2>Who receives it</h2><p>Session data stays on this service. A purchase sends payment details to Sociobot and Dodo, the merchant of record. We do not run analytics or third-party tracking.</p><h2>Your choices</h2><p>Teachers can export or delete a session from the private teacher view. Contact <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a> for a data request.</p></article>
+    <article class="legal section-shell narrow"><p class="eyebrow">Effective 28 August 2026</p><h1 tabindex="-1">Privacy in plain words</h1><p>In-Class Draft Ticket stores only what teachers and students enter.</p><h2>What we store</h2><p>We store the class name, writing prompt, class nicknames, ticket answers, and timestamps. We do not ask for student names, email addresses, or accounts.</p><h2>Why we store it</h2><p>The teacher uses this data to discuss and export in-class drafting choices. We do not use it to train models, target ads, or judge authorship.</p><h2>When we delete it</h2><p>The teacher chooses one, seven, or thirty days. The teacher can also delete a session at any time. Demo sessions expire after one day.</p><h2>Who receives it</h2><p>Session data stays on this service. We do not run analytics or third-party tracking. If a teacher restores an existing license, the token is checked with Sociobot.</p><h2>Your choices</h2><p>Teachers can export or delete a session from the private teacher view. Contact <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a> for a data request.</p></article>
   {:else if path === '/terms'}
-    <article class="legal section-shell narrow"><p class="eyebrow">Effective 28 August 2026</p><h1 tabindex="-1">Terms of use</h1><p>Use this service to record drafting choices during a class. Do not use it to collect sensitive student data.</p><h2>Teacher responsibility</h2><p>Teachers choose prompts, class nicknames, and retention periods. Teachers must follow their school rules and applicable privacy law.</p><h2>What the ticket means</h2><p>A draft ticket is a teaching aid. It does not prove authorship, detect AI use, or replace a teacher's judgment.</p><h2>Service limits</h2><p>Free sessions accept up to 40 tickets. The service may be unavailable during maintenance. Export important sessions before their deletion date.</p><h2>Purchases and refunds</h2><p>The $24 teacher license is a one-time purchase. It adds local prompt presets. Sociobot handles the license, and Dodo is the merchant of record. A refund revokes the license.</p><h2>Warranty</h2><p>The service is provided as available without warranties. We are not liable for lost class work or indirect damages.</p></article>
+    <article class="legal section-shell narrow"><p class="eyebrow">Effective 28 August 2026</p><h1 tabindex="-1">Terms of use</h1><p>Use this service to record drafting choices during a class. Do not use it to collect sensitive student data.</p><h2>Teacher responsibility</h2><p>Teachers choose prompts, class nicknames, and retention periods. Teachers must follow their school rules and applicable privacy law.</p><h2>What the ticket means</h2><p>A draft ticket is a teaching aid. It does not prove authorship, detect AI use, or replace a teacher's judgment.</p><h2>Service limits</h2><p>Free sessions accept up to 40 tickets. The service may be unavailable during maintenance. Export important sessions before their deletion date.</p><h2>Existing teacher licenses</h2><p>An active teacher license can save up to ten local prompt presets. New teacher licenses are not sold from this site. Sociobot verifies restored licenses.</p><h2>Warranty</h2><p>The service is provided as available without warranties. We are not liable for lost class work or indirect damages.</p></article>
   {:else}
     <section class="not-found section-shell narrow"><div class="lost-plot" aria-hidden="true">● · · · ○</div><p class="eyebrow">404 · Missing page</p><h1 tabindex="-1">This point is not connected</h1><p>The address does not lead to a draft session or page.</p><a class="button primary" href="/" on:click={clickLink}>Return home</a></section>
   {/if}

@@ -43,8 +43,8 @@
   },
   {
     "id": "paid-presets",
-    "claim": "A $24 one-time teacher license adds ten local prompt presets.",
-    "where": "landing pricing and terms",
+    "claim": "An active teacher license can save ten local prompt presets.",
+    "where": "landing teacher-license section, setup, and terms",
     "test": "npm test -- --grep @claim:paid-presets",
     "sandbox": "mock a valid Sociobot license response; save a preset and assert it persists locally"
   },

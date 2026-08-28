@@ -54,16 +54,19 @@ test('@claim:session-retention API records the selected deletion time', async ({
   expect(expiry - before).toBeLessThan(25*60*60*1000);
 });
 
-test('@claim:free-capacity free session accepts 40 tickets and rejects another', async ({request}) => {
+test('@claim:free-capacity concurrent requests store exactly 40 free-session tickets', async ({request}) => {
   const created = await newSession(request);
   const body = {pseudonym:'Blue Finch',claim:'A focused working claim.',evidence:'Page 4, paragraph 2.',revision:'I moved the quotation earlier.',reflection:'I will explain the image next.'};
-  for (let i=0;i<40;i++) {
-    const response = await request.post(`/api/sessions/${created.session.code}/tickets`,{headers:{'X-Forwarded-For':`10.0.0.${i+1}`},data:{...body,pseudonym:`Blue Finch ${i}`}});
-    expect(response.status()).toBe(201);
-  }
-  const overflow = await request.post(`/api/sessions/${created.session.code}/tickets`,{headers:{'X-Forwarded-For':'10.0.1.1'},data:body});
-  expect(overflow.status()).toBe(409);
-  expect((await overflow.json()).error).toContain('reached 40 tickets');
+  const responses = await Promise.all(Array.from({length:45}, (_, i) => request.post(
+    `/api/sessions/${created.session.code}/tickets`,
+    {headers:{'X-Forwarded-For':`10.0.0.${i+1}`},data:{...body,pseudonym:`Blue Finch ${i}`}}
+  )));
+  expect(responses.filter(response => response.status() === 201)).toHaveLength(40);
+  expect(responses.filter(response => response.status() === 409)).toHaveLength(5);
+  const overflowBodies = await Promise.all(responses.filter(response => response.status() === 409).map(response => response.json()));
+  expect(overflowBodies).toEqual(Array.from({length:5}, () => expect.objectContaining({error:expect.stringContaining('reached 40 tickets')})));
+  const teacher = await request.get(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}});
+  expect((await teacher.json()).tickets).toHaveLength(40);
 });
 
 test('@claim:privacy-minimal no tracking or capture occurs', async ({page}) => {
@@ -125,4 +128,46 @@ test('routes expose one focused page heading and working legal links', async ({p
     await expect(page.locator('main')).toBeVisible();
     await expect(page).toHaveTitle(/In-Class Draft Ticket/);
   }
+});
+
+test('public deep links return 200 documents and route metadata changes', async ({page, request}) => {
+  for (const route of ['/demo','/join','/start','/privacy','/terms','/session/ABCDEF','/teacher/ABCDEF']) {
+    const response = await request.get(route);
+    expect(response.status(), route).toBe(200);
+  }
+  await page.goto('/privacy');
+  await expect(page).toHaveTitle('Privacy — In-Class Draft Ticket');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/privacy');
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Privacy — In-Class Draft Ticket');
+  await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', 'Read how class session data is handled');
+});
+
+test('service worker installs, updates its cache, and reloads the shell offline', async ({page, context}) => {
+  await page.goto('/');
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  await expect.poll(() => page.evaluate(() => caches.keys())).toContain('draft-ticket-v2');
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', {name:'Record in-class drafting without surveillance'})).toBeVisible();
+});
+
+test('Back restores the prior landing scroll position', async ({page}) => {
+  await page.goto('/');
+  await page.evaluate(() => window.scrollTo(0, 1400));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1300);
+  await page.getByRole('contentinfo').getByRole('link', {name:'Privacy'}).click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1300);
+});
+
+test('mobile navigation and footer links meet the 44px target', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  await page.goto('/');
+  const heights = await page.locator('.site-header nav a, .site-footer nav a').evaluateAll(links => links
+    .filter(link => getComputedStyle(link).display !== 'none')
+    .map(link => link.getBoundingClientRect().height));
+  expect(heights.length).toBeGreaterThan(0);
+  expect(heights.every(height => height >= 44)).toBe(true);
 });
