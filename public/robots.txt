@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /teacher/
+Disallow: /session/
+Sitemap: https://in-class-draft-ticket.sociobot.in/sitemap.xml
