@@ -19,6 +19,7 @@ use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
+use tokio::sync::Mutex;
 use tower_http::{
     compression::CompressionLayer,
     services::{ServeDir, ServeFile},
@@ -33,6 +34,8 @@ mod db;
 #[derive(Clone)]
 struct AppState {
     db: SqlitePool,
+    snapshot_path: Arc<PathBuf>,
+    writes: Arc<Mutex<()>>,
     build_sha: &'static str,
     rates: Arc<DashMap<String, VecDeque<Instant>>>,
 }
@@ -112,31 +115,41 @@ async fn main() -> anyhow::Result<()> {
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(8080);
-    let data_dir = PathBuf::from(std::env::var("DATA_DIR").unwrap_or_else(|_| "./data".into()));
-    tokio::fs::create_dir_all(&data_dir).await?;
-    let db_url = format!("sqlite://{}/tickets.db?mode=rwc", data_dir.display());
-    let db = SqlitePool::connect(&db_url).await?;
-    db::migrate(&db).await?;
+    let supplied_data_dir = std::env::var("DATA_DIR").ok();
+    let data_dir = PathBuf::from(supplied_data_dir.as_deref().unwrap_or("./data"));
+    let (db, snapshot_path) = db::connect(&data_dir).await?;
     let state = AppState {
         db,
+        snapshot_path: Arc::new(snapshot_path),
+        writes: Arc::new(Mutex::new(())),
         build_sha: env!("BUILD_SHA"),
         rates: Arc::new(DashMap::new()),
     };
-    let cleanup_db = state.db.clone();
+    let cleanup_state = state.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(3600));
         loop {
             interval.tick().await;
-            if let Err(error) = sqlx::query("DELETE FROM sessions WHERE expires_at <= ?")
+            let _guard = cleanup_state.writes.lock().await;
+            let result = sqlx::query("DELETE FROM sessions WHERE expires_at <= ?")
                 .bind(Utc::now())
-                .execute(&cleanup_db)
-                .await
-            {
-                warn!(%error, "expired-session cleanup failed");
+                .execute(&cleanup_state.db)
+                .await;
+            match result {
+                Ok(done) if done.rows_affected() > 0 => {
+                    if let Err(error) =
+                        db::checkpoint(&cleanup_state.db, cleanup_state.snapshot_path.as_ref())
+                            .await
+                    {
+                        warn!(%error, "expired-session checkpoint failed");
+                    }
+                }
+                Ok(_) => {}
+                Err(error) => warn!(%error, "expired-session cleanup failed"),
             }
         }
     });
-    info!(port, data_dir = %data_dir.display(), build_sha = state.build_sha, "configuration loaded; storage path defaulted or supplied, no secrets required");
+    info!(port, data_dir = %data_dir.display(), data_dir_source = if supplied_data_dir.is_some() { "supplied" } else { "defaulted" }, build_sha = state.build_sha, "configuration loaded; durable checkpoints enabled, no secrets required");
 
     let api = Router::new()
         .route("/sessions", post(create_session))
@@ -318,10 +331,10 @@ async fn create_session(
             "Retention must be 1, 7, or 30 days.".into(),
         ));
     }
-    Ok((
-        StatusCode::CREATED,
-        Json(insert_session(&state, &title, &prompt, days, false).await?),
-    ))
+    let _guard = state.writes.lock().await;
+    let created = insert_session(&state, &title, &prompt, days, false).await?;
+    persist(&state).await?;
+    Ok((StatusCode::CREATED, Json(created)))
 }
 
 async fn active_session(state: &AppState, code: &str) -> Result<Session, ApiError> {
@@ -365,6 +378,7 @@ async fn create_ticket(
     let evidence = clean(&body.evidence, "Evidence location", 3, 280)?;
     let revision = clean(&body.revision, "Revision choice", 3, 280)?;
     let reflection = clean(&body.reflection, "Exit reflection", 3, 500)?;
+    let _guard = state.writes.lock().await;
     let session = active_session(&state, &code).await?;
     let ticket = Ticket {
         id: Uuid::new_v4().to_string(),
@@ -388,6 +402,7 @@ async fn create_ticket(
             "This session has reached 40 tickets. Ask your teacher to open another session.".into(),
         ));
     }
+    persist(&state).await?;
     Ok((StatusCode::CREATED, Json(ticket)))
 }
 
@@ -476,18 +491,21 @@ async fn delete_session(
     Path(code): Path<String>,
     req: Request<Body>,
 ) -> Result<StatusCode, ApiError> {
+    let _guard = state.writes.lock().await;
     let session = authorized_session(&state, &code, bearer(&req)).await?;
     sqlx::query("DELETE FROM sessions WHERE code = ?")
         .bind(&session.code)
         .execute(&state.db)
         .await
         .map_err(internal)?;
+    persist(&state).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
 async fn create_demo(
     State(state): State<AppState>,
 ) -> Result<(StatusCode, Json<CreatedSession>), ApiError> {
+    let _guard = state.writes.lock().await;
     let created = insert_session(
         &state,
         "Room 204 · Beloved seminar",
@@ -523,7 +541,20 @@ async fn create_demo(
         sqlx::query("INSERT INTO tickets(id,session_code,pseudonym,claim,evidence,revision,reflection,created_at) VALUES(?,?,?,?,?,?,?,?)")
             .bind(Uuid::new_v4().to_string()).bind(&created.session.code).bind(p).bind(c).bind(e).bind(r).bind(x).bind(Utc::now()).execute(&state.db).await.map_err(internal)?;
     }
+    persist(&state).await?;
     Ok((StatusCode::CREATED, Json(created)))
+}
+
+async fn persist(state: &AppState) -> Result<(), ApiError> {
+    db::checkpoint(&state.db, state.snapshot_path.as_ref())
+        .await
+        .map_err(|error| {
+            warn!(%error, "durable database checkpoint failed");
+            ApiError(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "The session could not be saved. Wait a moment, then try again.".into(),
+            )
+        })
 }
 
 fn csv_cell(value: &str) -> String {
@@ -553,5 +584,34 @@ mod tests {
     #[test]
     fn csv_cells_escape_quotes() {
         assert_eq!(csv_cell("A \"clear\" claim"), "\"A \"\"clear\"\" claim\"");
+    }
+
+    #[tokio::test]
+    async fn durable_checkpoint_restores_after_restart() {
+        let data_dir = std::env::temp_dir().join(format!("draft-ticket-test-{}", Uuid::new_v4()));
+        let (pool, snapshot_path) = db::connect(&data_dir).await.unwrap();
+        sqlx::query("INSERT INTO sessions(code,title,prompt,teacher_token,created_at,expires_at,is_demo) VALUES(?,?,?,?,?,?,?)")
+            .bind("ABC234")
+            .bind("Restart test")
+            .bind("Where did the draft change?")
+            .bind("private-test-token")
+            .bind(Utc::now())
+            .bind(Utc::now() + ChronoDuration::days(1))
+            .bind(false)
+            .execute(&pool)
+            .await
+            .unwrap();
+        db::checkpoint(&pool, &snapshot_path).await.unwrap();
+        pool.close().await;
+
+        let (restored, _) = db::connect(&data_dir).await.unwrap();
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sessions WHERE code = ?")
+            .bind("ABC234")
+            .fetch_one(&restored)
+            .await
+            .unwrap();
+        assert_eq!(count, 1);
+        restored.close().await;
+        tokio::fs::remove_dir_all(data_dir).await.unwrap();
     }
 }

@@ -43,7 +43,7 @@ docker run --rm -p 8080:8080 -v draft-ticket-data:/app/data in-class-draft-ticke
 
 The container runs as a non-root user and reads only `PORT`, which defaults to `8080`. `DATA_DIR` is an optional local-development override. `GET /health` returns the build SHA.
 
-The factory deployment mounts one dedicated durable Azure Files share at `/app/data` and keeps exactly one replica because SQLite has one writer. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records those required settings and `npm run test:contracts` prevents the image or topology from drifting back to replica-local storage.
+The factory deployment mounts one dedicated Azure Files share at `/app/data` and keeps exactly one replica because SQLite has one writer. SQLite works on local disk, then atomically checkpoints each committed change to that durable mount; startup restores the last checkpoint. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records those required settings and `npm run test:contracts` prevents the image or topology from drifting back to replica-local storage.
 
 ## Privacy and limits
 
