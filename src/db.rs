@@ -8,6 +8,7 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
     SqlitePool,
 };
+use tokio::io::AsyncWriteExt;
 
 pub async fn migrate(pool: &SqlitePool) -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(pool).await?;
@@ -63,9 +64,14 @@ pub async fn checkpoint(pool: &SqlitePool, snapshot_path: &Path) -> anyhow::Resu
         .await?;
     let local_file = tokio::fs::File::open(&local_path).await?;
     local_file.sync_all().await?;
-    tokio::fs::copy(&local_path, &durable_path).await?;
-    let durable_file = tokio::fs::File::open(&durable_path).await?;
+    // `tokio::fs::copy` may use copy_file_range(2), which Azure Files rejects.
+    // A buffered stream is portable across the SMB-backed production mount.
+    let mut local_file = tokio::fs::File::open(&local_path).await?;
+    let mut durable_file = tokio::fs::File::create(&durable_path).await?;
+    tokio::io::copy(&mut local_file, &mut durable_file).await?;
+    durable_file.flush().await?;
     durable_file.sync_all().await?;
+    drop(durable_file);
     tokio::fs::rename(&durable_path, snapshot_path).await?;
     tokio::fs::remove_file(local_path).await?;
     Ok(())
