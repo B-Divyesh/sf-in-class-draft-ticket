@@ -43,16 +43,30 @@ pub async fn connect(data_dir: &Path) -> anyhow::Result<(SqlitePool, PathBuf)> {
 }
 
 pub async fn checkpoint(pool: &SqlitePool, snapshot_path: &Path) -> anyhow::Result<()> {
-    let temporary_path = snapshot_path.with_extension(format!("db.{}.tmp", std::process::id()));
-    if tokio::fs::try_exists(&temporary_path).await? {
-        tokio::fs::remove_file(&temporary_path).await?;
+    // SQLite's byte-range locks are not portable to every network filesystem.
+    // Build a consistent snapshot locally, then copy only raw bytes to the
+    // durable mount and atomically replace the previous checkpoint there.
+    let local_path = std::env::temp_dir().join(format!(
+        "in-class-draft-ticket-checkpoint-{}.db",
+        std::process::id()
+    ));
+    let durable_path = snapshot_path.with_extension(format!("db.{}.tmp", std::process::id()));
+    if tokio::fs::try_exists(&local_path).await? {
+        tokio::fs::remove_file(&local_path).await?;
+    }
+    if tokio::fs::try_exists(&durable_path).await? {
+        tokio::fs::remove_file(&durable_path).await?;
     }
     sqlx::query("VACUUM INTO ?")
-        .bind(temporary_path.to_string_lossy().as_ref())
+        .bind(local_path.to_string_lossy().as_ref())
         .execute(pool)
         .await?;
-    let file = tokio::fs::File::open(&temporary_path).await?;
-    file.sync_all().await?;
-    tokio::fs::rename(&temporary_path, snapshot_path).await?;
+    let local_file = tokio::fs::File::open(&local_path).await?;
+    local_file.sync_all().await?;
+    tokio::fs::copy(&local_path, &durable_path).await?;
+    let durable_file = tokio::fs::File::open(&durable_path).await?;
+    durable_file.sync_all().await?;
+    tokio::fs::rename(&durable_path, snapshot_path).await?;
+    tokio::fs::remove_file(local_path).await?;
     Ok(())
 }
