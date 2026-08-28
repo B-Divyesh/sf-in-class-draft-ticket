@@ -26,10 +26,14 @@ Checked 28 August 2026. Counts treat hyphenated terms and numbers as one word. N
 | No claim of proving authorship | 5 | Pass |
 | The ticket gives teachers a starting point for feedback. | 9 | Pass |
 | It does not judge who wrote a draft. | 8 | Pass |
-| Save reusable prompt presets | 4 | Pass |
+| Use your prompt presets | 4 | Pass |
 | Free sessions include every student and export feature. | 8 | Pass |
-| A $24 one-time license adds ten local prompt presets. | 9 | Pass |
-| Sociobot and Dodo handle checkout and refunds. | 7 | Pass |
+| An active teacher license can save ten local prompt presets. | 10 | Pass |
+| Existing teacher license | 3 | Pass |
+| Teacher license sales are not available from this site right now. | 11 | Pass |
+| All class-session tools remain free. | 5 | Pass |
+| Have a license? | 3 | Pass |
+| Verify license | 2 | Pass |
 | Record in-class drafting without surveillance. | 5 | Pass |
 
 ## First-screen read-aloud check
@@ -44,7 +48,7 @@ Checked 28 August 2026. Counts treat hyphenated terms and numbers as one word. N
 | One student's process record | draft ticket |
 | Student identifier | class nickname |
 | Secret recovery URL | private teacher link |
-| Paid reusable setup | prompt preset |
+| Reusable teacher setup | prompt preset |
 | Downloaded session sheet | CSV export |
 
 Catalog description: “Record in-class drafting without surveillance” (47 characters).

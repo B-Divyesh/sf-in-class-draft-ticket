@@ -45,11 +45,13 @@ The container runs as a non-root user and reads only `PORT`, which defaults to `
 
 The factory deployment mounts one dedicated Azure Files share at `/app/data` and keeps exactly one replica because SQLite has one writer. SQLite works on local disk, then atomically checkpoints each committed change to that durable mount; startup restores the last checkpoint. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records those required settings and `npm run test:contracts` prevents the image or topology from drifting back to replica-local storage.
 
+Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. That path builds in ACR and applies the repository contract atomically; the generic three-replica deployer is not valid for this SQLite service.
+
 ## Privacy and limits
 
 Sessions expire after the teacher's chosen one, seven, or thirty days. Free sessions accept up to 40 tickets. Teachers can delete a session early. See `/privacy` and `/terms` for the full plain-language policies.
 
-An active teacher license can add ten prompt presets stored on the current device. New licenses are not sold from this site while the Sociobot product registration is unavailable; existing licenses are checked through the Sociobot billing API. This repository contains no payment-provider code or product ID.
+An active teacher license can add ten prompt presets stored on the current device. New licenses are not sold from this site; existing licenses are checked through the Sociobot billing API. This repository contains no payment-provider code or product ID.
 
 ## Project notes
 

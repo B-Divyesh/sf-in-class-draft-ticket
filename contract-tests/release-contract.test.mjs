@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
@@ -23,6 +24,33 @@ test('production SQLite uses one replica and a durable data mount', async () => 
     accessMode: 'ReadWrite'
   });
   assert.deepEqual(deployment.runtime.requiredEnvironment, ['PORT']);
+});
+
+test('deployment renderer applies the storage and scale contract atomically', () => {
+  const image = 'sociobotregistry.azurecr.io/sf-in-class-draft-ticket:test-sha';
+  const rendered = JSON.parse(execFileSync(
+    process.execPath,
+    ['deployment/render-containerapp.mjs', image],
+    { cwd: new URL('..', import.meta.url), encoding: 'utf8' }
+  ));
+  assert.deepEqual(rendered.properties.template.scale, { minReplicas: 1, maxReplicas: 1 });
+  assert.deepEqual(rendered.properties.template.volumes, [{
+    name: 'session-data', storageType: 'AzureFile', storageName: 'in-class-draft-ticket-data'
+  }]);
+  assert.deepEqual(rendered.properties.template.containers, [{
+    name: 'app',
+    image,
+    resources: { cpu: 0.5, memory: '1Gi' },
+    env: [{ name: 'PORT', value: '8080' }],
+    volumeMounts: [{ volumeName: 'session-data', mountPath: '/app/data' }]
+  }]);
+});
+
+test('product deploy path uses the contract renderer instead of the generic three-replica deployer', async () => {
+  const deploy = await read('deployment/deploy.sh');
+  assert.match(deploy, /render-containerapp\.mjs/);
+  assert.match(deploy, /az rest --method patch/);
+  assert.doesNotMatch(deploy, /deploy-container\.sh/);
 });
 
 test('claim runner compiles before Playwright starts its server timer', async () => {

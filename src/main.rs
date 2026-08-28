@@ -1,6 +1,6 @@
 use std::{
     collections::VecDeque,
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
     path::PathBuf,
     sync::Arc,
     time::{Duration, Instant},
@@ -38,6 +38,7 @@ struct AppState {
     writes: Arc<Mutex<()>>,
     build_sha: &'static str,
     rates: Arc<DashMap<String, VecDeque<Instant>>>,
+    test_clock_enabled: bool,
 }
 
 #[derive(Debug, Serialize, FromRow)]
@@ -67,6 +68,8 @@ struct NewSession {
     title: String,
     prompt: String,
     retention_days: Option<i64>,
+    #[serde(default)]
+    test_retention_seconds: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -118,16 +121,26 @@ async fn main() -> anyhow::Result<()> {
     let supplied_data_dir = std::env::var("DATA_DIR").ok();
     let data_dir = PathBuf::from(supplied_data_dir.as_deref().unwrap_or("./data"));
     let (db, snapshot_path) = db::connect(&data_dir).await?;
+    // A short clock is available only in debug builds so the browser suite can
+    // observe automatic expiry. Release binaries always use calendar days.
+    let test_clock_enabled =
+        cfg!(debug_assertions) && std::env::var("ALLOW_TEST_CLOCK").as_deref() == Ok("1");
     let state = AppState {
         db,
         snapshot_path: Arc::new(snapshot_path),
         writes: Arc::new(Mutex::new(())),
         build_sha: env!("BUILD_SHA"),
         rates: Arc::new(DashMap::new()),
+        test_clock_enabled,
     };
     let cleanup_state = state.clone();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(3600));
+        let cleanup_period = if cleanup_state.test_clock_enabled {
+            Duration::from_millis(100)
+        } else {
+            Duration::from_secs(3600)
+        };
+        let mut interval = tokio::time::interval(cleanup_period);
         loop {
             interval.tick().await;
             let _guard = cleanup_state.writes.lock().await;
@@ -223,14 +236,7 @@ async fn spa_shell() -> Result<Html<String>, StatusCode> {
 }
 
 async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> Response {
-    let ip = req
-        .headers()
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.split(',').next())
-        .map(str::trim)
-        .unwrap_or("local")
-        .to_string();
+    let ip = client_ip(&req);
     let now = Instant::now();
     let mut times = state.rates.entry(ip).or_default();
     while times
@@ -256,6 +262,22 @@ async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> 
     times.push_back(now);
     drop(times);
     next.run(req).await
+}
+
+fn client_ip(req: &Request) -> String {
+    // Azure's ingress appends the address it observed to X-Forwarded-For.
+    // Earlier values are supplied by the client and therefore untrusted.
+    req.headers()
+        .get("x-forwarded-for")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|chain| {
+            chain
+                .split(',')
+                .rev()
+                .find_map(|part| part.trim().parse::<IpAddr>().ok())
+        })
+        .map(|ip| ip.to_string())
+        .unwrap_or_else(|| "unidentified".to_string())
 }
 
 async fn cache_headers(req: Request, next: Next) -> Response {
@@ -296,12 +318,17 @@ async fn insert_session(
     title: &str,
     prompt: &str,
     days: i64,
+    test_retention_seconds: Option<i64>,
     demo: bool,
 ) -> Result<CreatedSession, ApiError> {
     let code = new_code();
     let teacher_token = format!("dt_{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple());
     let created_at = Utc::now();
-    let expires_at = created_at + ChronoDuration::days(days);
+    let retention = test_retention_seconds
+        .filter(|seconds| state.test_clock_enabled && (1..=10).contains(seconds))
+        .map(ChronoDuration::seconds)
+        .unwrap_or_else(|| ChronoDuration::days(days));
+    let expires_at = created_at + retention;
     sqlx::query("INSERT INTO sessions(code,title,prompt,teacher_token,created_at,expires_at,is_demo) VALUES(?,?,?,?,?,?,?)")
         .bind(&code).bind(title).bind(prompt).bind(&teacher_token).bind(created_at).bind(expires_at).bind(demo).execute(&state.db).await
         .map_err(internal)?;
@@ -332,7 +359,15 @@ async fn create_session(
         ));
     }
     let _guard = state.writes.lock().await;
-    let created = insert_session(&state, &title, &prompt, days, false).await?;
+    let created = insert_session(
+        &state,
+        &title,
+        &prompt,
+        days,
+        body.test_retention_seconds,
+        false,
+    )
+    .await?;
     persist(&state).await?;
     Ok((StatusCode::CREATED, Json(created)))
 }
@@ -511,6 +546,7 @@ async fn create_demo(
         "Room 204 · Beloved seminar",
         "How does Morrison use memory to shape Sethe's choices?",
         1,
+        None,
         true,
     )
     .await?;
@@ -584,6 +620,18 @@ mod tests {
     #[test]
     fn csv_cells_escape_quotes() {
         assert_eq!(csv_cell("A \"clear\" claim"), "\"A \"\"clear\"\" claim\"");
+    }
+
+    #[test]
+    fn forwarded_client_uses_ingress_appended_address() {
+        let request = Request::builder()
+            .header(
+                "x-forwarded-for",
+                "198.51.100.44, not-an-address, 203.0.113.9",
+            )
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(client_ip(&request), "203.0.113.9");
     }
 
     #[tokio::test]

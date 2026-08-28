@@ -25,7 +25,7 @@
     "claim": "Teachers choose one, seven, or thirty days before a session expires and is deleted.",
     "where": "landing facts, setup, privacy, README",
     "test": "npm test -- --grep @claim:session-retention",
-    "sandbox": "fresh API session; request one-day retention and assert the returned deletion time"
+    "sandbox": "fresh API sessions; assert one-, seven-, and thirty-day deletion times, then use the debug-only accelerated clock and observe expiry cleanup"
   },
   {
     "id": "free-capacity",
@@ -46,13 +46,13 @@
     "claim": "An active teacher license can save ten local prompt presets.",
     "where": "landing teacher-license section, setup, and terms",
     "test": "npm test -- --grep @claim:paid-presets",
-    "sandbox": "mock a valid Sociobot license response; save a preset and assert it persists locally"
+    "sandbox": "mock a valid Sociobot license response; save ten presets, assert local persistence, and assert the eleventh is rejected"
   },
   {
     "id": "teacher-control",
     "claim": "Only the private teacher link can read, export, or delete a session.",
     "where": "teacher view, setup, privacy, README",
     "test": "npm test -- --grep @claim:teacher-control",
-    "sandbox": "fresh API session; reject unauthenticated read and accept authenticated deletion"
+    "sandbox": "fresh API session; reject unauthenticated read, CSV export, and deletion, then accept all three with the private token"
   }
 ]

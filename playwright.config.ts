@@ -17,7 +17,7 @@ export default defineConfig({
     url: 'http://127.0.0.1:8080/health',
     reuseExistingServer: false,
     timeout: 30_000,
-    env: { PORT: '8080', DATA_DIR: './test-data' }
+    env: { PORT: '8080', DATA_DIR: './test-data', ALLOW_TEST_CLOCK: '1' }
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

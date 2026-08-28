@@ -11,6 +11,11 @@ h1[tabindex="-1"]:focus { outline: none; }
   text-decoration: none;
 }
 
+.wordmark {
+  min-height: 44px;
+  padding-block: 9px;
+}
+
 .preset-tools {
   padding: 16px;
   margin-bottom: 8px;

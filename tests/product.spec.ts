@@ -47,11 +47,31 @@ test('@claim:pseudonymous-flow teacher sees four submitted checkpoints', async (
   expect(data.tickets[0]).toMatchObject({pseudonym:'Green Comet',claim:'The doorway shows the narrator changing her mind.',evidence:'Page 12, final paragraph.',revision:'I moved the quotation before my explanation.',reflection:'I need to explain the last image next.'});
 });
 
-test('@claim:session-retention API records the selected deletion time', async ({request}) => {
-  const before = Date.now(); const created = await newSession(request,1);
-  const expiry = new Date(created.session.expires_at).getTime();
-  expect(expiry - before).toBeGreaterThan(23*60*60*1000);
-  expect(expiry - before).toBeLessThan(25*60*60*1000);
+test('@claim:session-retention supports every retention choice and deletes an expired session', async ({request}) => {
+  for (const days of [1, 7, 30]) {
+    const before = Date.now();
+    const created = await newSession(request, days);
+    const expiry = new Date(created.session.expires_at).getTime();
+    expect(expiry - before).toBeGreaterThan((days * 24 - 1) * 60 * 60 * 1000);
+    expect(expiry - before).toBeLessThan((days * 24 + 1) * 60 * 60 * 1000);
+    expect((await request.delete(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(204);
+  }
+
+  const expiring = await request.post('/api/sessions', {data:{
+    title:'Short retention proof',
+    prompt:'What changed in this draft?',
+    retention_days:1,
+    test_retention_seconds:1
+  }});
+  expect(expiring.status()).toBe(201);
+  const expiringBody = await expiring.json();
+  const {session} = expiringBody;
+  const health = await (await request.get('/health')).json();
+  if (health.build_sha === 'dev') {
+    await expect.poll(async () => (await request.get(`/api/sessions/${session.code}`)).status(), {timeout:5_000}).toBe(404);
+  } else {
+    await request.delete(`/api/teacher/${session.code}`, {headers:{Authorization:`Bearer ${expiringBody.teacher_token}`}});
+  }
 });
 
 test('@claim:free-capacity concurrent requests store exactly 40 free-session tickets', async ({request}) => {
@@ -83,21 +103,33 @@ test('@claim:privacy-minimal no tracking or capture occurs', async ({page}) => {
   expect(await page.evaluate(() => (window as any).__mediaCalls)).toBe(0);
 });
 
-test('@claim:paid-presets valid license saves local prompt presets', async ({page}) => {
+test('@claim:paid-presets valid license saves ten local presets and rejects the eleventh', async ({page}) => {
   await page.route('https://api.sociobot.in/api/v1/products/in-class-draft-ticket/verify?*', route => route.fulfill({json:{valid:true,reason:'ok',expires_at:null}}));
   await page.goto('/?license=test-valid-license');
   await page.getByRole('link',{name:'Start a class session'}).click();
   await expect(page.getByLabel('Saved prompt presets')).toBeVisible();
-  await page.getByLabel('Class or section name').fill('Morning seminar');
-  await page.getByLabel('Writing prompt').fill('Where does the argument change direction?');
+  for (let index = 1; index <= 10; index++) {
+    await page.getByLabel('Class or section name').fill(`Seminar ${index}`);
+    await page.getByLabel('Writing prompt').fill(`Where does argument ${index} change direction?`);
+    await page.getByRole('button',{name:'Save as prompt preset'}).click();
+    await expect(page.getByText('Prompt preset saved on this device.')).toBeVisible();
+  }
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('paid:prompt-presets')!))).toHaveLength(10);
+
+  await page.getByLabel('Class or section name').fill('Seminar 11');
+  await page.getByLabel('Writing prompt').fill('Where does argument 11 change direction?');
   await page.getByRole('button',{name:'Save as prompt preset'}).click();
-  await expect(page.getByText('Prompt preset saved on this device.')).toBeVisible();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('paid:prompt-presets')!))).toHaveLength(1);
+  await expect(page.getByRole('alert')).toHaveText('Ten presets are already saved. Remove one before adding another.');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('paid:prompt-presets')!))).toHaveLength(10);
 });
 
-test('@claim:teacher-control private token protects and deletes a session', async ({request}) => {
+test('@claim:teacher-control private token protects read, export, and delete', async ({request}) => {
   const created = await newSession(request);
   expect((await request.get(`/api/teacher/${created.session.code}`)).status()).toBe(401);
+  expect((await request.get(`/api/teacher/${created.session.code}/export`)).status()).toBe(401);
+  expect((await request.delete(`/api/teacher/${created.session.code}`)).status()).toBe(401);
+  expect((await request.get(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(200);
+  expect((await request.get(`/api/teacher/${created.session.code}/export`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(200);
   const deleted = await request.delete(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}});
   expect(deleted.status()).toBe(204);
   expect((await request.get(`/api/sessions/${created.session.code}`)).status()).toBe(404);
@@ -108,6 +140,19 @@ test('API rate limit returns Retry-After', async ({request}) => {
   for (let i=0;i<45;i++) results.push(await request.get('/api/sessions/ABCDEF',{headers:{'X-Forwarded-For':'203.0.113.10'}}));
   expect(results.some(r => r.status() === 429)).toBe(true);
   expect(results.find(r => r.status() === 429)?.headers()['retry-after']).toBe('1');
+});
+
+test('API rate limit ignores spoofed forwarding prefixes', async ({request}, testInfo) => {
+  const trustedAddress = testInfo.project.name === 'chromium' ? '203.0.113.77' : '203.0.113.78';
+  const results = [];
+  for (let i=0;i<45;i++) {
+    results.push(await request.get('/api/sessions/ABCDEF', {
+      headers:{'X-Forwarded-For':`198.51.100.${i + 1}, ${trustedAddress}`}
+    }));
+  }
+  expect(results.filter(response => response.status() !== 429)).toHaveLength(40);
+  expect(results.filter(response => response.status() === 429)).toHaveLength(5);
+  expect(results.filter(response => response.status() === 429).every(response => response.headers()['retry-after'] === '1')).toBe(true);
 });
 
 test('public routes pass desktop and 390px accessibility checks without console errors', async ({page}) => {
@@ -168,10 +213,10 @@ test('Back restores the prior landing scroll position', async ({page}) => {
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1300);
 });
 
-test('mobile navigation and footer links meet the 44px target', async ({page}) => {
+test('mobile wordmark, navigation, and footer links meet the 44px target', async ({page}) => {
   await page.setViewportSize({width:390,height:844});
   await page.goto('/');
-  const heights = await page.locator('.site-header nav a, .site-footer nav a').evaluateAll(links => links
+  const heights = await page.locator('.wordmark, .site-header nav a, .site-footer nav a').evaluateAll(links => links
     .filter(link => getComputedStyle(link).display !== 'none')
     .map(link => link.getBoundingClientRect().height));
   expect(heights.length).toBeGreaterThan(0);
