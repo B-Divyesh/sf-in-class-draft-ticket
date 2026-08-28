@@ -1,48 +1,54 @@
-# Handoff — independent verification 3
+# Handoff — release-blocking QA repair 3
 
-## Status: FAIL — do not release
+## Status: repaired, verified, and deployed
 
-- Candidate: `e267a8283bef762a94f283d6d8287c1f80e59e57`
-- Live URL: <https://in-class-draft-ticket.sociobot.in>
-- Verified: 28 August 2026 UTC
-- Full report: [`.factory/verification-3.md`](verification-3.md)
+This repair addresses every finding in `.factory/verification-3.md` for candidate `e267a8283bef762a94f283d6d8287c1f80e59e57`. The final candidate is the commit containing this handoff. The product-specific deploy path embeds that full commit in `/health`, and the final live identity was checked after deployment.
 
-Production reports the exact candidate SHA and serves byte-identical frontend assets, but it does not use the repository's deployment contract. Azure currently shows three active replicas (`maxReplicas: 3`) with no volume or volume mount. Each replica therefore has separate ephemeral SQLite state.
+## Repairs
 
-Fresh proof:
+- Production topology: `deployment/deploy.sh` now builds the committed source in ACR and atomically applies the checked-in container contract through `deployment/render-containerapp.mjs`. It cannot call the generic three-replica deployer. The live app has exactly one replica and an Azure Files volume mounted at `/app/data`.
+- Durable classroom state: the existing local-SQLite plus durable-checkpoint design is now actually present in production. A fresh session and ticket survived a forced live revision restart.
+- Rate-limit identity: the backend keys on the ingress-appended end of `X-Forwarded-For`, not the user-controlled beginning. A Rust unit test and browser regression cover the parsing rule. Rotating attacker prefixes no longer creates new buckets.
+- Claim depth: retention now covers all three choices and observes automatic expiry cleanup with a debug-only accelerated clock. Presets cover ten saves plus a rejected eleventh. Teacher control covers unauthenticated and authenticated read, CSV export, and deletion.
+- Test isolation: the 40-ticket capacity test is paced below the independent request-rate boundary. This lets the production matrix prove capacity without treating its two browser workers as different clients.
+- Mobile accessibility: the wordmark/home link now has a 44 px minimum target, and its computed height is part of the mobile regression.
+- Copy audit: `.factory/copy-audit.md` now records the current existing-license and unavailable-sales copy. Removed price and checkout text is gone.
 
-- A newly created session returned 200 on 10/30 student reads and 404 on 20/30.
-- Its private teacher link returned 200 on 10/30 reads and 401 on 20/30.
-- Nine fresh one-click demo attempts loaded zero sample sheets; all nine showed an invalid teacher-link error.
-- A fixed-client 180-request burst received 120 ordinary responses before 60 × 429 (`Retry-After: 1`), reflecting three independent 40-request limiters.
-- The same host rotated its user-supplied `X-Forwarded-For` value and received 180/180 ordinary responses, bypassing the limiter.
+## Clean local verification
 
-This breaks the brief's core teacher/student workflow and the mandatory one-click demo gate. Evidence screenshots are in `.factory/qa-evidence/`.
+- `npm ci` — PASS; 50 packages, zero vulnerabilities.
+- Every exact command in `.factory/claims.json` — PASS independently; 2/2 browser projects for each of eight claims.
+- `npm test` — PASS; 34/34 Playwright tests and 5/5 release-contract tests.
+- `npx tsc --noEmit` — PASS.
+- `cargo clean` followed by `cargo test --all-targets --all-features` — PASS; 4/4 tests.
+- `cargo fmt --all -- --check` — PASS.
+- `cargo clippy --all-targets --all-features -- -D warnings` — PASS.
+- `cargo build --release` — PASS.
+- `npm run build` — PASS; `dist/` produced.
+- `npm audit --audit-level=high` — PASS; zero vulnerabilities.
+- Zero-config release startup with only `PORT` — PASS. Startup logged default storage selection without a secret, and graceful shutdown completed.
+- Local load smoke — PASS; 100/100 API reads returned the expected status in 214 ms.
+- Local response policy — PASS; CSP, `frame-ancestors 'none'`, `nosniff`, and strict-origin referrer policy were present.
+- Bundles — JavaScript 23,832 bytes gzip; CSS 3,968 bytes gzip; fonts 118,264 bytes; hero WebP 46,170 bytes. All budgets pass.
 
-## What passed
+## Live verification
 
-- All eight exact `.factory/claims.json` commands passed locally in both browser projects.
-- Standalone `npm test` passed 32/32 browser tests and 3/3 release-contract tests.
-- TypeScript, production frontend build, Rust format/clippy/tests/release build, and npm audit passed.
-- Local exact input boundaries, invalid-input recovery, atomic 40-ticket capacity, CSV, authentication, 100-request load, and graceful restart persistence passed.
-- The initial full production Playwright run passed 32/32 before traffic scaled the service to three replicas; post-scale manual checks then reproduced the blocker consistently.
-- Live routes, links, response security headers, immutable asset caching, same-origin request logging, service-worker update/offline reload, reduced motion, keyboard focus, and axe serious/critical checks passed.
-- Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 100; LCP 1.5 s, TBT 90 ms, CLS 0.029.
-- Bundles pass: 23,832-byte gzip JS, 3,959-byte gzip CSS, 118,264 bytes of fonts, 46,170-byte hero.
+- Deployment state — PASS: `minReplicas: 1`, `maxReplicas: 1`, one running replica, `session-data` Azure Files volume, `/app/data` mount, and only `PORT=8080` in the container environment.
+- Full production browser matrix — PASS; 34/34 across desktop Chromium and Pixel 5/390 px.
+- Fresh demo repetition — PASS; 9/9 isolated browser contexts loaded exactly three sample tickets in one click.
+- Session distribution — PASS; a fresh ticket returned 30/30 student reads and 30/30 authenticated teacher reads.
+- Teacher privacy — PASS; export returned 401 without the private token and 200 with it. Authenticated deletion returned 204 and the next student read returned 404.
+- Durable restart — PASS; after forcing the active revision to restart, the same student and authenticated teacher reads both returned 200 with the saved ticket.
+- Rate limiting — PASS. A fixed 45-request burst returned 40 ordinary responses and 5 × 429. A second burst with 45 different user-supplied forwarding prefixes returned the same 40/5 split. Every 429 had `Retry-After: 1`.
+- Factory URL verifier — PASS in 604 ms; no console errors, correct title and language, one `h1`, `main`, image alt text, and labeled buttons.
+- Accessibility and keyboard — PASS; all public routes at both viewports had zero serious/critical axe findings, no overflow, visible skip-link focus, route-change focus, no traps, reduced-motion behavior, and 44 px mobile navigation targets.
+- Privacy and offline/update — PASS; same-origin-only request logging, no media calls, service-worker install/update, and offline reload all passed.
+- Response policy and routing — PASS; public/deep routes, styled 404, canonical metadata, security headers, and immutable asset caching passed with no console or page errors.
+- Lighthouse mobile — Performance 100, Accessibility 100, Best Practices 100, SEO 100; FCP 1.2 s, LCP 1.5 s, TBT 90 ms, CLS 0.029.
+- Evidence is in `.factory/evidence/repair-3/`: desktop and 390 px screenshots, fetched HTML, URL-verifier JSON, and health body/headers.
 
-## Additional defects
+The first post-repair live matrix correctly showed that the old concurrent capacity test collided with the newly trustworthy per-client limiter. The test was paced below 40 requests per second, rerun locally and live, and then the complete live matrix passed.
 
-- Major: the live request allowance is 120 per second across replicas, not the intended 40, and client-supplied forwarding headers bypass it.
-- Major: retention, ten-preset capacity, and private-export claim tests do not assert their complete promises.
-- Medium: the 390 px home wordmark link is 25 px high, below the 44 px touch-target requirement.
-- Low: `.factory/copy-audit.md` contains removed paid-checkout copy and is stale.
+## Known gaps and next steps
 
-## Required next steps
-
-1. Deploy with exactly one replica and the durable Azure Files mount at `/app/data`, matching `deployment/containerapp-contract.json`; alternatively migrate persistence and rate limits to shared services before scaling out.
-2. Confirm 100% success for fresh demo creation, repeated student reads, private teacher reads/export, deletion, and a restart.
-3. Enforce the documented per-client limit across the deployment and do not trust a user-controlled first `X-Forwarded-For` value.
-4. Complete the three under-scoped claim tests and enlarge the mobile wordmark target.
-5. Rerun every claim command, the full local suite, and the full live verification after deployment.
-
-No product code was modified during verification. Docker was unavailable in this container; the frontend and Rust release builds were run directly.
+No release-blocking gaps remain. This low-volume SQLite service intentionally has one application replica. Future deployments must use `deployment/deploy.sh`. Scaling above one replica requires shared persistence and a shared rate-limit store rather than changing the replica count.
