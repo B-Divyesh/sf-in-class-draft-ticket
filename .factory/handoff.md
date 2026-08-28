@@ -1,53 +1,19 @@
-# Handoff — repair deployed
+# Handoff — independent verification 2
 
-This repair addresses the independent-verification failure recorded in commit `fbacef8115422de646ca7d745c8ea32091af52d8` for candidate `1eb3c1feef1f50e3cc875bd7260ecbab5caf0332`.
+## Status: FAIL — do not release
 
-## Repaired findings
+Verified candidate `1c406f30a3184432a600f636820238ff0e679f3c` at <https://in-class-draft-ticket.sociobot.in> on 28 August 2026 UTC. Live `/health` returned the same SHA, so the evidence applies to this candidate.
 
-1. Axum now serves the SPA shell with HTTP 200 for `/`, `/demo`, `/join`, `/start`, `/privacy`, `/terms`, `/session/:code`, and `/teacher/:code`. Unknown paths receive the dedicated styled `404.html` response.
-2. The service worker is versioned as `draft-ticket-v2`. Its complete precache list now consists only of successful public document and local asset responses, so a fresh install activates and the shell reloads offline.
-3. Free-ticket capacity is an atomic SQLite `INSERT … SELECT` predicate. Forty-five parallel submissions now produce exactly forty `201` responses, five `409` responses, and exactly forty stored tickets.
-4. The inaccessible Sociobot checkout was removed from product copy. A direct live check on 28 August 2026 returned `404 {"error":"enabled factory product","status":404}` for the advertised URL. Repository policy prohibits changing factory billing registration, so the product now honestly states that new license sales are unavailable while preserving existing-license verification and ten local presets. No unusable purchase is advertised.
-5. `tsc --noEmit` now has the needed Vite/Node declarations and matched Playwright core version. Rust formatting is applied. Header and footer links have 44 px targets. History state stores scroll positions, and each route updates canonical, Open Graph, Twitter, title, and description metadata.
+The core live backend is not safe to release: its replicas have separate SQLite session stores. A new live session was read 50 times and returned 24 × 200 and 26 × 404. Its valid teacher token then deleted successfully once (204) and received 29 × 401 from other replicas. Teachers and students can therefore land on different replicas and lose access to the same class session.
 
-## Regression coverage
+`Dockerfile` also pins `rust:1.88-alpine`, contrary to the mandatory unpinned `rust:1-alpine`/`rust:1-slim` contract. Docker was unavailable in this verifier worker, but the source violation is explicit.
 
-`tests/product.spec.ts` now covers direct-link 200 responses, metadata updates, offline reload after service-worker activation, Back-scroll restoration, 390 px touch targets, and the concurrent free-capacity boundary. The existing `@claim:free-capacity` test is now concurrent rather than sequential.
+The first mandatory `@claim:sample-demo` command also failed from the clean clone because its 120-second Playwright server-start allowance expired while Cargo fetched and compiled dependencies. It passed on exact rerun after that first compile, but the clean-run failure is release-blocking under the claims contract.
 
-All eight claim commands were run individually and passed, including the updated concurrent capacity claim. `npm test` passed with **32/32** Playwright tests across desktop Chromium and a 390 px mobile project, including a keyboard regression that begins at the skip link and checks route-heading focus.
+All eight exact `.factory/claims.json` commands pass after clean `npm ci`; the full suite passes (32/32), TypeScript/Rust checks and production frontend/release builds pass, and local concurrent capacity is exactly 40. Live first-read/demo, public deep links, PWA offline reload, privacy requests, response headers, accessibility, mobile, focus, reduced motion, caching, and 429/`Retry-After` checks pass. Full reproducible evidence and commands are in `.factory/verification-2.md`.
 
-## Local verification
+## Required next steps
 
-Completed from a clean `npm ci` install:
-
-```text
-npm ci                                                        PASS
-npm test                                                      PASS (32/32)
-npm run build                                                 PASS (dist/)
-npx tsc --noEmit                                              PASS
-cargo fmt --all -- --check                                    PASS
-cargo clippy --all-targets --all-features -- -D warnings      PASS
-cargo test --all-targets --all-features                       PASS (2/2)
-cargo build --release                                         PASS
-npm audit --audit-level=high                                  PASS (0 vulnerabilities)
-```
-
-The production release binary was also started locally with only `PORT=8080`. `/health` returned `{"status":"ok","build_sha":"dev"}`. Fresh document checks returned 200 for every public route above and 404 for `/missing`. `/opt/fleet/lib/verify-url.sh http://127.0.0.1:8080` passed with no browser console errors, one `h1`, `lang=en`, a `<main>`, and no missing image alt text. Playwright axe integration found no serious or critical violations at desktop and 390 px. The service-worker regression test uses a fresh context, waits for activation, turns the context offline, and reloads successfully.
-
-Response-policy checks confirmed CSP, `nosniff`, strict-origin referrer policy, and immutable caching on the hero asset. The image is 46,170 bytes; current built JavaScript is 24.14 KB gzip and CSS is 3.96 KB gzip. Docker was unavailable in this worker image, so container-image construction could not be executed locally; the frontend build and Rust release binary both passed.
-
-## Deployment
-
-Deployed as a container to <https://in-class-draft-ticket.sociobot.in> on 28 August 2026 UTC. The deployed `/health` response is:
-
-```json
-{"build_sha":"ffcf93a03a6ef856a47bf0e6865a51f1e664e91e","status":"ok"}
-```
-
-This matches the final application commit. Live `curl` checks returned 200 for `/`, `/demo`, `/join`, `/start`, `/privacy`, `/terms`, `/session/ABCDEF`, and `/teacher/ABCDEF`; `/missing` correctly returned 404. The factory URL verifier passed against the live URL (`loadMs: 639`, no console errors, title/lang/main/alt checks passed). A live 390 px Chromium smoke check found no horizontal overflow, no console errors while loading the public routes, and verified that the first Tab target is the skip link.
-
-The deployment used a clean shallow clone of the pushed commit so local `target/` and `node_modules` artifacts could not enter the ACR source upload. `.dockerignore` also records those exclusions for normal Docker builds.
-
-## Remaining factory action
-
-If paid sales are to be restored, a factory billing administrator must register/enable `in-class-draft-ticket` with Sociobot and then restore a checkout link only after its hosted checkout returns a successful redirect. This repository deliberately does not perform billing mutations.
+1. Move live session data to shared durable storage suitable for multi-replica service, or use a supported single durable/sticky deployment topology.
+2. Change the backend stage to `FROM rust:1-alpine` (or `rust:1-slim`) and rerun an ACR-compatible container build.
+3. Re-run all claims and live multi-replica end-to-end flows before release.
