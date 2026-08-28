@@ -1,4 +1,4 @@
-# Handoff — repair in progress
+# Handoff — repair deployed
 
 This repair addresses the independent-verification failure recorded in commit `fbacef8115422de646ca7d745c8ea32091af52d8` for candidate `1eb3c1feef1f50e3cc875bd7260ecbab5caf0332`.
 
@@ -38,7 +38,15 @@ Response-policy checks confirmed CSP, `nosniff`, strict-origin referrer policy, 
 
 ## Deployment
 
-The repair is ready for the required container deployment. Post-deployment URL, build identity, and live verification will be appended after the final deploy.
+Deployed as a container to <https://in-class-draft-ticket.sociobot.in> on 28 August 2026 UTC. The deployed `/health` response is:
+
+```json
+{"build_sha":"ffcf93a03a6ef856a47bf0e6865a51f1e664e91e","status":"ok"}
+```
+
+This matches the final application commit. Live `curl` checks returned 200 for `/`, `/demo`, `/join`, `/start`, `/privacy`, `/terms`, `/session/ABCDEF`, and `/teacher/ABCDEF`; `/missing` correctly returned 404. The factory URL verifier passed against the live URL (`loadMs: 639`, no console errors, title/lang/main/alt checks passed). A live 390 px Chromium smoke check found no horizontal overflow, no console errors while loading the public routes, and verified that the first Tab target is the skip link.
+
+The deployment used a clean shallow clone of the pushed commit so local `target/` and `node_modules` artifacts could not enter the ACR source upload. `.dockerignore` also records those exclusions for normal Docker builds.
 
 ## Remaining factory action
 
