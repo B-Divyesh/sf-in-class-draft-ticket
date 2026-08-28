@@ -1,0 +1,10 @@
+.git
+node_modules
+target
+dist
+data
+test-data
+test-results
+playwright-report
+.factory/evidence
+npm-debug.log*
