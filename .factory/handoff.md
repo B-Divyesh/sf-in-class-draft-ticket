@@ -28,7 +28,7 @@ Results on 28 August 2026:
 - Playwright + axe: no serious or critical violations on the landing page or 390 px join flow.
 - Factory `verify-url.sh`: title present, `lang=en`, one `h1`, main landmark, no missing alt text, no unlabeled buttons, and no console errors. Evidence is in `.factory/evidence/`.
 - Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 100; LCP 1.7 s, CLS 0.029, TBT 0 ms. INP was not available in the navigation-only lab run.
-- Bundles: 24.11 KB gzip JavaScript, 3.93 KB gzip CSS, 116 KiB fonts, 48 KB hero WebP.
+- Bundles: 24.12 KB gzip JavaScript, 3.93 KB gzip CSS, 116 KiB fonts, 48 KB hero WebP.
 - Load smoke: 100 concurrent `/health` requests completed with 100 successes in 181 ms (552 requests/second locally).
 - `npm audit`: zero known vulnerabilities.
 - `cargo check`, `cargo test`, and the release build pass.
