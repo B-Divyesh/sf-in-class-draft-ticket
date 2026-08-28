@@ -1,0 +1,11 @@
+{
+  "slug": "in-class-draft-ticket",
+  "title": "In-Class Draft Ticket",
+  "summary": "Record in-class drafting without surveillance",
+  "artifact_class": "web-with-backend",
+  "user": "Writing teachers who need a humane way to document authentic in-class drafting after AI has made take-home written work hard to assess.",
+  "smallest_useful_product": "Teacher PWA generates a session code and a short draft ticket: claim, evidence location, revision choice, and exit reflection; students submit pseudonymous tickets and the teacher exports a session sheet.",
+  "success_measure": "In a five-class pilot, 80% of students complete a ticket in under three minutes and the teacher reports it informs feedback for at least half the drafts.",
+  "monetization": "freemium",
+  "constraints": "FERPA/GDPR-conscious data minimization, no biometric or behavioral surveillance, short configurable retention, accessibility, and no claim of proving authorship."
+}

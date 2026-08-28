@@ -1,0 +1,8 @@
+{
+  "model": "factory-image (Azure AI Foundry)",
+  "date": "2026-08-28",
+  "size": "1536x1024",
+  "quality": "high",
+  "prompt": "Use case: stylized-concept. Asset type: landing-page hero and social crop. A tactile editorial still life on warm cream paper: four blank ticket-shaped paper planes at different heights, joined by fine plotted lines and small registration dots, suggesting a writing process becoming visible. Generative geometric composition, subtle paper fibers, crisp cut edges, soft directional classroom-window light, gentle shadows, limited palette of forest moss, deep ink, cobalt blue, citrus yellow, and terracotta. Wide landscape framing with calm negative space. No text, no letters, no people, no devices, no logos, no watermark, no gradients, no surveillance symbols.",
+  "review": "Accepted: four clean blank tickets; no text artifacts, people, logos, watermarks, misleading UI, or visible generation seams."
+}
