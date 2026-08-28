@@ -26,7 +26,7 @@ Contrast pairs use ink on paper, white on moss, and ink on citrus. Body text nev
 
 ## Typography
 
-The display face is Fraunces, self-hosted as a variable WOFF2 subset, for editorial warmth and the uneven rhythm of drafted prose. The body face is Atkinson Hyperlegible Next, self-hosted as a WOFF2 subset, for quick scanning in a busy classroom. If font files cannot ship, the fallbacks are Georgia and system sans-serif. Body text starts at 17px with 1.55 leading. Ticket codes and table numbers use tabular figures.
+The display face is Fraunces, self-hosted as a compact static TTF, for editorial warmth and the uneven rhythm of drafted prose. The body face is Atkinson Hyperlegible Next, self-hosted as a compact static TTF, for quick scanning in a busy classroom. The two font files total 116 KiB. The fallbacks are Georgia and system sans-serif. Body text starts at 17px with 1.55 leading. Ticket codes and table numbers use tabular figures.
 
 ## Spacing and shape
 

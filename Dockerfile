@@ -1,7 +1,7 @@
 FROM node:22-alpine AS frontend
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm ci
 COPY index.html tsconfig.json vite.config.ts ./
 COPY src ./src
 COPY public ./public
@@ -13,7 +13,8 @@ ENV BUILD_SHA=${BUILD_SHA}
 RUN apk add --no-cache musl-dev
 WORKDIR /app
 COPY Cargo.toml Cargo.lock* build.rs ./
-COPY src/main.rs ./src/main.rs
+COPY src ./src
+COPY migrations ./migrations
 RUN cargo build --release
 
 FROM alpine:3.22

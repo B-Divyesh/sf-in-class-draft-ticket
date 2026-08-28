@@ -17,6 +17,8 @@ use tower_http::{compression::CompressionLayer, services::{ServeDir, ServeFile},
 use tracing::{info, warn};
 use uuid::Uuid;
 
+mod db;
+
 #[derive(Clone)]
 struct AppState {
     db: SqlitePool,
@@ -74,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
     tokio::fs::create_dir_all(&data_dir).await?;
     let db_url = format!("sqlite://{}/tickets.db?mode=rwc", data_dir.display());
     let db = SqlitePool::connect(&db_url).await?;
-    migrate(&db).await?;
+    db::migrate(&db).await?;
     let state = AppState { db, build_sha: env!("BUILD_SHA"), rates: Arc::new(DashMap::new()) };
     let cleanup_db = state.db.clone();
     tokio::spawn(async move {
@@ -101,6 +103,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/health", get(health))
         .nest("/api", api)
         .fallback_service(ServeDir::new("dist").not_found_service(ServeFile::new("dist/index.html")))
+        .layer(middleware::from_fn(cache_headers))
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())
         .layer(SetResponseHeaderLayer::if_not_present(header::X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff")))
@@ -110,14 +113,6 @@ async fn main() -> anyhow::Result<()> {
 
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await?;
     axum::serve(listener, app).with_graceful_shutdown(shutdown()).await?;
-    Ok(())
-}
-
-async fn migrate(db: &SqlitePool) -> anyhow::Result<()> {
-    sqlx::query("PRAGMA foreign_keys = ON").execute(db).await?;
-    sqlx::query("CREATE TABLE IF NOT EXISTS sessions (code TEXT PRIMARY KEY, title TEXT NOT NULL, prompt TEXT NOT NULL, teacher_token TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 0)").execute(db).await?;
-    sqlx::query("CREATE TABLE IF NOT EXISTS tickets (id TEXT PRIMARY KEY, session_code TEXT NOT NULL REFERENCES sessions(code) ON DELETE CASCADE, pseudonym TEXT NOT NULL, claim TEXT NOT NULL, evidence TEXT NOT NULL, revision TEXT NOT NULL, reflection TEXT NOT NULL, created_at TEXT NOT NULL)").execute(db).await?;
-    sqlx::query("CREATE INDEX IF NOT EXISTS tickets_session_idx ON tickets(session_code, created_at)").execute(db).await?;
     Ok(())
 }
 
@@ -149,6 +144,13 @@ async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> 
     times.push_back(now);
     drop(times);
     next.run(req).await
+}
+
+async fn cache_headers(req: Request, next: Next) -> Response {
+    let cache_long = req.uri().path().starts_with("/assets/") || req.uri().path().starts_with("/fonts/");
+    let mut response = next.run(req).await;
+    if cache_long { response.headers_mut().insert(header::CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable")); }
+    response
 }
 
 fn clean(value: &str, label: &str, min: usize, max: usize) -> Result<String, ApiError> {
@@ -267,3 +269,20 @@ async fn create_demo(State(state): State<AppState>) -> Result<(StatusCode, Json<
 
 fn csv_cell(value: &str) -> String { format!("\"{}\"", value.replace('"', "\"\"")) }
 fn internal(err: sqlx::Error) -> ApiError { warn!(error = %err, "database request failed"); ApiError(StatusCode::INTERNAL_SERVER_ERROR, "The session could not be saved. Wait a moment, then try again.".into()) }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn session_codes_are_six_safe_characters() {
+        let code = new_code();
+        assert_eq!(code.len(), 6);
+        assert!(code.chars().all(|c| "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".contains(c)));
+    }
+
+    #[test]
+    fn csv_cells_escape_quotes() {
+        assert_eq!(csv_cell("A \"clear\" claim"), "\"A \"\"clear\"\" claim\"");
+    }
+}

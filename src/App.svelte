@@ -20,6 +20,7 @@
   let classTitle = '';
   let writingPrompt = '';
   let presets:{title:string;prompt:string}[] = [];
+  let selectedPreset = '';
 
   const pageMeta = () => {
     if (path === '/') return ['In-Class Draft Ticket — Record drafting choices','Record in-class drafting without surveillance'];
@@ -59,7 +60,9 @@
   }
 
   async function api<T>(url:string, init:RequestInit = {}):Promise<T> {
-    const response = await fetch(url, { ...init, headers:{'Content-Type':'application/json', ...(init.headers || {})} });
+    let response:Response;
+    try { response = await fetch(url, { ...init, headers:{'Content-Type':'application/json', ...(init.headers || {})} }); }
+    catch { throw new Error('The server could not be reached. Check your connection, then try again.'); }
     if (!response.ok) {
       const body = await response.json().catch(() => ({error:'The server did not respond. Check your connection, then try again.'}));
       throw new Error(body.error || 'The request failed. Try again.');
@@ -165,8 +168,16 @@
   }
 
   function applyPreset(event:Event) {
-    const index = Number((event.currentTarget as HTMLSelectElement).value);
+    selectedPreset = (event.currentTarget as HTMLSelectElement).value;
+    const index = Number(selectedPreset);
     if (Number.isInteger(index) && presets[index]) { classTitle = presets[index].title; writingPrompt = presets[index].prompt; }
+  }
+
+  function deletePreset() {
+    const index = Number(selectedPreset);
+    if (!Number.isInteger(index) || !presets[index]) { error = 'Choose a prompt preset before deleting it.'; return; }
+    presets = presets.filter((_,i) => i !== index); selectedPreset = '';
+    localStorage.setItem('paid:prompt-presets',JSON.stringify(presets)); notice = 'Prompt preset deleted from this device.'; error = '';
   }
 
   async function checkLicense(token:string, force=false) {
@@ -294,7 +305,7 @@
     <section class="task-page section-shell narrow">
       <p class="eyebrow">Teacher setup · about one minute</p><h1 tabindex="-1">Start an in-class draft session</h1><p class="lede">Set the prompt and deletion date. You will get a student code and a private teacher link.</p>
       <form class="ticket-form" on:submit|preventDefault={startSession}>
-        {#if license.active}<div class="preset-tools"><label for="preset">Saved prompt presets</label><select id="preset" on:change={applyPreset}><option value="">Choose a preset</option>{#each presets as preset, i}<option value={i}>{preset.title}</option>{/each}</select></div>{/if}
+        {#if license.active}<div class="preset-tools"><label for="preset">Saved prompt presets</label><select id="preset" bind:value={selectedPreset} on:change={applyPreset}><option value="">Choose a preset</option>{#each presets as preset, i}<option value={i}>{preset.title}</option>{/each}</select>{#if presets.length}<button type="button" class="text-button" on:click={deletePreset}>Delete selected preset</button>{/if}</div>{/if}
         <label for="title">Class or section name</label><input id="title" name="title" bind:value={classTitle} required minlength="2" maxlength="80" autocomplete="off" placeholder="Room 204 · Period 3" />
         <label for="prompt">Writing prompt</label><textarea id="prompt" name="prompt" bind:value={writingPrompt} required minlength="4" maxlength="240" rows="4" placeholder="How does the author use setting to shape the narrator's choice?"></textarea>
         <label for="retention">Delete this session after</label><select id="retention" name="retention"><option value="1">1 day</option><option value="7" selected>7 days</option><option value="30">30 days</option></select>
@@ -355,7 +366,7 @@
   {:else if path === '/privacy'}
     <article class="legal section-shell narrow"><p class="eyebrow">Effective 28 August 2026</p><h1 tabindex="-1">Privacy in plain words</h1><p>In-Class Draft Ticket stores only what teachers and students enter.</p><h2>What we store</h2><p>We store the class name, writing prompt, class nicknames, ticket answers, and timestamps. We do not ask for student names, email addresses, or accounts.</p><h2>Why we store it</h2><p>The teacher uses this data to discuss and export in-class drafting choices. We do not use it to train models, target ads, or judge authorship.</p><h2>When we delete it</h2><p>The teacher chooses one, seven, or thirty days. The teacher can also delete a session at any time. Demo sessions expire after one day.</p><h2>Who receives it</h2><p>Session data stays on this service. A purchase sends payment details to Sociobot and Dodo, the merchant of record. We do not run analytics or third-party tracking.</p><h2>Your choices</h2><p>Teachers can export or delete a session from the private teacher view. Contact <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a> for a data request.</p></article>
   {:else if path === '/terms'}
-    <article class="legal section-shell narrow"><p class="eyebrow">Effective 28 August 2026</p><h1 tabindex="-1">Terms of use</h1><p>Use this service to record drafting choices during a class. Do not use it to collect sensitive student data.</p><h2>Teacher responsibility</h2><p>Teachers choose prompts, class nicknames, and retention periods. Teachers must follow their school rules and applicable privacy law.</p><h2>What the ticket means</h2><p>A draft ticket is a teaching aid. It does not prove authorship, detect AI use, or replace a teacher's judgment.</p><h2>Service limits</h2><p>Free sessions accept up to 40 tickets. The service may be unavailable during maintenance. Export important sessions before their deletion date.</p><h2>Purchases and refunds</h2><p>The $24 teacher license is a one-time purchase. It adds local prompt presets. Sociobot and Dodo handle payment and refunds. A refund revokes the license.</p><h2>Warranty</h2><p>The service is provided as available without warranties. We are not liable for lost class work or indirect damages.</p></article>
+    <article class="legal section-shell narrow"><p class="eyebrow">Effective 28 August 2026</p><h1 tabindex="-1">Terms of use</h1><p>Use this service to record drafting choices during a class. Do not use it to collect sensitive student data.</p><h2>Teacher responsibility</h2><p>Teachers choose prompts, class nicknames, and retention periods. Teachers must follow their school rules and applicable privacy law.</p><h2>What the ticket means</h2><p>A draft ticket is a teaching aid. It does not prove authorship, detect AI use, or replace a teacher's judgment.</p><h2>Service limits</h2><p>Free sessions accept up to 40 tickets. The service may be unavailable during maintenance. Export important sessions before their deletion date.</p><h2>Purchases and refunds</h2><p>The $24 teacher license is a one-time purchase. It adds local prompt presets. Sociobot handles the license, and Dodo is the merchant of record. A refund revokes the license.</p><h2>Warranty</h2><p>The service is provided as available without warranties. We are not liable for lost class work or indirect damages.</p></article>
   {:else}
     <section class="not-found section-shell narrow"><div class="lost-plot" aria-hidden="true">● · · · ○</div><p class="eyebrow">404 · Missing page</p><h1 tabindex="-1">This point is not connected</h1><p>The address does not lead to a draft session or page.</p><a class="button primary" href="/" on:click={clickLink}>Return home</a></section>
   {/if}
