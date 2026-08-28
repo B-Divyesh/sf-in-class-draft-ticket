@@ -7,7 +7,7 @@ COPY src ./src
 COPY public ./public
 RUN npm run build
 
-FROM rust:1.88-alpine AS backend
+FROM rust:1-alpine AS backend
 ARG BUILD_SHA=dev
 ENV BUILD_SHA=${BUILD_SHA}
 RUN apk add --no-cache musl-dev

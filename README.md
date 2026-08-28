@@ -14,10 +14,10 @@ Production URL: <https://in-class-draft-ticket.sociobot.in/demo>
 
 ## Run locally
 
-Requirements: Node 22+, npm, and Rust 1.88+.
+Requirements: Node 22+, npm, and the current stable Rust toolchain.
 
 ```sh
-npm install
+npm ci
 npm run build
 cargo run
 ```
@@ -32,7 +32,7 @@ For frontend development, run `cargo run` and `npm run dev` in separate terminal
 npm test
 ```
 
-The command builds `dist/`, starts the Rust service, and runs the Playwright suite. Claim tests are listed in `.factory/claims.json` and use only fresh sessions or `/demo` sample data.
+The command checks release contracts, builds `dist/` and the Rust service, then runs the Playwright suite. Building the service before Playwright's startup timer keeps the first claim command reliable on a clean checkout. Claim tests are listed in `.factory/claims.json` and use only fresh sessions or `/demo` sample data.
 
 ## Container
 
@@ -42,6 +42,8 @@ docker run --rm -p 8080:8080 -v draft-ticket-data:/app/data in-class-draft-ticke
 ```
 
 The container runs as a non-root user and reads only `PORT`, which defaults to `8080`. `DATA_DIR` is an optional local-development override. `GET /health` returns the build SHA.
+
+The factory deployment mounts one dedicated durable Azure Files share at `/app/data` and keeps exactly one replica because SQLite has one writer. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records those required settings and `npm run test:contracts` prevents the image or topology from drifting back to replica-local storage.
 
 ## Privacy and limits
 

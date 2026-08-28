@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "cargo run --release",
-    "test": "npm run build && playwright test"
+    "pretest": "npm run test:contracts && npm run build && cargo build",
+    "test": "playwright test",
+    "test:contracts": "node --test contract-tests/release-contract.test.mjs"
   },
   "dependencies": {
     "svelte": "5.56.10"

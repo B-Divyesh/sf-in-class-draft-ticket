@@ -9,10 +9,12 @@ export default defineConfig({
     screenshot: 'only-on-failure'
   },
   webServer: {
-    command: 'cargo run',
+    // `npm test` prebuilds this binary before Playwright starts its server
+    // timer, so the first claim command is reliable from a cold checkout.
+    command: './target/debug/in-class-draft-ticket',
     url: 'http://127.0.0.1:8080/health',
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 30_000,
     env: { PORT: '8080', DATA_DIR: './test-data' }
   },
   projects: [

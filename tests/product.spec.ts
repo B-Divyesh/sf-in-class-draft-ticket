@@ -110,15 +110,21 @@ test('API rate limit returns Retry-After', async ({request}) => {
   expect(results.find(r => r.status() === 429)?.headers()['retry-after']).toBe('1');
 });
 
-test('landing and mobile form have no serious accessibility violations', async ({page}) => {
-  await page.goto('/');
-  let results = await new AxeBuilder({page}).analyze();
-  expect(results.violations.filter(v => ['serious','critical'].includes(v.impact || ''))).toEqual([]);
-  await page.setViewportSize({width:390,height:844});
-  await page.goto('/join');
-  results = await new AxeBuilder({page}).analyze();
-  expect(results.violations.filter(v => ['serious','critical'].includes(v.impact || ''))).toEqual([]);
-  expect(await page.locator('body').evaluate(el => el.scrollWidth <= window.innerWidth)).toBe(true);
+test('public routes pass desktop and 390px accessibility checks without console errors', async ({page}) => {
+  const consoleErrors: string[] = [];
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  for (const viewport of [{width:1440,height:900},{width:390,height:844}]) {
+    await page.setViewportSize(viewport);
+    for (const route of ['/','/demo','/join','/start','/privacy','/terms']) {
+      await page.goto(route);
+      const results = await new AxeBuilder({page}).analyze();
+      expect(results.violations.filter(v => ['serious','critical'].includes(v.impact || '')), `${route} at ${viewport.width}px`).toEqual([]);
+      expect(await page.locator('body').evaluate(el => el.scrollWidth <= window.innerWidth), `${route} at ${viewport.width}px`).toBe(true);
+    }
+  }
+  expect(consoleErrors).toEqual([]);
 });
 
 test('routes expose one focused page heading and working legal links', async ({page}) => {

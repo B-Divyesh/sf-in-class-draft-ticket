@@ -1,0 +1,25 @@
+{
+  "artifactClass": "web-with-backend",
+  "containerApp": "sf-in-class-draft-ticket",
+  "resourceGroup": "sociobot",
+  "environment": "factory-env",
+  "storage": {
+    "type": "AzureFile",
+    "environmentStorageName": "in-class-draft-ticket-data",
+    "accountName": "sociobotblob",
+    "shareName": "sf-in-class-draft-ticket-data",
+    "volumeName": "session-data",
+    "mountPath": "/app/data",
+    "accessMode": "ReadWrite"
+  },
+  "scale": {
+    "minReplicas": 1,
+    "maxReplicas": 1
+  },
+  "runtime": {
+    "port": 8080,
+    "requiredEnvironment": [
+      "PORT"
+    ]
+  }
+}
