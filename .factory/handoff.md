@@ -14,7 +14,7 @@ This repair addresses the independent-verification failure recorded in commit `f
 
 `tests/product.spec.ts` now covers direct-link 200 responses, metadata updates, offline reload after service-worker activation, Back-scroll restoration, 390 px touch targets, and the concurrent free-capacity boundary. The existing `@claim:free-capacity` test is now concurrent rather than sequential.
 
-All eight claim commands were run individually and passed, including the updated concurrent capacity claim. `npm test` passed with **30/30** Playwright tests across desktop Chromium and a 390 px mobile project.
+All eight claim commands were run individually and passed, including the updated concurrent capacity claim. `npm test` passed with **32/32** Playwright tests across desktop Chromium and a 390 px mobile project, including a keyboard regression that begins at the skip link and checks route-heading focus.
 
 ## Local verification
 
@@ -22,7 +22,7 @@ Completed from a clean `npm ci` install:
 
 ```text
 npm ci                                                        PASS
-npm test                                                      PASS (30/30)
+npm test                                                      PASS (32/32)
 npm run build                                                 PASS (dist/)
 npx tsc --noEmit                                              PASS
 cargo fmt --all -- --check                                    PASS

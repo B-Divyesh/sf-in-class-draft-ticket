@@ -171,3 +171,11 @@ test('mobile navigation and footer links meet the 44px target', async ({page}) =
   expect(heights.length).toBeGreaterThan(0);
   expect(heights.every(height => height >= 44)).toBe(true);
 });
+
+test('keyboard starts with the skip link and route changes focus the new heading', async ({page}) => {
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', {name:'Skip to main content'})).toBeFocused();
+  await page.getByRole('link', {name:'Privacy'}).first().click();
+  await expect(page.getByRole('heading', {name:'Privacy in plain words'})).toBeFocused();
+});

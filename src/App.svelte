@@ -43,7 +43,7 @@
     routeChanged();
   }
 
-  function routeChanged() {
+  function routeChanged(focusHeading = true) {
     const [title, description] = pageMeta();
     document.title = title;
     const setHead = (selector:string, value:string) => document.querySelector(selector)?.setAttribute(selector.startsWith('link') ? 'href' : 'content', value);
@@ -55,7 +55,7 @@
     setHead('meta[name="twitter:description"]', description);
     requestAnimationFrame(() => {
       const h1 = document.querySelector('main h1') as HTMLElement | null;
-      h1?.focus({preventScroll:true});
+      if (focusHeading) h1?.focus({preventScroll:true});
       announcement = pageMeta()[1];
     });
     if (path.startsWith('/session/')) loadStudentSession();
@@ -230,7 +230,7 @@
     };
     const status = () => online = navigator.onLine;
     addEventListener('popstate', pop); addEventListener('online', status); addEventListener('offline', status);
-    routeChanged();
+    routeChanged(false);
     return () => { removeEventListener('popstate', pop); removeEventListener('online', status); removeEventListener('offline', status); };
   });
 </script>
