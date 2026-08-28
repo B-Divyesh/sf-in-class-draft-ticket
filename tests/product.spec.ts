@@ -79,7 +79,7 @@ test('@claim:privacy-minimal no tracking or capture occurs', async ({page}) => {
   await page.goto('/');
   await page.getByRole('link',{name:'Try it with sample data'}).click();
   await expect(page.locator('.response-ticket')).toHaveCount(3);
-  expect([...origins]).toEqual(['http://127.0.0.1:8080']);
+  expect([...origins]).toEqual([new URL(page.url()).origin]);
   expect(await page.evaluate(() => (window as any).__mediaCalls)).toBe(0);
 });
 
