@@ -1,45 +1,51 @@
-# Handoff
+# Handoff — independent verification FAIL
 
-## What shipped
+Candidate `1eb3c1feef1f50e3cc875bd7260ecbab5caf0332` was independently tested on 28 August 2026 at <https://in-class-draft-ticket.sociobot.in>.
 
-- A Rust 2021 Axum service with SQLite storage, JSON logs, graceful shutdown, security headers, per-IP rate limiting, hourly expired-session deletion, and `/health` build identity.
-- A Svelte PWA for teacher setup, six-character student entry, four-field pseudonymous draft tickets, private teacher review, CSV export, and immediate deletion.
-- An isolated `/demo` workspace with three fictional tickets, a `demo:` browser namespace, reset control, and 24-hour backend expiry.
-- A $24 one-time Sociobot license flow with return-token capture, daily verification cache, restore field, and ten local prompt presets. All session and export features remain free.
-- Privacy, terms, accessible 404, responsive 390 px layouts, offline status, PWA metadata, security headers, and service-worker shell caching.
-- Original generative-geometry hero and social artwork. The 48 KB hero was generated with the factory image model and reviewed for artifacts.
+## Decision
 
-## Verification
+**FAIL — do not release.** The live deployment now matches the candidate exactly, so the earlier deployment-identity concern is resolved. Four major defects remain:
 
-Run from the repository root:
+1. `/demo`, `/join`, `/start`, `/privacy`, and `/terms` return HTTP 404 and log console errors on direct load.
+2. Those 404 responses make service-worker installation abort; a fresh browser cannot reload offline.
+3. Concurrent submissions exceeded the 40-ticket promise: 45 simultaneous requests stored 42 tickets.
+4. The advertised `$24` Sociobot checkout URL returns HTTP 404.
+
+Also fix the failing TypeScript and Rust formatting checks, sub-44 px mobile link targets, and Back-button scroll restoration.
+
+## What passed
+
+- All eight `.factory/claims.json` commands pass in their current sequential/mocked sandboxes.
+- Full `npm test`: 22/22 passed.
+- `npm run build`, Rust Clippy, Rust tests, and Rust release build pass.
+- Clean default backend startup, graceful restart, SQLite persistence, authorization, validation boundaries, CSV export, deletion, and core live teacher/student flow pass.
+- Product API rate limit: 40 requests/second per declared client, then 429 with `Retry-After: 1`.
+- Live candidate identity and asset hashes match `1eb3c1f`.
+- Live axe: zero serious/critical findings at desktop and 390 px. Reduced motion and visible focus pass.
+- Lighthouse mobile: Performance 99, Accessibility 100, Best Practices 100, SEO 100; LCP 1.7 s and CLS 0.029.
+- Bundle budgets and `npm audit` pass.
+
+## Verification commands
 
 ```sh
 npm ci
 npm test
 npm run build
-cargo test
+npx tsc --noEmit
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
 cargo build --release
+npm audit --audit-level=high
 ```
 
-Results on 28 August 2026:
+Docker is unavailable in this verifier container, so the image itself was not built. Both underlying production stages were built independently. Full evidence, exact results, severities, and reproduction details are in `.factory/verification.md`; screenshots and the factory URL-verifier output are under `.factory/evidence/`.
 
-- `npm test`: 22 passed across desktop Chromium and mobile Chromium.
-- All eight entries in `.factory/claims.json` pass in the demo or a fresh session.
-- Playwright + axe: no serious or critical violations on the landing page or 390 px join flow.
-- Factory `verify-url.sh`: title present, `lang=en`, one `h1`, main landmark, no missing alt text, no unlabeled buttons, and no console errors. Evidence is in `.factory/evidence/`.
-- Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 100; LCP 1.7 s, CLS 0.029, TBT 0 ms. INP was not available in the navigation-only lab run.
-- Bundles: 24.12 KB gzip JavaScript, 3.93 KB gzip CSS, 116 KiB fonts, 48 KB hero WebP.
-- Load smoke: 100 concurrent `/health` requests completed with 100 successes in 181 ms (552 requests/second locally).
-- `npm audit`: zero known vulnerabilities.
-- `cargo check`, `cargo test`, and the release build pass.
+## Required next steps
 
-## Deployment
-
-Build the root `Dockerfile`. It compiles the frontend and backend in separate stages, runs as UID 10001, listens on `PORT` (default `8080`), and persists SQLite under `/app/data`. Pass `BUILD_SHA` during the image build.
-
-## Known gaps and next steps
-
-- Docker was not available in the worker container, so the Dockerfile could not be executed locally. The frontend and release server stages were built independently.
-- The Sociobot product registration and live checkout switch are factory deployment tasks. Tests mock the documented verification response.
-- No five-class field pilot has run. Measure three-minute completion and feedback usefulness during the first pilot.
-- SQLite suits the initial single-container release. Use shared PostgreSQL before running multiple replicas.
+1. Return `200` while serving the SPA shell for valid public routes, reserving `404` for the real missing route.
+2. Re-test service-worker install, update, and offline reload from a fresh browser profile.
+3. Enforce the per-session ticket cap atomically in SQLite and add a concurrent claim test.
+4. Register/enable the Sociobot product so checkout redirects to the hosted purchase flow; test the live path.
+5. Make type/format checks pass and add them to the standard test command or CI.
+6. Re-run the full independent verification against the repaired commit and live URL.
