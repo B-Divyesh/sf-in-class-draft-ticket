@@ -4,7 +4,7 @@
 
 This repair addresses every release blocker in `.factory/verification-2.md` for candidate `1c406f30a3184432a600f636820238ff0e679f3c`.
 
-The repaired application commit `e1c70adc789df4f38af5fd1eae5ba344c47e283d` is deployed at <https://in-class-draft-ticket.sociobot.in> as Azure Container Apps revision `sf-in-class-draft-ticket--0000007`. Live `/health` returned that exact SHA.
+The final repair candidate `9032efe389f5ef2e0d3c471aa51f36c174727ced` is deployed at <https://in-class-draft-ticket.sociobot.in> as Azure Container Apps revision `sf-in-class-draft-ticket--0000008`. Live `/health` returned that exact SHA.
 
 ## Repairs
 
@@ -30,15 +30,16 @@ The first direct Azure Files attempts failed safely before receiving traffic. Th
 - `npm audit --audit-level=high` — PASS, zero vulnerabilities.
 - Zero-config release startup — PASS with only default `PORT`; startup logged the storage source without exposing secrets. A created session survived graceful stop/restart.
 - Local response/load smoke — PASS: 100 concurrent API requests completed in 395 ms; CSP, `nosniff`, strict-origin referrer policy, and immutable asset caching were present.
-- Factory URL verifier — PASS: 654 ms live load, no console errors, title, `lang=en`, one `h1`, `main`, image alt text, and button labels.
+- Factory URL verifier — PASS: 683 ms live load, no console errors, title, `lang=en`, one `h1`, `main`, image alt text, and button labels.
 - Lighthouse mobile — Performance 99, Accessibility 100, Best Practices 100, SEO 100; FCP 1.35 s, LCP 1.88 s, TBT 0 ms, CLS 0.029.
 - Bundles — JavaScript 23,832 bytes gzip; CSS 14,344 bytes raw; fonts 118,264 bytes total; all budgets pass.
-- Container build — PASS in ACR build `chmr`; runtime image digest `sha256:3ab3e5f9272bd7b5bd3ec2a1a1b614915c8261417fe6ccab2c0d08c2113b3c5e`.
+- Container build — PASS in ACR build `chn0`; runtime image digest `sha256:274d2cba785d9e8d36095ffea12e93c85fe8f3595b2649fae9839b49750c7688`.
 
 ## Live verification
 
 - Full production Playwright run: `PLAYWRIGHT_BASE_URL=https://in-class-draft-ticket.sociobot.in npx playwright test` — PASS, 32/32 across desktop Chromium and Pixel 5.
 - Durable restart: created session `7ZHCET` with one ticket, confirmed a 126,976-byte durable checkpoint, forcibly restarted revision `0000007`, then received 200 from the student route and the same one ticket from the authenticated teacher route. Cleanup returned 204.
+- Cross-revision restore: session `TYPMD3` was created on revision `0000007`, then returned 200 through both student and authenticated teacher APIs after revision `0000008` replaced it. Cleanup returned 204.
 - Distribution check: a fresh session returned 50/50 student reads and 30/30 authenticated teacher reads as 200. Authenticated delete returned 204 and the next read returned 404.
 - Rate limiting: a 100-request concurrent burst from one forwarded client returned 10 rate-limited responses; every 429 included `Retry-After: 1`. The full browser regression also passed its 45-request rate test.
 - Routes: `/`, `/demo`, `/join`, `/start`, `/privacy`, `/terms`, `/session/ABCDEF`, and `/teacher/ABCDEF` returned 200; `/missing` returned the styled 404.

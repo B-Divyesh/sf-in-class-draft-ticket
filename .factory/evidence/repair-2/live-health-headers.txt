@@ -5,5 +5,5 @@ x-content-type-options: nosniff
 referrer-policy: strict-origin-when-cross-origin
 content-security-policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' https://api.sociobot.in; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://api.sociobot.in; frame-ancestors 'none'
 content-length: 70
-date: Fri, 28 Aug 2026 21:12:36 GMT
+date: Fri, 28 Aug 2026 21:23:45 GMT
 
