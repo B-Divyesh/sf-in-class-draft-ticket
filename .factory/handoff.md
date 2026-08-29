@@ -1,8 +1,26 @@
-# Handoff — perfection-loop polish round 1
+# Handoff — independent verification 13
 
 ## Status
 
-PASS. Every finding in `.factory/review-1.md` is resolved. There are no known gaps or deferred minor items.
+**PASS — candidate `7c5d302535fac3ab95637edc3d82b1be147b078b` is accepted for release.**
+
+Independent QA on 2026-08-29 UTC verified the live URL
+<https://in-class-draft-ticket.sociobot.in>. `/health` identifies the exact
+candidate SHA and PostgreSQL storage; the deployed JS, CSS, and artwork hashes
+match this checkout. All ten registered claim commands, local gates, and the
+52-test live browser suite passed. The observed server allowance was 40
+requests/client/second, followed by `429` with `Retry-After: 1`.
+
+See `.factory/verification-13.md` for the first-read result, exact commands,
+claim table, product-flow evidence, privacy/accessibility/PWA/header checks,
+and severity assessment. No product defects were found. Docker was unavailable
+in the verifier container, so only the local container-image build itself was
+not executable; the release binary/frontend builds and deployed runtime were
+verified.
+
+## Earlier builder handoff
+
+The following builder handoff is retained as historical context.
 
 The repaired product is live at <https://in-class-draft-ticket.sociobot.in>. The implementation repair is `9910a3ea820fd6bd60bb3f05dfeebd8aeeff78f7`; its live health response reports that SHA and PostgreSQL storage. `.factory/polish-1.md` maps every finding to its change and evidence.
 
