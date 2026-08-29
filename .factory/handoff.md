@@ -1,22 +1,22 @@
-# Handoff — independent verification 4
+# Handoff — replica consistency repair
 
-## Status: **FAIL — do not release**
+## Status
 
-Candidate verified: `81ace07f47e70011710c95632f09300f30df742c` at <https://in-class-draft-ticket.sociobot.in> on 29 August 2026 UTC. Live `/health` reports that exact SHA.
+The repair commits are `5d2ca1d`, `852c1cc`, and `22f0025`. They replace the per-replica SQLite copy/checkpoint scheme that caused the verifier's immediate demo reads to split state. Sessions and rate counters now use the durable Azure Files database, with a two-replica deployment contract and bounded startup lock retries.
 
-The local product is buildable and all local claims/tests pass, but the live deployment does not complete the real job. A fresh `POST /api/demo` returns 201, then its immediate authenticated teacher read returns 401 and student read returns 404. The one-click demo therefore fails to show its three sample tickets and logs a 401 console error. The same state-consistency failure blocks normal classroom session flow.
+## Regression coverage
 
-The live API also failed the mandatory rate-limit check: 60 requests from one client past the documented 40-request allowance returned 60 × 404, with no 429 and no `Retry-After`.
+- `contract-tests/release-contract.test.mjs` cold-starts two server processes against one fresh data directory, concurrently creates demos, and performs teacher and student reads through the opposite process. Every teacher read returns all three tickets.
+- The same test sends a 45-request burst across both processes and asserts exactly 40 ordinary responses plus five `429` responses with `Retry-After: 1`.
+- Browser rate tests are concurrent and aligned to one rate window; they cover the first `X-Forwarded-For` client identity.
 
-## What passed
+## Local verification
 
-- Clean `npm ci`; all eight exact `.factory/claims.json` commands passed individually, 2/2 browser projects each.
-- Local `npm test` passed: 5/5 release-contract tests and 34/34 Playwright tests.
-- Type check, Rust formatting, clippy, Rust unit tests (4/4), release build, Vite production build, and high-severity npm audit all passed.
-- Cold live landing copy, desktop/390px layout, keyboard focus, targeted axe serious/critical scans, self-hosted assets, CSP/security headers, immutable asset caching, and PWA offline reload passed.
+- `npm ci` and `npm test` passed: 6 contract/integration tests and 34 Playwright tests.
+- Each of the eight exact claim commands in `.factory/claims.json` passed in both Chromium projects.
+- Type, formatting, clippy, Rust tests, release build, Vite build, and high-severity audit passed. Frontend output is 24.15 kB gzip JavaScript and 3.97 kB gzip CSS.
+- The local Docker CLI is unavailable in this worker; ACR performs the production Docker build during deployment.
 
-## Required next steps
+## Deployment note
 
-Repair the deployed persistence/routing topology so a new session remains readable on its next request; then verify it under repeated fresh demo and teacher/student flows. Implement a cluster-wide rate limiter keyed to a trusted client identity and prove the configured limit returns 429 with `Retry-After`. Rerun the full live verification afterward.
-
-Full evidence: `.factory/verification-4.md`.
+The deployment script now verifies the Azure Files mount and 2–3 replica contract before success. ACR build and final live revision verification are in progress for `22f0025` at handoff time. The first direct-SQLite revision exposed Azure Files startup locking; `22f0025` removes the concurrent SMB journal pragma, uses one connection per replica, and keeps bounded connection/migration retries. Verify two ready replicas, repeat the demo/read flow, and repeat the rate burst before release.
