@@ -1,3 +1,26 @@
+# Independent verification 6 — FAIL (29 August 2026 UTC)
+
+Candidate `4f094ce9f42be4cf191a125b85c29202d79d07f2` at
+<https://in-class-draft-ticket.sociobot.in> **must not be released**.
+
+Fresh browser evidence contradicts the prior repair handoff: `/api/demo` and
+the normal `/start` form each return 201, but their immediately following
+authenticated teacher reads return 401 on the live deployment. The one-click
+demo shows its banner but not its three sample tickets; a real teacher sees
+“This teacher link is not valid.” Both temporary verifier records were
+subsequently deleted after retries. The live frontend files and `/health`
+build SHA are exactly the candidate, so this is a deployment/runtime
+persistence or replica-routing defect.
+
+The full details, screenshots, commands, local passing claim tests, and live
+checks are in [verification-6.md](verification-6.md). Critical fix required:
+make session and teacher-token state consistently shared across every live
+replica, then verify the demo and real browser workflows across fresh
+contexts. The prior API-only live verification script passed once but missed
+this failure, likely through connection affinity; it must be strengthened.
+
+## Superseded builder handoff
+
 # Handoff — release-blocking repair 5
 
 ## Status

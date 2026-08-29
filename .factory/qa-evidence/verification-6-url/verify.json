@@ -1,0 +1,14 @@
+{
+  "url": "https://in-class-draft-ticket.sociobot.in",
+  "loadMs": 660,
+  "errors": [],
+  "a11y": {
+    "title": "In-Class Draft Ticket — Record drafting choices",
+    "lang": "en",
+    "h1": 1,
+    "main": true,
+    "imgsMissingAlt": 0,
+    "buttonsUnlabeled": 0,
+    "textLength": 1739
+  }
+}
