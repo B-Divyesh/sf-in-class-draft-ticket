@@ -16,16 +16,6 @@ h1[tabindex="-1"]:focus { outline: none; }
   padding-block: 9px;
 }
 
-.preset-tools {
-  padding: 16px;
-  margin-bottom: 8px;
-  background: #eef7c5;
-  border-left: 5px solid #315ea8;
-}
-
-.preset-tools label { display: block; margin: 0 0 8px; }
-.preset-save { justify-self: start; }
-
 @media (max-width: 800px) {
   .wordmark span:last-child { display: inline; }
   .site-header { gap: 12px; }

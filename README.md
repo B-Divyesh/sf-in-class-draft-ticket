@@ -43,15 +43,15 @@ docker run --rm -p 8080:8080 -v draft-ticket-data:/app/data in-class-draft-ticke
 
 The container runs as a non-root user and reads only `PORT`, which defaults to `8080`. `DATA_DIR` is an optional local-development override. `GET /health` returns the build SHA.
 
-The container needs no configuration beyond `PORT`: without `DATABASE_URL` it uses local SQLite under `/app/data`. Factory production supplies `DATABASE_URL` from Key Vault and runs two to three replicas against one dedicated schema in the existing managed PostgreSQL service. Sessions and per-client rate counters are therefore shared across every replica. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records the database secret reference and scale settings. `npm run test:contracts` also starts three local processes on one datastore and checks demo, teacher, student, export, delete, capacity, and rate-limit behavior across them.
+The container needs no configuration beyond `PORT`: without `DATABASE_URL` it uses local SQLite under `/app/data`. Production supplies `DATABASE_URL` from Key Vault and runs one PostgreSQL-backed replica. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records the database secret reference and scale settings. The deploy gate creates a session, restarts the active revision, then reads and deletes that same session before it reports success.
 
-Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. That path builds in ACR, binds the Key Vault PostgreSQL URL to the new revision, and refuses success until fresh browser flows have reached every ready replica.
+Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. That path builds in ACR, binds the Key Vault PostgreSQL URL to the new revision, and refuses success until fresh browser flows and the revision-restart persistence check pass.
 
 ## Privacy and limits
 
 Sessions expire after the teacher's chosen one, seven, or thirty days. Free sessions accept up to 40 tickets. Teachers can delete a session early. See `/privacy` and `/terms` for the full plain-language policies.
 
-An active teacher license can add ten prompt presets stored on the current device. New licenses are not sold from this site; existing licenses are checked through the Sociobot billing API. This repository contains no payment-provider code or product ID.
+All class-session features are free. The researched freemium add-on is intentionally not offered until its Sociobot billing product is registered; the core teacher and student workflow remains available without payment or an account.
 
 ## Project notes
 

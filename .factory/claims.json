@@ -36,17 +36,10 @@
   },
   {
     "id": "privacy-minimal",
-    "claim": "The app uses no webcam, microphone, keystroke logging, analytics, or third-party tracking.",
+    "claim": "The app uses no webcam, microphone, keystroke logging, analytics, or third-party tracking; session requests stay on this service.",
     "where": "landing boundaries and privacy",
     "test": "npm test -- --grep @claim:privacy-minimal",
     "sandbox": "fresh landing and demo pages; monitor requests and media APIs, allowing only same-origin traffic"
-  },
-  {
-    "id": "paid-presets",
-    "claim": "An active teacher license can save ten local prompt presets.",
-    "where": "landing teacher-license section, setup, and terms",
-    "test": "npm test -- --grep @claim:paid-presets",
-    "sandbox": "mock a valid Sociobot license response; save ten presets, assert local persistence, and assert the eleventh is rejected"
   },
   {
     "id": "teacher-control",
@@ -54,5 +47,12 @@
     "where": "teacher view, setup, privacy, README",
     "test": "npm test -- --grep @claim:teacher-control",
     "sandbox": "fresh API session; reject unauthenticated read, CSV export, and deletion, then accept all three with the private token"
+  },
+  {
+    "id": "production-topology",
+    "claim": "The release deployment uses one PostgreSQL-backed replica and verifies a session survives a real revision restart.",
+    "where": "README container section",
+    "test": "npm run test:production-topology",
+    "sandbox": "render the committed Container App contract and inspect the deployment gate's persisted-record and revision-restart checks"
   }
 ]

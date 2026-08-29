@@ -63,9 +63,9 @@ test('container build tracks stable Rust instead of a minor release', async () =
   assert.doesNotMatch(dockerfile, /^FROM rust:1\.\d+/m);
 });
 
-test('production replicas share durable PostgreSQL', async () => {
+test('production uses one durable PostgreSQL-backed replica', async () => {
   const deployment = JSON.parse(await read('deployment/containerapp-contract.json'));
-  assert.deepEqual(deployment.scale, { minReplicas: 2, maxReplicas: 3 });
+  assert.deepEqual(deployment.scale, { minReplicas: 1, maxReplicas: 1 });
   assert.deepEqual(deployment.database, {
     type: 'AzureDatabaseForPostgreSQL',
     host: 'sociobot-db.postgres.database.azure.com',
@@ -79,14 +79,14 @@ test('production replicas share durable PostgreSQL', async () => {
   assert.deepEqual(deployment.runtime.optionalEnvironment, ['DATABASE_URL']);
 });
 
-test('deployment contract describes the PostgreSQL secret and scale settings', () => {
+test('deployment contract describes the PostgreSQL secret and one-replica scale', () => {
   const image = 'sociobotregistry.azurecr.io/sf-in-class-draft-ticket:test-sha';
   const rendered = JSON.parse(execFileSync(
     process.execPath,
     ['deployment/render-containerapp.mjs', image],
     { cwd: new URL('..', import.meta.url), encoding: 'utf8' }
   ));
-  assert.deepEqual(rendered.properties.template.scale, { minReplicas: 2, maxReplicas: 3 });
+  assert.deepEqual(rendered.properties.template.scale, { minReplicas: 1, maxReplicas: 1 });
   assert.deepEqual(rendered.properties.template.volumes, []);
   assert.deepEqual(rendered.properties.configuration.secrets, [{
     name: 'database-url',
@@ -105,17 +105,20 @@ test('deployment contract describes the PostgreSQL secret and scale settings', (
   }]);
 });
 
-test('product deploy path materializes the PostgreSQL secret and starts a two-replica revision', async () => {
+test('@claim:production-topology product deploy path binds PostgreSQL and proves persistence across a revision restart', async () => {
   const deploy = await read('deployment/deploy.sh');
   assert.match(deploy, /az containerapp secret set/);
   assert.match(deploy, /keyvaultref:\$\{DATABASE_SECRET_URL\},identityref:\$\{DATABASE_IDENTITY\}/);
   assert.match(deploy, /az containerapp update/);
   assert.match(deploy, /--replace-env-vars PORT=8080 DATABASE_URL=secretref:database-url/);
-  assert.match(deploy, /--min-replicas 2/);
-  assert.match(deploy, /--max-replicas 3/);
+  assert.match(deploy, /--min-replicas 1/);
+  assert.match(deploy, /--max-replicas 1/);
   assert.match(deploy, /verify-live\.mjs/);
   assert.match(deploy, /LIVE_EXPECTED_REPLICAS/);
-  assert.match(deploy, /verified shared storage and rate limiting/);
+  assert.match(deploy, /LIVE_PERSISTENCE_RECORD/);
+  assert.match(deploy, /az containerapp revision restart/);
+  assert.match(deploy, /--assert-persistence-record/);
+  assert.match(deploy, /PostgreSQL persistence across a revision restart/);
   assert.match(deploy, /health\?deploy-check=/);
   assert.match(deploy, /health\.storage_backend === 'postgres'/);
   assert.match(deploy, /keyVaultUrl === expectedSecretUrl/);
@@ -139,6 +142,9 @@ test('live gate uses fresh browser processes and rejects affinity-only coverage'
   assert.match(gate, /observedReplicas\.size >= expectedReplicas/);
   assert.match(gate, /demo teacher read/);
   assert.match(gate, /real teacher read/);
+  assert.match(gate, /persistence record create/);
+  assert.match(gate, /post-restart student read/);
+  assert.match(gate, /revision restart must replace the serving process/);
 });
 
 test('claim runner compiles before Playwright starts its server timer', async () => {
@@ -147,6 +153,18 @@ test('claim runner compiles before Playwright starts its server timer', async ()
   assert.match(pkg.scripts.pretest, /cargo build/);
   assert.match(playwright, /command: '\.\/target\/debug\/in-class-draft-ticket'/);
   assert.doesNotMatch(playwright, /command: 'cargo run'/);
+});
+
+test('every listed product claim has exactly one tagged regression test', async () => {
+  const claims = JSON.parse(await read('.factory/claims.json'));
+  const testSources = await Promise.all([
+    read('tests/product.spec.ts'),
+    read('contract-tests/release-contract.test.mjs')
+  ]);
+  for (const { id } of claims) {
+    const matches = testSources.join('\n').match(new RegExp(`@claim:${id}\\b`, 'g')) ?? [];
+    assert.equal(matches.length, 1, `${id} needs exactly one tagged test`);
+  }
 });
 
 test('simultaneous replica starts never race migration history', {

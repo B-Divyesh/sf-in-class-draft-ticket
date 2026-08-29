@@ -141,26 +141,6 @@ test('@claim:privacy-minimal no tracking or capture occurs', async ({page}) => {
   expect(await page.evaluate(() => (window as any).__mediaCalls)).toBe(0);
 });
 
-test('@claim:paid-presets valid license saves ten local presets and rejects the eleventh', async ({page}) => {
-  await page.route('https://api.sociobot.in/api/v1/products/in-class-draft-ticket/verify?*', route => route.fulfill({json:{valid:true,reason:'ok',expires_at:null}}));
-  await page.goto('/?license=test-valid-license');
-  await page.getByRole('link',{name:'Start a class session'}).click();
-  await expect(page.getByLabel('Saved prompt presets')).toBeVisible();
-  for (let index = 1; index <= 10; index++) {
-    await page.getByLabel('Class or section name').fill(`Seminar ${index}`);
-    await page.getByLabel('Writing prompt').fill(`Where does argument ${index} change direction?`);
-    await page.getByRole('button',{name:'Save as prompt preset'}).click();
-    await expect(page.getByText('Prompt preset saved on this device.')).toBeVisible();
-  }
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('paid:prompt-presets')!))).toHaveLength(10);
-
-  await page.getByLabel('Class or section name').fill('Seminar 11');
-  await page.getByLabel('Writing prompt').fill('Where does argument 11 change direction?');
-  await page.getByRole('button',{name:'Save as prompt preset'}).click();
-  await expect(page.getByRole('alert')).toHaveText('Ten presets are already saved. Remove one before adding another.');
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('paid:prompt-presets')!))).toHaveLength(10);
-});
-
 test('@claim:teacher-control private token protects read, export, and delete', async ({request}) => {
   const created = await newSession(request);
   expect((await request.get(`/api/teacher/${created.session.code}`)).status()).toBe(401);
@@ -239,7 +219,7 @@ test('390px layout reflows without horizontal scrolling at 200% text size', asyn
   }
   await page.goto('/');
   await expect(page.getByRole('heading', {name:'Record in-class drafting without surveillance'})).toBeVisible();
-  await expect(page.getByLabel('Have a license?')).toBeVisible();
+  await expect(page.getByRole('link', {name:'Start a class session'})).toBeVisible();
 });
 
 test('routes expose one focused page heading and working legal links', async ({page}) => {

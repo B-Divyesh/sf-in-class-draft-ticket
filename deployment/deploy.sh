@@ -37,8 +37,8 @@ az containerapp update \
   --resource-group "$RESOURCE_GROUP" \
   --image "$IMAGE" \
   --replace-env-vars PORT=8080 DATABASE_URL=secretref:database-url \
-  --min-replicas 2 \
-  --max-replicas 3 \
+  --min-replicas 1 \
+  --max-replicas 1 \
   --output none
 
 contract_is_applied() {
@@ -55,7 +55,7 @@ const databaseSecret = config.properties.configuration?.secrets?.some(item =>
   item.name === 'database-url' && item.keyVaultUrl === expectedSecretUrl && item.identity === expectedIdentity);
 const detachedFileShare = (container?.volumeMounts?.length ?? 0) === 0 &&
   (template.volumes?.length ?? 0) === 0;
-const scaled = template.scale?.minReplicas === 2 && template.scale?.maxReplicas === 3;
+const scaled = template.scale?.minReplicas === 1 && template.scale?.maxReplicas === 1;
 if (!databaseEnv || !databaseSecret || !detachedFileShare || !scaled) process.exit(1);
 NODE
 }
@@ -74,13 +74,29 @@ for _ in $(seq 1 40); do
       --revision "$(az containerapp revision list --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query '[?properties.active].name | [0]' -o tsv)" \
       --query 'length([?properties.containers[0].ready == `true`])' \
       --output tsv)
-    if [ "${READY_REPLICAS:-0}" -lt 2 ]; then
+    if [ "${READY_REPLICAS:-0}" -ne 1 ]; then
       sleep 15
       continue
     fi
-    LIVE_EXPECTED_REPLICAS="$READY_REPLICAS" node "$REPO_DIR/deployment/verify-live.mjs"
-    echo "deployed $SOURCE_SHA with verified shared storage and rate limiting"
-    exit 0
+    PERSISTENCE_RECORD=$(mktemp)
+    trap 'rm -f "$APPLIED" "$PERSISTENCE_RECORD"' EXIT
+    LIVE_EXPECTED_REPLICAS=1 LIVE_PERSISTENCE_RECORD="$PERSISTENCE_RECORD" node "$REPO_DIR/deployment/verify-live.mjs"
+    ACTIVE_REVISION=$(az containerapp revision list --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query '[?properties.active].name | [0]' -o tsv)
+    az containerapp revision restart --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision "$ACTIVE_REVISION" --output none
+    for _ in $(seq 1 40); do
+      LIVE_HEALTH=$(curl --fail --silent --max-time 15 \
+        "https://in-class-draft-ticket.sociobot.in/health?restart-check=${SOURCE_SHA}-${RANDOM}" \
+        2>/dev/null || true)
+      if printf '%s' "$LIVE_HEALTH" | node -e "let data='';process.stdin.on('data',chunk=>data+=chunk).on('end',()=>{try { const health=JSON.parse(data); process.exit(health.build_sha === process.argv[1] && health.storage_backend === 'postgres' ? 0 : 1); } catch { process.exit(1); }})" "$SOURCE_SHA"; then
+        if LIVE_EXPECTED_REPLICAS=1 LIVE_PERSISTENCE_RECORD="$PERSISTENCE_RECORD" node "$REPO_DIR/deployment/verify-live.mjs" --assert-persistence-record; then
+          echo "deployed $SOURCE_SHA with PostgreSQL persistence across a revision restart"
+          exit 0
+        fi
+      fi
+      sleep 15
+    done
+    echo "revision restart did not preserve the verified PostgreSQL session" >&2
+    exit 1
   fi
   sleep 15
 done

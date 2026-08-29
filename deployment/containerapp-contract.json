@@ -13,8 +13,8 @@
     "schema": "in_class_draft_ticket"
   },
   "scale": {
-    "minReplicas": 2,
-    "maxReplicas": 3
+    "minReplicas": 1,
+    "maxReplicas": 1
   },
   "runtime": {
     "port": 8080,

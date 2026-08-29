@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 
 const baseUrl = (process.env.LIVE_BASE_URL ?? 'https://in-class-draft-ticket.sociobot.in').replace(/\/$/, '');
-const expectedReplicas = Number(process.env.LIVE_EXPECTED_REPLICAS ?? 2);
+const expectedReplicas = Number(process.env.LIVE_EXPECTED_REPLICAS ?? 1);
 const jsonHeaders = { 'content-type': 'application/json' };
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const observedReplicas = new Set();
+const persistenceRecordPath = process.env.LIVE_PERSISTENCE_RECORD;
 
 async function browserApi(path, options = {}, label) {
   // A new browser process is deliberate. Reusing Node's socket pool or one
@@ -57,6 +59,23 @@ async function deleteRecord(record) {
 
 const records = [];
 let real;
+let persistenceRecord;
+
+if (process.argv.includes('--assert-persistence-record')) {
+  assert.ok(persistenceRecordPath, 'LIVE_PERSISTENCE_RECORD is required for restart verification');
+  const record = JSON.parse(readFileSync(persistenceRecordPath, 'utf8'));
+  const student = await browserApi(`/sessions/${record.session.code}`, {}, 'post-restart student read');
+  assert.equal(student.status, 200, `post-restart student read: HTTP ${student.status}: ${student.body}`);
+  assert.notEqual(student.replica, record.replica_id, 'revision restart must replace the serving process');
+  const teacher = await browserApi(`/teacher/${record.session.code}`, {
+    headers: { Authorization: `Bearer ${record.teacher_token}` }
+  }, 'post-restart teacher read');
+  assert.equal(teacher.status, 200, `post-restart teacher read: HTTP ${teacher.status}: ${teacher.body}`);
+  await deleteRecord(record);
+  console.log('live PostgreSQL record survived an actual revision restart');
+  process.exit(0);
+}
+
 try {
   // Twelve independent create/read cycles make each replica prove it can read
   // another replica's write. The x-draft-ticket-replica set below must cover
@@ -127,10 +146,32 @@ try {
   const limited = burst.filter(response => response.status === 429);
   assert.equal(limited.length, 5, 'requests 41–45 are limited across replicas');
   assert.ok(limited.every(response => response.headers.get('retry-after') === '1'), 'every 429 includes Retry-After: 1');
+
+  if (persistenceRecordPath) {
+    // Keep one disposable real session through the deployment's actual
+    // revision restart. This is intentionally not a process restart or a
+    // local filesystem check: it proves the active managed PostgreSQL schema
+    // still contains the record after Container Apps replaces the process.
+    await delay(1_100);
+    const response = await browserApi('/sessions', {
+      method: 'POST', headers: jsonHeaders, body: JSON.stringify({
+        title: 'Revision restart persistence check',
+        prompt: 'Which revision keeps this draft ticket?',
+        retention_days: 1
+      })
+    }, 'persistence record create');
+    assert.equal(response.status, 201, `persistence record create: HTTP ${response.status}: ${response.body}`);
+    persistenceRecord = JSON.parse(response.body);
+    records.push(persistenceRecord);
+    writeFileSync(persistenceRecordPath, JSON.stringify({
+      ...persistenceRecord,
+      replica_id: response.replica
+    }));
+  }
 } finally {
   // The gate owns these temporary records and removes them even after an
   // assertion failure. Demo rows also have a one-day TTL as a fallback.
-  await Promise.all(records.map(deleteRecord));
+  await Promise.all(records.filter(record => record !== persistenceRecord).map(deleteRecord));
 }
 
 console.log(`live browser replica, export, delete, and rate-limit verification passed across ${observedReplicas.size} replica(s)`);
