@@ -1,28 +1,34 @@
 use std::{
     fs::{File, OpenOptions},
     path::{Path, PathBuf},
+    str::FromStr,
     sync::Arc,
     time::Duration,
 };
 
 use fs2::FileExt;
 use sqlx::{
+    postgres::{PgConnectOptions, PgPoolOptions},
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
-    SqlitePool,
+    PgPool, SqlitePool,
 };
 
 #[derive(Clone)]
-pub struct Database {
-    pool: SqlitePool,
-    gate: Arc<FileGate>,
+pub enum Database {
+    Sqlite {
+        pool: SqlitePool,
+        gate: Arc<FileGate>,
+    },
+    Postgres(PgPool),
 }
 
-struct FileGate {
+pub(crate) struct FileGate {
     path: PathBuf,
 }
 
-pub struct DatabaseGuard {
-    _file: File,
+pub enum DatabaseGuard {
+    Sqlite(File),
+    Postgres,
 }
 
 impl FileGate {
@@ -36,7 +42,7 @@ impl FileGate {
                 .truncate(false)
                 .open(path)?;
             FileExt::lock_exclusive(&file)?;
-            Ok(DatabaseGuard { _file: file })
+            Ok(DatabaseGuard::Sqlite(file))
         })
         .await?
     }
@@ -44,16 +50,40 @@ impl FileGate {
 
 impl Database {
     pub async fn lock(&self) -> anyhow::Result<DatabaseGuard> {
-        self.gate.lock().await
+        match self {
+            Self::Sqlite { gate, .. } => gate.lock().await,
+            Self::Postgres(_) => Ok(DatabaseGuard::Postgres),
+        }
     }
 
-    pub fn pool(&self) -> &SqlitePool {
-        &self.pool
+    pub fn sqlite(&self) -> Option<&SqlitePool> {
+        match self {
+            Self::Sqlite { pool, .. } => Some(pool),
+            Self::Postgres(_) => None,
+        }
+    }
+
+    pub fn postgres(&self) -> Option<&PgPool> {
+        match self {
+            Self::Postgres(pool) => Some(pool),
+            Self::Sqlite { .. } => None,
+        }
     }
 
     #[cfg(test)]
     pub async fn close(&self) {
-        self.pool.close().await;
+        match self {
+            Self::Sqlite { pool, .. } => pool.close().await,
+            Self::Postgres(pool) => pool.close().await,
+        }
+    }
+}
+
+impl Drop for DatabaseGuard {
+    fn drop(&mut self) {
+        if let Self::Sqlite(file) = self {
+            let _ = FileExt::unlock(file);
+        }
     }
 }
 
@@ -81,7 +111,30 @@ fn retryable_migration_error(message: &str) -> bool {
         || message.contains("UNIQUE constraint failed: _sqlx_migrations.version")
 }
 
-pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
+async fn connect_postgres(database_url: &str) -> anyhow::Result<Database> {
+    let options = PgConnectOptions::from_str(database_url)?
+        .options([("application_name", "in-class-draft-ticket")]);
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .acquire_timeout(Duration::from_secs(10))
+        .connect_with(options)
+        .await?;
+    let mut transaction = pool.begin().await?;
+    // Serialize idempotent schema setup when a revision starts all replicas
+    // together. A transaction-scoped advisory lock cannot leak if setup fails.
+    // raw_sql avoids sqlx's shared public migration-history table, which the
+    // least-privilege runtime role must not be able to alter.
+    sqlx::query("SELECT pg_advisory_xact_lock(2026082901)")
+        .execute(&mut *transaction)
+        .await?;
+    sqlx::raw_sql(include_str!("../migrations-postgres/202608290001_init.sql"))
+        .execute(&mut *transaction)
+        .await?;
+    transaction.commit().await?;
+    Ok(Database::Postgres(pool))
+}
+
+async fn connect_sqlite(data_dir: &Path) -> anyhow::Result<Database> {
     tokio::fs::create_dir_all(data_dir).await?;
     let database_path = data_dir.join("tickets.db");
     let gate = Arc::new(FileGate {
@@ -124,7 +177,16 @@ pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
         connected.expect("the bounded database connection retry always returns")
     };
     migrate(&pool).await?;
-    Ok(Database { pool, gate })
+    Ok(Database::Sqlite { pool, gate })
+}
+
+pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
+    match std::env::var("DATABASE_URL") {
+        Ok(database_url) if !database_url.trim().is_empty() => {
+            connect_postgres(&database_url).await
+        }
+        _ => connect_sqlite(data_dir).await,
+    }
 }
 
 #[cfg(test)]

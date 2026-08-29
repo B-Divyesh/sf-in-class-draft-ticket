@@ -63,22 +63,20 @@ test('container build tracks stable Rust instead of a minor release', async () =
   assert.doesNotMatch(dockerfile, /^FROM rust:1\.\d+/m);
 });
 
-test('production replicas share the durable data mount', async () => {
+test('production replicas share durable PostgreSQL', async () => {
   const deployment = JSON.parse(await read('deployment/containerapp-contract.json'));
-  const database = await read('src/db.rs');
   assert.deepEqual(deployment.scale, { minReplicas: 2, maxReplicas: 3 });
-  assert.deepEqual(deployment.storage, {
-    type: 'AzureFile',
-    environmentStorageName: 'in-class-draft-ticket-data',
-    accountName: 'sociobotblob',
-    shareName: 'sf-in-class-draft-ticket-data',
-    volumeName: 'session-data',
-    mountPath: '/app/data',
-    accessMode: 'ReadWrite'
+  assert.deepEqual(deployment.database, {
+    type: 'AzureDatabaseForPostgreSQL',
+    host: 'sociobot-db.postgres.database.azure.com',
+    environmentVariable: 'DATABASE_URL',
+    containerSecretName: 'database-url',
+    keyVaultSecretUrl: 'https://sociobot-keyvault1.vault.azure.net/secrets/sociobot-db-runtime-url',
+    identity: '/subscriptions/283af945-693b-4a6e-b952-df928d0a18a9/resourceGroups/sociobot/providers/Microsoft.ManagedIdentity/userAssignedIdentities/factory-worker-identity',
+    schema: 'in_class_draft_ticket'
   });
   assert.deepEqual(deployment.runtime.requiredEnvironment, ['PORT']);
-  assert.match(database, /tickets\.db\.app-lock/);
-  assert.match(database, /lock_exclusive/);
+  assert.deepEqual(deployment.runtime.optionalEnvironment, ['DATABASE_URL']);
 });
 
 test('deployment renderer applies the storage and scale contract atomically', () => {
@@ -89,15 +87,21 @@ test('deployment renderer applies the storage and scale contract atomically', ()
     { cwd: new URL('..', import.meta.url), encoding: 'utf8' }
   ));
   assert.deepEqual(rendered.properties.template.scale, { minReplicas: 2, maxReplicas: 3 });
-  assert.deepEqual(rendered.properties.template.volumes, [{
-    name: 'session-data', storageType: 'AzureFile', storageName: 'in-class-draft-ticket-data'
+  assert.deepEqual(rendered.properties.template.volumes, []);
+  assert.deepEqual(rendered.properties.configuration.secrets, [{
+    name: 'database-url',
+    keyVaultUrl: 'https://sociobot-keyvault1.vault.azure.net/secrets/sociobot-db-runtime-url',
+    identity: '/subscriptions/283af945-693b-4a6e-b952-df928d0a18a9/resourceGroups/sociobot/providers/Microsoft.ManagedIdentity/userAssignedIdentities/factory-worker-identity'
   }]);
   assert.deepEqual(rendered.properties.template.containers, [{
     name: 'app',
     image,
     resources: { cpu: 0.5, memory: '1Gi' },
-    env: [{ name: 'PORT', value: '8080' }],
-    volumeMounts: [{ volumeName: 'session-data', mountPath: '/app/data' }]
+    env: [
+      { name: 'PORT', value: '8080' },
+      { name: 'DATABASE_URL', secretRef: 'database-url' }
+    ],
+    volumeMounts: []
   }]);
 });
 
@@ -107,7 +111,7 @@ test('product deploy path uses the contract renderer instead of the generic thre
   assert.match(deploy, /az rest --method patch/);
   assert.match(deploy, /verify-live\.mjs/);
   assert.match(deploy, /verified shared storage and rate limiting/);
-  assert.match(deploy, /session-data/);
+  assert.match(deploy, /DATABASE_URL/);
   assert.doesNotMatch(deploy, /deploy-container\.sh/);
 });
 

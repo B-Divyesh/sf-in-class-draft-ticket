@@ -31,13 +31,14 @@ contract_is_applied() {
 const config = JSON.parse(require('node:fs').readFileSync(process.argv[2], 'utf8'));
 const template = config.properties.template;
 const container = template.containers.find(item => item.name === 'app');
-const mounted = container?.volumeMounts?.some(item =>
-  item.volumeName === 'session-data' && item.mountPath === '/app/data');
-const durable = template.volumes?.some(item =>
-  item.name === 'session-data' && item.storageType === 'AzureFile' &&
-  item.storageName === 'in-class-draft-ticket-data');
+const databaseEnv = container?.env?.some(item =>
+  item.name === 'DATABASE_URL' && item.secretRef === 'database-url');
+const databaseSecret = config.properties.configuration?.secrets?.some(item =>
+  item.name === 'database-url' && item.keyVaultUrl?.includes('/secrets/sociobot-db-runtime-url'));
+const detachedFileShare = (container?.volumeMounts?.length ?? 0) === 0 &&
+  (template.volumes?.length ?? 0) === 0;
 const scaled = template.scale?.minReplicas === 2 && template.scale?.maxReplicas === 3;
-if (!mounted || !durable || !scaled) process.exit(1);
+if (!databaseEnv || !databaseSecret || !detachedFileShare || !scaled) process.exit(1);
 NODE
 }
 

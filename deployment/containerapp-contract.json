@@ -3,14 +3,14 @@
   "containerApp": "sf-in-class-draft-ticket",
   "resourceGroup": "sociobot",
   "environment": "factory-env",
-  "storage": {
-    "type": "AzureFile",
-    "environmentStorageName": "in-class-draft-ticket-data",
-    "accountName": "sociobotblob",
-    "shareName": "sf-in-class-draft-ticket-data",
-    "volumeName": "session-data",
-    "mountPath": "/app/data",
-    "accessMode": "ReadWrite"
+  "database": {
+    "type": "AzureDatabaseForPostgreSQL",
+    "host": "sociobot-db.postgres.database.azure.com",
+    "environmentVariable": "DATABASE_URL",
+    "containerSecretName": "database-url",
+    "keyVaultSecretUrl": "https://sociobot-keyvault1.vault.azure.net/secrets/sociobot-db-runtime-url",
+    "identity": "/subscriptions/283af945-693b-4a6e-b952-df928d0a18a9/resourceGroups/sociobot/providers/Microsoft.ManagedIdentity/userAssignedIdentities/factory-worker-identity",
+    "schema": "in_class_draft_ticket"
   },
   "scale": {
     "minReplicas": 2,
@@ -20,6 +20,9 @@
     "port": 8080,
     "requiredEnvironment": [
       "PORT"
+    ],
+    "optionalEnvironment": [
+      "DATABASE_URL"
     ]
   }
 }
