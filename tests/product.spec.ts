@@ -183,6 +183,13 @@ test('API rate limit returns Retry-After', async ({request}) => {
   await new Promise(resolve => setTimeout(resolve, 1_100));
 });
 
+test('health is never cached so a release check sees the active storage backend', async ({request}) => {
+  const health = await request.get(`/health?release-check=${Date.now()}`);
+  expect(health.status()).toBe(200);
+  expect(health.headers()['cache-control']).toBe('no-store, max-age=0');
+  expect(['sqlite', 'postgres']).toContain((await health.json()).storage_backend);
+});
+
 test('API rate limit ignores caller-spoofed hops and uses the ingress-appended address', async ({request}, testInfo) => {
   const trustedAddress = testInfo.project.name === 'chromium' ? '203.0.113.77' : '203.0.113.78';
   await freshRateWindow();

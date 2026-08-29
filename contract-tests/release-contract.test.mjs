@@ -116,8 +116,18 @@ test('product deploy path materializes the PostgreSQL secret and starts a two-re
   assert.match(deploy, /verify-live\.mjs/);
   assert.match(deploy, /LIVE_EXPECTED_REPLICAS/);
   assert.match(deploy, /verified shared storage and rate limiting/);
+  assert.match(deploy, /health\?deploy-check=/);
+  assert.match(deploy, /health\.storage_backend === 'postgres'/);
+  assert.match(deploy, /keyVaultUrl === expectedSecretUrl/);
+  assert.match(deploy, /identity === expectedIdentity/);
   assert.doesNotMatch(deploy, /az rest --method patch/);
   assert.doesNotMatch(deploy, /deploy-container\.sh/);
+});
+
+test('health identity cannot be cached across a SQLite-to-PostgreSQL revision repair', async () => {
+  const server = await read('src/main.rs');
+  assert.match(server, /let is_health = req\.uri\(\)\.path\(\) == "\/health"/);
+  assert.match(server, /HeaderValue::from_static\("no-store, max-age=0"\)/);
 });
 
 test('live gate uses fresh browser processes and rejects affinity-only coverage', async () => {

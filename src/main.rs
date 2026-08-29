@@ -353,10 +353,20 @@ fn client_ip(req: &Request) -> String {
 }
 
 async fn cache_headers(req: Request, next: Next) -> Response {
+    let is_health = req.uri().path() == "/health";
     let cache_long =
         req.uri().path().starts_with("/assets/") || req.uri().path().starts_with("/fonts/");
     let mut response = next.run(req).await;
-    if cache_long {
+    // Deployment identity and the storage backend must always describe the
+    // process that served this request. Caching this small diagnostic response
+    // let an edge return a retired SQLite revision after PostgreSQL replicas
+    // were already live, which makes a release gate ambiguous.
+    if is_health {
+        response.headers_mut().insert(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("no-store, max-age=0"),
+        );
+    } else if cache_long {
         response.headers_mut().insert(
             header::CACHE_CONTROL,
             HeaderValue::from_static("public, max-age=31536000, immutable"),

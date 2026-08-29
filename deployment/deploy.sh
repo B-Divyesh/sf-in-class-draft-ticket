@@ -47,10 +47,12 @@ contract_is_applied() {
 const config = JSON.parse(require('node:fs').readFileSync(process.argv[2], 'utf8'));
 const template = config.properties.template;
 const container = template.containers.find(item => item.name === 'app');
+const expectedSecretUrl = 'https://sociobot-keyvault1.vault.azure.net/secrets/sociobot-db-runtime-url';
+const expectedIdentity = '/subscriptions/283af945-693b-4a6e-b952-df928d0a18a9/resourceGroups/sociobot/providers/Microsoft.ManagedIdentity/userAssignedIdentities/factory-worker-identity';
 const databaseEnv = container?.env?.some(item =>
   item.name === 'DATABASE_URL' && item.secretRef === 'database-url');
 const databaseSecret = config.properties.configuration?.secrets?.some(item =>
-  item.name === 'database-url' && item.keyVaultUrl?.includes('/secrets/sociobot-db-runtime-url'));
+  item.name === 'database-url' && item.keyVaultUrl === expectedSecretUrl && item.identity === expectedIdentity);
 const detachedFileShare = (container?.volumeMounts?.length ?? 0) === 0 &&
   (template.volumes?.length ?? 0) === 0;
 const scaled = template.scale?.minReplicas === 2 && template.scale?.maxReplicas === 3;
@@ -59,11 +61,13 @@ NODE
 }
 
 for _ in $(seq 1 40); do
-  LIVE_SHA=$(curl --fail --silent --max-time 15 \
-    https://in-class-draft-ticket.sociobot.in/health \
-    | node -e "let data='';process.stdin.on('data',chunk=>data+=chunk).on('end',()=>console.log(JSON.parse(data).build_sha||''))" \
+  # A query nonce also protects this check against an intermediary retaining a
+  # response from an earlier revision. The handler sets no-store, but deploy
+  # correctness must not depend on a cache honoring a newly deployed header.
+  LIVE_HEALTH=$(curl --fail --silent --max-time 15 \
+    "https://in-class-draft-ticket.sociobot.in/health?deploy-check=${SOURCE_SHA}-${RANDOM}" \
     2>/dev/null || true)
-  if [ "$LIVE_SHA" = "$SOURCE_SHA" ] && contract_is_applied; then
+  if printf '%s' "$LIVE_HEALTH" | node -e "let data='';process.stdin.on('data',chunk=>data+=chunk).on('end',()=>{try { const health=JSON.parse(data); process.exit(health.build_sha === process.argv[1] && health.storage_backend === 'postgres' ? 0 : 1); } catch { process.exit(1); }})" "$SOURCE_SHA" && contract_is_applied; then
     READY_REPLICAS=$(az containerapp replica list \
       --name "$APP_NAME" \
       --resource-group "$RESOURCE_GROUP" \
