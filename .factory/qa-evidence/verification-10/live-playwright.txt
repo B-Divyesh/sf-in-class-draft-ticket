@@ -1,0 +1,714 @@
+
+Running 46 tests using 2 workers
+(node:15375) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15375) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:15528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15528) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:15617) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15617) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:15713) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15713) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:15835) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15835) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:15965) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15965) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:16077) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16077) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:16158) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16158) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+T(node:16234) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:16247) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16234) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16247) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:16341) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:16341) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16432) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16432) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:16510) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:16576) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16510) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:16576) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:16717) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16717) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+F(node:16810) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:16810) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+·F(node:16916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:16916) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+·F(node:17100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+·(node:17100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+···F·(node:17232) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··(node:17232) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+····F(node:17401) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:17401) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+···········
+
+  1) [chromium] › tests/product.spec.ts:42:1 › @claim:sample-demo demo is isolated and seeded ──────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('.response-ticket')
+    Expected: [32m3[39m
+    Received: [31m0[39m
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toHaveCount" with timeout 5000ms[22m
+    [2m  - waiting for locator('.response-ticket')[22m
+    [2m    9 × locator resolved to 0 elements[22m
+    [2m      - unexpected value "0"[22m
+
+
+      43 |   await page.goto('/demo');
+      44 |   await expect(page.getByText('Demo — sample data, nothing is saved to your classes')).toBeVisible();
+    > 45 |   await expect(page.locator('.response-ticket')).toHaveCount(3);
+         |                                                  ^
+      46 |   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['demo:workspace']);
+      47 |   const workspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace')!));
+      48 |   const session = await page.request.get(`/api/sessions/${workspace.code}`);
+        at /work/repo/tests/product.spec.ts:45:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-sample-demo-demo-is-isolated-and-seeded-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/product--claim-sample-demo-demo-is-isolated-and-seeded-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-sample-demo-demo-is-isolated-and-seeded-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-sample-demo-demo-is-isolated-and-seeded-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/product.spec.ts:52:1 › @claim:csv-export demo CSV contains every ticket ────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('.response-ticket')
+    Expected: [32m3[39m
+    Received: [31m0[39m
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toHaveCount" with timeout 5000ms[22m
+    [2m  - waiting for locator('.response-ticket')[22m
+    [2m    8 × locator resolved to 0 elements[22m
+    [2m      - unexpected value "0"[22m
+
+
+      52 | test('@claim:csv-export demo CSV contains every ticket', async ({page}) => {
+      53 |   await page.goto('/demo');
+    > 54 |   await expect(page.locator('.response-ticket')).toHaveCount(3);
+         |                                                  ^
+      55 |   const downloadPromise = page.waitForEvent('download');
+      56 |   await page.getByRole('button',{name:'Export sample CSV'}).click();
+      57 |   const download = await downloadPromise;
+        at /work/repo/tests/product.spec.ts:54:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-csv-export-demo-CSV-contains-every-ticket-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/product--claim-csv-export-demo-CSV-contains-every-ticket-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-csv-export-demo-CSV-contains-every-ticket-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-csv-export-demo-CSV-contains-every-ticket-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/product.spec.ts:66:1 › @claim:pseudonymous-flow teacher sees four submitted checkpoints 
+
+    TypeError: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    [1mMatcher error[22m: [31mreceived[39m value must have a length property whose value must be a number
+
+    Received has value: [31mundefined[39m
+
+      76 |   const teacher = await request.get(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}});
+      77 |   const data = await teacher.json();
+    > 78 |   expect(data.tickets).toHaveLength(1);
+         |                        ^
+      79 |   expect(data.tickets[0]).toMatchObject({pseudonym:'Green Comet',claim:'The doorway shows the narrator changing her mind.',evidence:'Page 12, final paragraph.',revision:'I moved the quotation before my explanation.',reflection:'I need to explain the last image next.'});
+      80 | });
+      81 |
+        at /work/repo/tests/product.spec.ts:78:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-pseudonymou-9a31e--four-submitted-checkpoints-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/product--claim-pseudonymou-9a31e--four-submitted-checkpoints-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-pseudonymou-9a31e--four-submitted-checkpoints-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-pseudonymou-9a31e--four-submitted-checkpoints-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/product.spec.ts:82:1 › @claim:session-retention supports every retention choice and deletes an expired session 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m204[39m
+    Received: [31m401[39m
+
+      87 |     expect(expiry - before).toBeGreaterThan((days * 24 - 1) * 60 * 60 * 1000);
+      88 |     expect(expiry - before).toBeLessThan((days * 24 + 1) * 60 * 60 * 1000);
+    > 89 |     expect((await request.delete(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(204);
+         |                                                                                                                                                  ^
+      90 |   }
+      91 |
+      92 |   const expiring = await request.post('/api/sessions', {data:{
+        at /work/repo/tests/product.spec.ts:89:146
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-session-ret-01f3d--deletes-an-expired-session-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-session-ret-01f3d--deletes-an-expired-session-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-session-ret-01f3d--deletes-an-expired-session-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › tests/product.spec.ts:109:1 › @claim:free-capacity concurrent requests store exactly 40 free-session tickets 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m40[39m
+    Received length: [31m15[39m
+    Received array:  [31m[{"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, …][39m
+
+      120 |     await new Promise(resolve => setTimeout(resolve, 75));
+      121 |   }
+    > 122 |   expect(responses.filter(response => response.status() === 201)).toHaveLength(40);
+          |                                                                   ^
+      123 |   expect(responses.filter(response => response.status() === 409)).toHaveLength(5);
+      124 |   const overflowBodies = await Promise.all(responses.filter(response => response.status() === 409).map(response => response.json()));
+      125 |   expect(overflowBodies).toEqual(Array.from({length:5}, () => expect.objectContaining({error:expect.stringContaining('reached 40 tickets')})));
+        at /work/repo/tests/product.spec.ts:122:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-free-capaci-eb099-tly-40-free-session-tickets-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-free-capaci-eb099-tly-40-free-session-tickets-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-free-capaci-eb099-tly-40-free-session-tickets-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › tests/product.spec.ts:130:1 › @claim:privacy-minimal no tracking or capture occurs 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('.response-ticket')
+    Expected: [32m3[39m
+    Received: [31m0[39m
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toHaveCount" with timeout 5000ms[22m
+    [2m  - waiting for locator('.response-ticket')[22m
+    [2m    9 × locator resolved to 0 elements[22m
+    [2m      - unexpected value "0"[22m
+
+
+      137 |   await page.goto('/');
+      138 |   await page.getByRole('link',{name:'Try it with sample data'}).click();
+    > 139 |   await expect(page.locator('.response-ticket')).toHaveCount(3);
+          |                                                  ^
+      140 |   expect([...origins]).toEqual([new URL(page.url()).origin]);
+      141 |   expect(await page.evaluate(() => (window as any).__mediaCalls)).toBe(0);
+      142 | });
+        at /work/repo/tests/product.spec.ts:139:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-privacy-minimal-no-tracking-or-capture-occurs-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/product--claim-privacy-minimal-no-tracking-or-capture-occurs-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-privacy-minimal-no-tracking-or-capture-occurs-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-privacy-minimal-no-tracking-or-capture-occurs-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium] › tests/product.spec.ts:144:1 › @claim:teacher-control private token protects read, export, and delete 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m200[39m
+    Received: [31m401[39m
+
+      147 |   expect((await request.get(`/api/teacher/${created.session.code}/export`)).status()).toBe(401);
+      148 |   expect((await request.delete(`/api/teacher/${created.session.code}`)).status()).toBe(401);
+    > 149 |   expect((await request.get(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(200);
+          |                                                                                                                                             ^
+      150 |   expect((await request.get(`/api/teacher/${created.session.code}/export`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(200);
+      151 |   const deleted = await request.delete(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}});
+      152 |   expect(deleted.status()).toBe(204);
+        at /work/repo/tests/product.spec.ts:149:141
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-teacher-con-c8590-ects-read-export-and-delete-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-teacher-con-c8590-ects-read-export-and-delete-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-teacher-con-c8590-ects-read-export-and-delete-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [chromium] › tests/product.spec.ts:156:1 › API rate limit returns Retry-After ─────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      159 |     '/api/sessions/ABCDEF', {headers:{'X-Forwarded-For':'203.0.113.10'}}
+      160 |   )));
+    > 161 |   expect(results.some(r => r.status() === 429)).toBe(true);
+          |                                                 ^
+      162 |   expect(results.find(r => r.status() === 429)?.headers()['retry-after']).toBe('1');
+      163 |   await new Promise(resolve => setTimeout(resolve, 1_100));
+      164 | });
+        at /work/repo/tests/product.spec.ts:161:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product-API-rate-limit-returns-Retry-After-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product-API-rate-limit-returns-Retry-After-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product-API-rate-limit-returns-Retry-After-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [chromium] › tests/product.spec.ts:173:1 › API rate limit ignores caller-spoofed hops and uses the ingress-appended address 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m40[39m
+    Received:    [31m45[39m
+
+      180 |   const limited = results.filter(response => response.status() === 429);
+      181 |   if (process.env.PLAYWRIGHT_BASE_URL) {
+    > 182 |     expect(ordinary.length).toBeLessThanOrEqual(40);
+          |                             ^
+      183 |     expect(limited.length).toBeGreaterThan(0);
+      184 |   } else {
+      185 |     expect(ordinary).toHaveLength(40);
+        at /work/repo/tests/product.spec.ts:182:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product-API-rate-limit-ign-d1185-he-ingress-appended-address-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product-API-rate-limit-ign-d1185-he-ingress-appended-address-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product-API-rate-limit-ign-d1185-he-ingress-appended-address-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) [mobile-chromium] › tests/product.spec.ts:42:1 › @claim:sample-demo demo is isolated and seeded 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mundefined[39m
+
+      47 |   const workspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace')!));
+      48 |   const session = await page.request.get(`/api/sessions/${workspace.code}`);
+    > 49 |   expect((await session.json()).is_demo).toBe(true);
+         |                                          ^
+      50 | });
+      51 |
+      52 | test('@claim:csv-export demo CSV contains every ticket', async ({page}) => {
+        at /work/repo/tests/product.spec.ts:49:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-sample-demo-demo-is-isolated-and-seeded-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/product--claim-sample-demo-demo-is-isolated-and-seeded-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-sample-demo-demo-is-isolated-and-seeded-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-sample-demo-demo-is-isolated-and-seeded-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11) [mobile-chromium] › tests/product.spec.ts:52:1 › @claim:csv-export demo CSV contains every ticket 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('.response-ticket')
+    Expected: [32m3[39m
+    Received: [31m0[39m
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toHaveCount" with timeout 5000ms[22m
+    [2m  - waiting for locator('.response-ticket')[22m
+    [2m    8 × locator resolved to 0 elements[22m
+    [2m      - unexpected value "0"[22m
+
+
+      52 | test('@claim:csv-export demo CSV contains every ticket', async ({page}) => {
+      53 |   await page.goto('/demo');
+    > 54 |   await expect(page.locator('.response-ticket')).toHaveCount(3);
+         |                                                  ^
+      55 |   const downloadPromise = page.waitForEvent('download');
+      56 |   await page.getByRole('button',{name:'Export sample CSV'}).click();
+      57 |   const download = await downloadPromise;
+        at /work/repo/tests/product.spec.ts:54:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-csv-export-demo-CSV-contains-every-ticket-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/product--claim-csv-export-demo-CSV-contains-every-ticket-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-csv-export-demo-CSV-contains-every-ticket-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-csv-export-demo-CSV-contains-every-ticket-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12) [mobile-chromium] › tests/product.spec.ts:66:1 › @claim:pseudonymous-flow teacher sees four submitted checkpoints 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByLabel('Class nickname')[22m
+
+
+      67 |   const created = await newSession(request);
+      68 |   await page.goto(`/session/${created.session.code}`);
+    > 69 |   await page.getByLabel('Class nickname').fill('Green Comet');
+         |                                           ^
+      70 |   await page.getByLabel('Your working claim').fill('The doorway shows the narrator changing her mind.');
+      71 |   await page.getByLabel('Evidence location').fill('Page 12, final paragraph.');
+      72 |   await page.getByLabel('One revision choice').fill('I moved the quotation before my explanation.');
+        at /work/repo/tests/product.spec.ts:69:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-pseudonymou-9a31e--four-submitted-checkpoints-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/product--claim-pseudonymou-9a31e--four-submitted-checkpoints-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-pseudonymou-9a31e--four-submitted-checkpoints-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-pseudonymou-9a31e--four-submitted-checkpoints-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  13) [mobile-chromium] › tests/product.spec.ts:82:1 › @claim:session-retention supports every retention choice and deletes an expired session 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m204[39m
+    Received: [31m401[39m
+
+      87 |     expect(expiry - before).toBeGreaterThan((days * 24 - 1) * 60 * 60 * 1000);
+      88 |     expect(expiry - before).toBeLessThan((days * 24 + 1) * 60 * 60 * 1000);
+    > 89 |     expect((await request.delete(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(204);
+         |                                                                                                                                                  ^
+      90 |   }
+      91 |
+      92 |   const expiring = await request.post('/api/sessions', {data:{
+        at /work/repo/tests/product.spec.ts:89:146
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-session-ret-01f3d--deletes-an-expired-session-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-session-ret-01f3d--deletes-an-expired-session-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-session-ret-01f3d--deletes-an-expired-session-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  14) [mobile-chromium] › tests/product.spec.ts:109:1 › @claim:free-capacity concurrent requests store exactly 40 free-session tickets 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m40[39m
+    Received length: [31m14[39m
+    Received array:  [31m[{"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, {"_headers": [RawHeaders], "_initializer": [Object], "_request": [APIRequestContext], Symbol(nodejs.util.inspect.custom): [Function anonymous]}, …][39m
+
+      120 |     await new Promise(resolve => setTimeout(resolve, 75));
+      121 |   }
+    > 122 |   expect(responses.filter(response => response.status() === 201)).toHaveLength(40);
+          |                                                                   ^
+      123 |   expect(responses.filter(response => response.status() === 409)).toHaveLength(5);
+      124 |   const overflowBodies = await Promise.all(responses.filter(response => response.status() === 409).map(response => response.json()));
+      125 |   expect(overflowBodies).toEqual(Array.from({length:5}, () => expect.objectContaining({error:expect.stringContaining('reached 40 tickets')})));
+        at /work/repo/tests/product.spec.ts:122:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-free-capaci-eb099-tly-40-free-session-tickets-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-free-capaci-eb099-tly-40-free-session-tickets-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-free-capaci-eb099-tly-40-free-session-tickets-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  15) [mobile-chromium] › tests/product.spec.ts:130:1 › @claim:privacy-minimal no tracking or capture occurs 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('.response-ticket')
+    Expected: [32m3[39m
+    Received: [31m0[39m
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toHaveCount" with timeout 5000ms[22m
+    [2m  - waiting for locator('.response-ticket')[22m
+    [2m    8 × locator resolved to 0 elements[22m
+    [2m      - unexpected value "0"[22m
+
+
+      137 |   await page.goto('/');
+      138 |   await page.getByRole('link',{name:'Try it with sample data'}).click();
+    > 139 |   await expect(page.locator('.response-ticket')).toHaveCount(3);
+          |                                                  ^
+      140 |   expect([...origins]).toEqual([new URL(page.url()).origin]);
+      141 |   expect(await page.evaluate(() => (window as any).__mediaCalls)).toBe(0);
+      142 | });
+        at /work/repo/tests/product.spec.ts:139:50
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-privacy-minimal-no-tracking-or-capture-occurs-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/product--claim-privacy-minimal-no-tracking-or-capture-occurs-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-privacy-minimal-no-tracking-or-capture-occurs-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-privacy-minimal-no-tracking-or-capture-occurs-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  16) [mobile-chromium] › tests/product.spec.ts:144:1 › @claim:teacher-control private token protects read, export, and delete 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m200[39m
+    Received: [31m401[39m
+
+      147 |   expect((await request.get(`/api/teacher/${created.session.code}/export`)).status()).toBe(401);
+      148 |   expect((await request.delete(`/api/teacher/${created.session.code}`)).status()).toBe(401);
+    > 149 |   expect((await request.get(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(200);
+          |                                                                                                                                             ^
+      150 |   expect((await request.get(`/api/teacher/${created.session.code}/export`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(200);
+      151 |   const deleted = await request.delete(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}});
+      152 |   expect(deleted.status()).toBe(204);
+        at /work/repo/tests/product.spec.ts:149:141
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product--claim-teacher-con-c8590-ects-read-export-and-delete-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product--claim-teacher-con-c8590-ects-read-export-and-delete-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product--claim-teacher-con-c8590-ects-read-export-and-delete-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  17) [mobile-chromium] › tests/product.spec.ts:156:1 › API rate limit returns Retry-After ─────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      159 |     '/api/sessions/ABCDEF', {headers:{'X-Forwarded-For':'203.0.113.10'}}
+      160 |   )));
+    > 161 |   expect(results.some(r => r.status() === 429)).toBe(true);
+          |                                                 ^
+      162 |   expect(results.find(r => r.status() === 429)?.headers()['retry-after']).toBe('1');
+      163 |   await new Promise(resolve => setTimeout(resolve, 1_100));
+      164 | });
+        at /work/repo/tests/product.spec.ts:161:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product-API-rate-limit-returns-Retry-After-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product-API-rate-limit-returns-Retry-After-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product-API-rate-limit-returns-Retry-After-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  18) [mobile-chromium] › tests/product.spec.ts:173:1 › API rate limit ignores caller-spoofed hops and uses the ingress-appended address 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m40[39m
+    Received:    [31m45[39m
+
+      180 |   const limited = results.filter(response => response.status() === 429);
+      181 |   if (process.env.PLAYWRIGHT_BASE_URL) {
+    > 182 |     expect(ordinary.length).toBeLessThanOrEqual(40);
+          |                             ^
+      183 |     expect(limited.length).toBeGreaterThan(0);
+      184 |   } else {
+      185 |     expect(ordinary).toHaveLength(40);
+        at /work/repo/tests/product.spec.ts:182:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product-API-rate-limit-ign-d1185-he-ingress-appended-address-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product-API-rate-limit-ign-d1185-he-ingress-appended-address-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product-API-rate-limit-ign-d1185-he-ingress-appended-address-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  19) [mobile-chromium] › tests/product.spec.ts:196:5 › public route accessibility › /demo passes axe, console, and reflow checks 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 3[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "Failed to load resource: the server responded with a status of 401 ()",[39m
+    [31m+ ][39m
+
+      214 |         `${route} at ${viewport.width}px`
+      215 |       ).toBe(true);
+    > 216 |       expect(consoleErrors).toEqual([]);
+          |                             ^
+      217 |     });
+      218 |   }
+      219 | });
+        at /work/repo/tests/product.spec.ts:216:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/product-public-route-acces-4d780-e-console-and-reflow-checks-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/product-public-route-acces-4d780-e-console-and-reflow-checks-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/product-public-route-acces-4d780-e-console-and-reflow-checks-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/product-public-route-acces-4d780-e-console-and-reflow-checks-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  19 failed
+    [chromium] › tests/product.spec.ts:42:1 › @claim:sample-demo demo is isolated and seeded ───────
+    [chromium] › tests/product.spec.ts:52:1 › @claim:csv-export demo CSV contains every ticket ─────
+    [chromium] › tests/product.spec.ts:66:1 › @claim:pseudonymous-flow teacher sees four submitted checkpoints 
+    [chromium] › tests/product.spec.ts:82:1 › @claim:session-retention supports every retention choice and deletes an expired session 
+    [chromium] › tests/product.spec.ts:109:1 › @claim:free-capacity concurrent requests store exactly 40 free-session tickets 
+    [chromium] › tests/product.spec.ts:130:1 › @claim:privacy-minimal no tracking or capture occurs 
+    [chromium] › tests/product.spec.ts:144:1 › @claim:teacher-control private token protects read, export, and delete 
+    [chromium] › tests/product.spec.ts:156:1 › API rate limit returns Retry-After ──────────────────
+    [chromium] › tests/product.spec.ts:173:1 › API rate limit ignores caller-spoofed hops and uses the ingress-appended address 
+    [mobile-chromium] › tests/product.spec.ts:42:1 › @claim:sample-demo demo is isolated and seeded 
+    [mobile-chromium] › tests/product.spec.ts:52:1 › @claim:csv-export demo CSV contains every ticket 
+    [mobile-chromium] › tests/product.spec.ts:66:1 › @claim:pseudonymous-flow teacher sees four submitted checkpoints 
+    [mobile-chromium] › tests/product.spec.ts:82:1 › @claim:session-retention supports every retention choice and deletes an expired session 
+    [mobile-chromium] › tests/product.spec.ts:109:1 › @claim:free-capacity concurrent requests store exactly 40 free-session tickets 
+    [mobile-chromium] › tests/product.spec.ts:130:1 › @claim:privacy-minimal no tracking or capture occurs 
+    [mobile-chromium] › tests/product.spec.ts:144:1 › @claim:teacher-control private token protects read, export, and delete 
+    [mobile-chromium] › tests/product.spec.ts:156:1 › API rate limit returns Retry-After ───────────
+    [mobile-chromium] › tests/product.spec.ts:173:1 › API rate limit ignores caller-spoofed hops and uses the ingress-appended address 
+    [mobile-chromium] › tests/product.spec.ts:196:5 › public route accessibility › /demo passes axe, console, and reflow checks 
+  27 passed (2.7m)

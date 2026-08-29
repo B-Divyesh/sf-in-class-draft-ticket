@@ -1,0 +1,17 @@
+{
+  "bad-session": {
+    "status": 400,
+    "body": "{\"error\":\"Class name must be 2–80 characters.\"}",
+    "replica": "8ab7978426e149568e8af696a05ba7a6"
+  },
+  "bad-ticket": {
+    "status": 422,
+    "body": "Failed to deserialize the JSON body into the target type: missing field `claim` at line 1 column 17",
+    "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+  },
+  "unauthorised-teacher": {
+    "status": 401,
+    "body": "{\"error\":\"Teacher access is missing. Open the private teacher link from this device.\"}",
+    "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+  }
+}

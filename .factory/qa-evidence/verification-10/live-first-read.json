@@ -1,0 +1,118 @@
+{
+  "url": "https://in-class-draft-ticket.sociobot.in/",
+  "title": "In-Class Draft Ticket — Record drafting choices",
+  "lang": "en",
+  "h1": [
+    "Record in-class drafting without surveillance"
+  ],
+  "body": "Skip to main content\nRecord in-class drafting without surveillance\n●—●\nDraft Ticket\nDemo\nJoin\nStart a class\nPrivacy\n\nA PROCESS RECORD, NOT A DETECTOR\n\nRecord in-class drafting without surveillance\n\nFor writing teachers who need useful evidence of student choices during class.\n\nTry it with sample data\nSee three completed tickets.\nStart a class session\nStudents use class nicknames.\nSessions expire automatically.\nFree for classes up to 40.\nFour checkpoints make the drafting process easier to discuss.\n\nLIVE PREVIEW\n\nA ticket stays short\n\nStudents name one claim, one evidence location, one revision, and one next step.\n\n03 / Quiet Maple\n\nClaim\nMemory acts like a second setting.\n\nRevision\nI moved the scene before my explanation.\n\nTHREE STOPS, ONE CLASS PERIOD\n\nHow it works\n1\nCreate a session\n\nAdd the class name, prompt, and deletion date. Keep the private teacher link.\n\n2\nShare the code\n\nStudents use a class nickname and answer four short prompts.\n\n3\nReview the choices\n\nRead each ticket beside the draft. Export the full session as CSV.\n\nCLEAR BOUNDARIES\n\nWhat this does not do\nNo AI detection\nNo webcam or microphone\nNo keystroke logging\nNo claim of proving authorship\n\nThe ticket gives teachers a starting point for feedback. It does not judge who wrote a draft.\n\nIn-Class Draft Ticket\n\nRecord in-class drafting without surveillance.\n\nPrivacy\nTerms\nBuilt by Param Factory\n(external site)\n\nv1.0 · Generated artwork",
+  "links": [
+    {
+      "text": "Skip to main content",
+      "href": "https://in-class-draft-ticket.sociobot.in/#main"
+    },
+    {
+      "text": "●—●Draft Ticket",
+      "href": "https://in-class-draft-ticket.sociobot.in/"
+    },
+    {
+      "text": "Demo",
+      "href": "https://in-class-draft-ticket.sociobot.in/demo"
+    },
+    {
+      "text": "Join",
+      "href": "https://in-class-draft-ticket.sociobot.in/join"
+    },
+    {
+      "text": "Start a class",
+      "href": "https://in-class-draft-ticket.sociobot.in/start"
+    },
+    {
+      "text": "Privacy",
+      "href": "https://in-class-draft-ticket.sociobot.in/privacy"
+    },
+    {
+      "text": "Try it with sample data",
+      "href": "https://in-class-draft-ticket.sociobot.in/demo"
+    },
+    {
+      "text": "Start a class session",
+      "href": "https://in-class-draft-ticket.sociobot.in/start"
+    },
+    {
+      "text": "Privacy",
+      "href": "https://in-class-draft-ticket.sociobot.in/privacy"
+    },
+    {
+      "text": "Terms",
+      "href": "https://in-class-draft-ticket.sociobot.in/terms"
+    },
+    {
+      "text": "Built by Param Factory (external site)",
+      "href": "https://hello-factory.sociobot.in/"
+    }
+  ],
+  "buttons": [],
+  "events": {
+    "requests": [
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/",
+        "method": "GET",
+        "resourceType": "document"
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/assets/index-53ZNVetz.js",
+        "method": "GET",
+        "resourceType": "script"
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/assets/index-S89xmTMj.css",
+        "method": "GET",
+        "resourceType": "stylesheet"
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/fonts/fraunces-semibold.ttf",
+        "method": "GET",
+        "resourceType": "font"
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/fonts/atkinson-regular.ttf",
+        "method": "GET",
+        "resourceType": "font"
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/assets/draft-constellation.webp",
+        "method": "GET",
+        "resourceType": "image"
+      }
+    ],
+    "responses": [
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/",
+        "status": 200
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/assets/index-S89xmTMj.css",
+        "status": 200
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/assets/index-53ZNVetz.js",
+        "status": 200
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/assets/draft-constellation.webp",
+        "status": 200
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/fonts/atkinson-regular.ttf",
+        "status": 200
+      },
+      {
+        "url": "https://in-class-draft-ticket.sociobot.in/fonts/fraunces-semibold.ttf",
+        "status": 200
+      }
+    ],
+    "console": [],
+    "errors": []
+  }
+}

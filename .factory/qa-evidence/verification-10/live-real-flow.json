@@ -1,0 +1,35 @@
+{
+  "health": {
+    "build_sha": "3c100005ac85d2c93384905f25acf4125f5fefa6",
+    "replica_id": "b8979a43ae0e4ed9a1679e877212a23c",
+    "status": "ok",
+    "storage_backend": "sqlite"
+  },
+  "created": {
+    "status": 201,
+    "code": "M7G4RK",
+    "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+  },
+  "student": {
+    "status": 200,
+    "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+  },
+  "ticket": {
+    "status": 201,
+    "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+  },
+  "teacher": {
+    "status": 200,
+    "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+  },
+  "csv": {
+    "status": 200,
+    "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+  },
+  "delete": {
+    "status": 204,
+    "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+  },
+  "teacherBody": "{\"session\":{\"code\":\"M7G4RK\",\"title\":\"QA normal flow 1787999524030\",\"prompt\":\"Explain how a setting changes a decision.\",\"created_at\":\"2026-08-29T10:32:04.149643298Z\",\"expires_at\":\"2026-08-30T10:32:04.149643298Z\",\"is_demo\":false},\"tickets\":[{\"id\":\"77e1b4be-3699-4156-9556-9f8b5572ff0b\",\"session_code\":\"M7G4RK\",\"pseudonym\":\"QA Sparrow\",\"claim\":\"The setting raises the stakes.\",\"evidence\":\"Paragraph 3.\",\"revision\":\"I moved the example first.\",\"reflection\":\"I will connect the ending.\",\"created_at\":\"2026-08-29T10:32:04.184002368Z\"}]}",
+  "ticketBody": "{\"id\":\"77e1b4be-3699-4156-9556-9f8b5572ff0b\",\"session_code\":\"M7G4RK\",\"pseudonym\":\"QA Sparrow\",\"claim\":\"The setting raises the stakes.\",\"evidence\":\"Paragraph 3.\",\"revision\":\"I moved the example first.\",\"reflection\":\"I will connect the ending.\",\"created_at\":\"2026-08-29T10:32:04.184002368Z\"}"
+}

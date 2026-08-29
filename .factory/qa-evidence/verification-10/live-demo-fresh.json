@@ -1,0 +1,247 @@
+[
+  {
+    "i": 0,
+    "requests": [
+      {
+        "path": "/demo",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-S89xmTMj.css",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-53ZNVetz.js",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/atkinson-regular.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/fraunces-semibold.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/demo",
+        "status": 201,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/teacher/NGSUDM",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      }
+    ],
+    "console": [],
+    "errors": [],
+    "url": "https://in-class-draft-ticket.sociobot.in/demo",
+    "title": "Demo — In-Class Draft Ticket",
+    "ticketCount": 3,
+    "text": "SAMPLE TEACHER VIEW\n\nReview a sample draft session\n\nThese three fictional tickets show the session sheet after an in-class draft.\n\nSAMPLE CODE\nNGSUDM\n\nRoom 204 · Beloved seminar\n\nExport sample CSV\nWriting prompt\n\nHow does Morrison use memory to shape Sethe's choices?\n\nSample draft tickets\n3 records\n01\nBlue Finch\nCLAIM\nMemory acts like a second setting that keeps the past present.\nEVIDENCE LOCATION\nPage 43, the description after Sethe sees the dress.\nREVISION CHOICE\nI moved the scene before my explanation so readers see the image first.\nEXIT REFLECTION\nMy next step is to connect the image to Sethe's decision in the next paragraph.\n02\nCopper Kite\nCLAIM\nThe repeated colors show how memory interrupts the present.\nEVIDENCE LOCATION\nPages 38–39, especially the red light detail.\nREVISION CHOICE\nI replaced a broad theme sentence with a claim about the color pattern.\nEXIT REFLECTION\nI still need a quotation that shows the interruption, not only the color.\n03\nQuiet Maple\nCLAIM\nSethe protects her",
+    "storage": [
+      "demo:workspace"
+    ]
+  },
+  {
+    "i": 1,
+    "requests": [
+      {
+        "path": "/demo",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-S89xmTMj.css",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-53ZNVetz.js",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/atkinson-regular.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/demo",
+        "status": 201,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/fraunces-semibold.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/teacher/QQ6RXW",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      }
+    ],
+    "console": [],
+    "errors": [],
+    "url": "https://in-class-draft-ticket.sociobot.in/demo",
+    "title": "Demo — In-Class Draft Ticket",
+    "ticketCount": 3,
+    "text": "SAMPLE TEACHER VIEW\n\nReview a sample draft session\n\nThese three fictional tickets show the session sheet after an in-class draft.\n\nSAMPLE CODE\nQQ6RXW\n\nRoom 204 · Beloved seminar\n\nExport sample CSV\nWriting prompt\n\nHow does Morrison use memory to shape Sethe's choices?\n\nSample draft tickets\n3 records\n01\nBlue Finch\nCLAIM\nMemory acts like a second setting that keeps the past present.\nEVIDENCE LOCATION\nPage 43, the description after Sethe sees the dress.\nREVISION CHOICE\nI moved the scene before my explanation so readers see the image first.\nEXIT REFLECTION\nMy next step is to connect the image to Sethe's decision in the next paragraph.\n02\nCopper Kite\nCLAIM\nThe repeated colors show how memory interrupts the present.\nEVIDENCE LOCATION\nPages 38–39, especially the red light detail.\nREVISION CHOICE\nI replaced a broad theme sentence with a claim about the color pattern.\nEXIT REFLECTION\nI still need a quotation that shows the interruption, not only the color.\n03\nQuiet Maple\nCLAIM\nSethe protects her",
+    "storage": [
+      "demo:workspace"
+    ]
+  },
+  {
+    "i": 2,
+    "requests": [
+      {
+        "path": "/demo",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-S89xmTMj.css",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-53ZNVetz.js",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/atkinson-regular.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/fraunces-semibold.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/demo",
+        "status": 201,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/teacher/PKTN4X",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      }
+    ],
+    "console": [],
+    "errors": [],
+    "url": "https://in-class-draft-ticket.sociobot.in/demo",
+    "title": "Demo — In-Class Draft Ticket",
+    "ticketCount": 3,
+    "text": "SAMPLE TEACHER VIEW\n\nReview a sample draft session\n\nThese three fictional tickets show the session sheet after an in-class draft.\n\nSAMPLE CODE\nPKTN4X\n\nRoom 204 · Beloved seminar\n\nExport sample CSV\nWriting prompt\n\nHow does Morrison use memory to shape Sethe's choices?\n\nSample draft tickets\n3 records\n01\nBlue Finch\nCLAIM\nMemory acts like a second setting that keeps the past present.\nEVIDENCE LOCATION\nPage 43, the description after Sethe sees the dress.\nREVISION CHOICE\nI moved the scene before my explanation so readers see the image first.\nEXIT REFLECTION\nMy next step is to connect the image to Sethe's decision in the next paragraph.\n02\nCopper Kite\nCLAIM\nThe repeated colors show how memory interrupts the present.\nEVIDENCE LOCATION\nPages 38–39, especially the red light detail.\nREVISION CHOICE\nI replaced a broad theme sentence with a claim about the color pattern.\nEXIT REFLECTION\nI still need a quotation that shows the interruption, not only the color.\n03\nQuiet Maple\nCLAIM\nSethe protects her",
+    "storage": [
+      "demo:workspace"
+    ]
+  },
+  {
+    "i": 3,
+    "requests": [
+      {
+        "path": "/demo",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-S89xmTMj.css",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-53ZNVetz.js",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/fraunces-semibold.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/atkinson-regular.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/demo",
+        "status": 201,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/teacher/YCC2AG",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      }
+    ],
+    "console": [],
+    "errors": [],
+    "url": "https://in-class-draft-ticket.sociobot.in/demo",
+    "title": "Demo — In-Class Draft Ticket",
+    "ticketCount": 3,
+    "text": "SAMPLE TEACHER VIEW\n\nReview a sample draft session\n\nThese three fictional tickets show the session sheet after an in-class draft.\n\nSAMPLE CODE\nYCC2AG\n\nRoom 204 · Beloved seminar\n\nExport sample CSV\nWriting prompt\n\nHow does Morrison use memory to shape Sethe's choices?\n\nSample draft tickets\n3 records\n01\nBlue Finch\nCLAIM\nMemory acts like a second setting that keeps the past present.\nEVIDENCE LOCATION\nPage 43, the description after Sethe sees the dress.\nREVISION CHOICE\nI moved the scene before my explanation so readers see the image first.\nEXIT REFLECTION\nMy next step is to connect the image to Sethe's decision in the next paragraph.\n02\nCopper Kite\nCLAIM\nThe repeated colors show how memory interrupts the present.\nEVIDENCE LOCATION\nPages 38–39, especially the red light detail.\nREVISION CHOICE\nI replaced a broad theme sentence with a claim about the color pattern.\nEXIT REFLECTION\nI still need a quotation that shows the interruption, not only the color.\n03\nQuiet Maple\nCLAIM\nSethe protects her",
+    "storage": [
+      "demo:workspace"
+    ]
+  },
+  {
+    "i": 4,
+    "requests": [
+      {
+        "path": "/demo",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-S89xmTMj.css",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/assets/index-53ZNVetz.js",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/atkinson-regular.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/fonts/fraunces-semibold.ttf",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/demo",
+        "status": 201,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      },
+      {
+        "path": "/api/teacher/9RSW45",
+        "status": 200,
+        "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+      }
+    ],
+    "console": [],
+    "errors": [],
+    "url": "https://in-class-draft-ticket.sociobot.in/demo",
+    "title": "Demo — In-Class Draft Ticket",
+    "ticketCount": 3,
+    "text": "SAMPLE TEACHER VIEW\n\nReview a sample draft session\n\nThese three fictional tickets show the session sheet after an in-class draft.\n\nSAMPLE CODE\n9RSW45\n\nRoom 204 · Beloved seminar\n\nExport sample CSV\nWriting prompt\n\nHow does Morrison use memory to shape Sethe's choices?\n\nSample draft tickets\n3 records\n01\nBlue Finch\nCLAIM\nMemory acts like a second setting that keeps the past present.\nEVIDENCE LOCATION\nPage 43, the description after Sethe sees the dress.\nREVISION CHOICE\nI moved the scene before my explanation so readers see the image first.\nEXIT REFLECTION\nMy next step is to connect the image to Sethe's decision in the next paragraph.\n02\nCopper Kite\nCLAIM\nThe repeated colors show how memory interrupts the present.\nEVIDENCE LOCATION\nPages 38–39, especially the red light detail.\nREVISION CHOICE\nI replaced a broad theme sentence with a claim about the color pattern.\nEXIT REFLECTION\nI still need a quotation that shows the interruption, not only the color.\n03\nQuiet Maple\nCLAIM\nSethe protects her",
+    "storage": [
+      "demo:workspace"
+    ]
+  }
+]

@@ -1,0 +1,117 @@
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+   Compiling in-class-draft-ticket v1.0.0 (/work/repo)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.63s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+   Compiling in-class-draft-ticket v1.0.0 (/work/repo)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.67s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust instead of a minor release
+ok 1 - container build tracks stable Rust instead of a minor release
+  ---
+  duration_ms: 8.097226
+  type: 'test'
+  ...
+# Subtest: production uses one durable PostgreSQL-backed replica
+ok 2 - production uses one durable PostgreSQL-backed replica
+  ---
+  duration_ms: 2.49937
+  type: 'test'
+  ...
+# Subtest: deployment contract describes the PostgreSQL secret and one-replica scale
+ok 3 - deployment contract describes the PostgreSQL secret and one-replica scale
+  ---
+  duration_ms: 57.180796
+  type: 'test'
+  ...
+# Subtest: @claim:production-topology product deploy path binds PostgreSQL and proves persistence across a revision restart
+ok 4 - @claim:production-topology product deploy path binds PostgreSQL and proves persistence across a revision restart
+  ---
+  duration_ms: 2.584072
+  type: 'test'
+  ...
+# Subtest: health identity cannot be cached across a SQLite-to-PostgreSQL revision repair
+ok 5 - health identity cannot be cached across a SQLite-to-PostgreSQL revision repair
+  ---
+  duration_ms: 1.369439
+  type: 'test'
+  ...
+# Subtest: live gate uses fresh browser processes and rejects affinity-only coverage
+ok 6 - live gate uses fresh browser processes and rejects affinity-only coverage
+  ---
+  duration_ms: 1.131432
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 7 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 2.260263
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 8 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 3.647602
+  type: 'test'
+  ...
+# Subtest: simultaneous replica starts never race migration history
+ok 9 - simultaneous replica starts never race migration history
+  ---
+  duration_ms: 952.352886
+  type: 'test'
+  ...
+# Subtest: replicas share demo, teacher, student, export, delete, capacity, and rate state
+ok 10 - replicas share demo, teacher, student, export, delete, capacity, and rate state
+  ---
+  duration_ms: 2653.37107
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3766.952257
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+10:32:21 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.61 kB │ gzip:  0.61 kB
+dist/assets/index-S89xmTMj.css  14.61 kB │ gzip:  4.02 kB
+dist/assets/index-53ZNVetz.js   61.63 kB │ gzip: 22.47 kB │ map: 495.87 kB
+
+✓ built in 610ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test
+
+
+Running 46 tests using 2 workers
+(node:8268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8269) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:8269) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··············································
+  46 passed (1.1m)

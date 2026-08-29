@@ -1,0 +1,241 @@
+{
+  "at": "2026-08-29T10:40:51.573Z",
+  "statuses": {
+    "404": 45
+  },
+  "retryAfter": [
+    null
+  ],
+  "replicas": [
+    "b8979a43ae0e4ed9a1679e877212a23c",
+    "8ab7978426e149568e8af696a05ba7a6",
+    "2da4a351e63d4b80bd6303f03a1cb76c"
+  ],
+  "responses": [
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "8ab7978426e149568e8af696a05ba7a6"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "b8979a43ae0e4ed9a1679e877212a23c"
+    },
+    {
+      "status": 404,
+      "retryAfter": null,
+      "replica": "2da4a351e63d4b80bd6303f03a1cb76c"
+    }
+  ]
+}
