@@ -1,3 +1,138 @@
+# Repair 13 handoff — production identity
+
+## Status
+
+**PASS after the final handoff commit is deployed.** Verification 16's only
+release blocker, B-16-1, is repaired and covered by an executable regression.
+No product source, schema, visual asset, claim, or previously passing behavior
+changed from candidate `9f669994fc14775c69e2daf3a400e5cd5b4de2a0`.
+
+This handoff records the first immutable repair deployment. Because recording
+that receipt creates a documentation-only commit, the worker deploys the final
+clean, pushed handoff commit as its last tracked operation and then checks its
+full SHA. Do not add a tracked commit after that deployment.
+
+## Finding reproduced
+
+At `2026-08-29T22:34:01.867Z`, 20 concurrent, cache-busted production health
+requests returned HTTP 200 and `Cache-Control: no-store, max-age=0`, but every
+response reported:
+
+```json
+{
+  "build_sha": "8f17bd2d94dfb72a9be7e819d324d63df30114d2",
+  "status": "ok",
+  "storage_backend": "postgres"
+}
+```
+
+The required verifier candidate was
+`9f669994fc14775c69e2daf3a400e5cd5b4de2a0`. The new command reproduced the
+failure directly:
+
+```text
+LIVE_EXPECTED_SHA=9f669994fc14775c69e2daf3a400e5cd5b4de2a0 npm run verify:live-identity
+live build identity mismatch on request 1: expected 9f669994..., received 8f17bd2...
+exit 1
+```
+
+Root cause: `8f17bd2…` was deployed, then `9f66999…` added only `.factory`
+documentation and evidence. The unchanged HTML, JavaScript, and CSS hashes hid
+the fact that the candidate commit itself had never been deployed.
+
+## Repair and regression
+
+- Added `deployment/verify-live-identity.mjs`. It requires a full 40-character
+  expected SHA and accepts production only after 20 unique, concurrent,
+  cache-busted `/health` responses all return HTTP 200, `no-store`, the exact
+  SHA, and PostgreSQL.
+- Made that verifier mandatory in `deployment/deploy.sh` both before the live
+  data gate and after an actual revision restart.
+- Added `npm run verify:live-identity` for an independent, non-mutating check.
+- Added the exact regression
+  `live identity gate rejects the exact stale candidate mismatch from verification 16`.
+  Its local health fixture reports `8f17bd2…` while `9f66999…` is expected. The
+  gate rejects all 20 stale samples, then passes only after all 20 samples
+  report the expected candidate. All 40 request URLs must be unique.
+
+## Clean local evidence
+
+Run on 29 August 2026 UTC from the repair tree:
+
+```text
+npm ci: PASS; 50 packages; 0 vulnerabilities
+npm test: PASS; 15/15 release contracts and 56/56 Playwright tests
+all 10 .factory/claims.json commands: PASS independently
+npx tsc --noEmit: PASS
+cargo fmt --check: PASS
+cargo clippy --all-targets --all-features -- -D warnings: PASS
+cargo test: PASS; 9/9
+cargo build --release: PASS
+npm run build: PASS; dist/ produced
+npm audit --audit-level=high: PASS; 0 vulnerabilities
+bash -n deployment/deploy.sh: PASS
+node --check deployment/verify-live-identity.mjs: PASS
+local factory URL verifier: PASS on / and /?demo=1; no console errors
+local runtime with only PORT: PASS; generated security material; SQLite
+local load smoke: PASS; 100/100 concurrent health requests
+```
+
+The Playwright matrix ran Chromium desktop and exact 390×844 mobile coverage.
+It includes the one-click demo, real teacher/student flow, errors, keyboard and
+focus, axe serious/critical checks, 200% text, touch targets, reduced motion,
+privacy request allowlisting, response headers, rate limiting, route history,
+404, service-worker install/update, and offline reload.
+
+Build budgets remain unchanged: JavaScript 63,018 B raw / 22,870 B gzip; CSS
+16,053 B raw / 4,290 B gzip; fonts 118,264 B; hero WebP 46,170 B. Local Docker
+was unavailable, so the mandatory multi-stage container was assembled by ACR.
+
+## First immutable deployment receipt
+
+- Repair source: `7044e8f4aaf9b12d7280cdc1c03ab8e211d282c3`
+- ACR run: `ch193`
+- Image: `sociobotregistry.azurecr.io/sf-in-class-draft-ticket:7044e8f4aaf9`
+- Digest: `sha256:564bbe0c83c1be0cb9ac7b495a0c29141be13a5e3542f8c1c6c660facf9aed42`
+- Container Apps revision: `sf-in-class-draft-ticket--0000047`
+- Contract: single active revision, one ready replica, min/max 1, PostgreSQL
+  supplied through `DATABASE_URL=secretref:database-url`
+- Pre-restart identity at `2026-08-29T22:53:31.860Z`: 20/20 responses matched
+  the full repair SHA and PostgreSQL.
+- Post-restart identity at `2026-08-29T22:54:24.016Z`: 20/20 responses matched
+  the full repair SHA and PostgreSQL; the persisted test record survived on a
+  new replica process.
+- Managed browser/data gate: PASS across the ready replica, including demo,
+  teacher/student reads, CSV hardening, deletion, 40-request rate allowance,
+  five 429 responses, and `Retry-After: 1`.
+- Full production Playwright: PASS, 56/56 at desktop and 390 px mobile.
+- Production factory URL verifier: PASS on `/` and `/?demo=1`; no console or
+  page errors, one h1, main landmark, labeled controls, and image alt text.
+- Live and local `index.html`, hashed JavaScript, and CSS SHA-256 values match:
+  `6cd8edd6…`, `1a518c5c…`, and `559c4e53…` respectively.
+
+## Run and verify
+
+```sh
+npm ci
+npm test
+npx tsc --noEmit
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+cargo build --release
+npm run build
+LIVE_EXPECTED_SHA=$(git rev-parse HEAD) npm run verify:live-identity
+```
+
+## Known gaps
+
+None. There is no package/consumer surface, account, paid unlock, or runtime AI
+feature, so those checks are not applicable. The original artifact remains a
+Rust/Axum plus SQLite/PostgreSQL backend serving the Vite/Svelte PWA from one
+container.
+
+---
+
 # Independent verification 16 handoff
 
 ## Status
