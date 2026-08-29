@@ -1,7 +1,7 @@
 use std::{path::Path, time::Duration};
 
 use sqlx::{
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
+    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
     SqlitePool,
 };
 
@@ -26,20 +26,19 @@ pub async fn connect(data_dir: &Path) -> anyhow::Result<SqlitePool> {
     // Every replica opens the *same* durable database on the mounted share.
     // Keeping per-process copies made a successful POST invisible to another
     // replica until it happened to restart. DELETE journaling keeps all state in
-    // the single database file (rather than a replica-local WAL sidecar) and
-    // SQLite's file locks serialize writers across the mounted share.
+    // the single database file. Keep one connection per replica and SQLite's
+    // default rollback journal: configuring journal pragmas concurrently over
+    // SMB can itself require an exclusive lock before the service is ready.
     let options = SqliteConnectOptions::new()
         .filename(&database_path)
         .create_if_missing(true)
         .foreign_keys(true)
-        .journal_mode(SqliteJournalMode::Delete)
-        .synchronous(SqliteSynchronous::Full)
-        .busy_timeout(Duration::from_secs(15));
+        .busy_timeout(Duration::from_secs(3));
     let pool = {
         let mut connected = None;
         for attempt in 0..30 {
             match SqlitePoolOptions::new()
-                .max_connections(5)
+                .max_connections(1)
                 .connect_with(options.clone())
                 .await
             {
