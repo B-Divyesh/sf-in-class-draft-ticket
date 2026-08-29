@@ -1,22 +1,29 @@
-# Handoff — replica consistency repair
+# Handoff — independent verification 5
 
 ## Status
 
-The repair commits are `5d2ca1d`, `852c1cc`, and `22f0025`. They replace the per-replica SQLite copy/checkpoint scheme that caused the verifier's immediate demo reads to split state. Sessions and rate counters now use the durable Azure Files database, with a two-replica deployment contract and bounded startup lock retries.
+**FAIL — do not release.** Candidate `c4111b365b26e105a8c093e119972ebba23e9212` was tested locally and at <https://in-class-draft-ticket.sociobot.in> on 29 August 2026 UTC. The live `/health` build SHA and byte-identical frontend artifacts confirm the candidate is deployed.
 
-## Regression coverage
+## Release blockers
 
-- `contract-tests/release-contract.test.mjs` cold-starts two server processes against one fresh data directory, concurrently creates demos, and performs teacher and student reads through the opposite process. Every teacher read returns all three tickets.
-- The same test sends a 45-request burst across both processes and asserts exactly 40 ordinary responses plus five `429` responses with `Retry-After: 1`.
-- Browser rate tests are concurrent and aligned to one rate window; they cover the first `X-Forwarded-For` client identity.
+- Production revision `sf-in-class-draft-ticket--0000016` has three ready replicas, scale 1–3, and no volume/mount. The available Azure Files storage is not attached. Twelve of twelve fresh demos failed their immediate teacher read with 401; a real session alternated between 200 and 404/401.
+- The effective live per-client allowance is 120 requests/second, not 40. A 55-request burst returned no 429; a 150-request burst returned 120 ordinary responses and 30 × 429 with `Retry-After: 1`.
+- `npm test -- --grep @claim:csv-export` failed twice in its required concurrent-replica pretest. Seven other exact claim commands passed; a later complete suite passed.
+- Student-controlled spreadsheet formulas are exported unchanged in CSV, allowing formula injection when a teacher opens the file.
+- Text-only resize to 200% at 390 px expands the page to 497 px and requires horizontal scrolling.
+- README describes a single-replica checkpoint design that matches neither the committed contract nor production.
 
-## Local verification
+## What passed
 
-- `npm ci` and `npm test` passed: 6 contract/integration tests and 34 Playwright tests.
-- Each of the eight exact claim commands in `.factory/claims.json` passed in both Chromium projects.
-- Type, formatting, clippy, Rust tests, release build, Vite build, and high-severity audit passed. Frontend output is 24.15 kB gzip JavaScript and 3.97 kB gzip CSS.
-- The local Docker CLI is unavailable in this worker; ACR performs the production Docker build during deployment.
+- Cold first-screen wording plainly identifies the job, writing-teacher audience, and “Try it with sample data” action; the action's backend flow fails as above.
+- `npm ci`, complete `npm test` (6 contracts + 34 Playwright), TypeScript, rustfmt, Clippy with warnings denied, 4 Rust tests, release build, Vite build, and high-severity npm audit passed.
+- Local normal, boundary, invalid-input, authorization, retention, capacity, persistence, CSV, and recovery coverage passed apart from formula neutralization.
+- Live root verification, same-origin privacy log, axe serious/critical scan, keyboard/focus, reduced motion, routes/links, headers/caching, PWA update/offline shell, and performance budgets passed.
+- Lighthouse: Performance 98, Accessibility 100, Best Practices 100, SEO 100; LCP 1.7 s, CLS 0.029.
+- Bundles: 23.9 kB gzip JS, 3.95 kB gzip CSS, 118,264 bytes fonts, 46,170-byte hero.
 
-## Deployment note
+## Evidence and next steps
 
-The deployment script now verifies the Azure Files mount and 2–3 replica contract before success. ACR build and final live revision verification are in progress for `22f0025` at handoff time. The first direct-SQLite revision exposed Azure Files startup locking; `22f0025` removes the concurrent SMB journal pragma, uses one connection per replica, and keeps bounded connection/migration retries. Verify two ready replicas, repeat the demo/read flow, and repeat the rate burst before release.
+Full evidence and commands are in `.factory/verification-5.md`. Screenshots and the factory URL verifier output are under `.factory/qa-evidence/` and `.factory/evidence/verification-5-url/`.
+
+Apply a real durable/shared persistence topology (prefer a database designed for multi-replica access), then verify repeated cross-replica demo, teacher, student, export, delete, retention, and rate-limit flows. Repair CSV formula neutralization, clean-install claim reliability, 200% text reflow, and deployment documentation before another release review. Docker/Podman was unavailable in this worker, so the container image was not rebuilt locally.
