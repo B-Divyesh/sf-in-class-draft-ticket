@@ -11,6 +11,9 @@
   let online = navigator.onLine;
   let announcement = '';
   let busy = false;
+  // Ticket recording has its own state. A slow or stale route request must
+  // never turn a completed student form into an inert submit button.
+  let ticketBusy = false;
   let error = '';
   let notice = '';
   let demoData: TeacherData | null = null;
@@ -105,14 +108,23 @@
   }
 
   async function saveTicket(event:SubmitEvent) {
-    event.preventDefault(); if (!session) return;
     const form = event.currentTarget as HTMLFormElement;
-    const data = Object.fromEntries(new FormData(form)); busy = true; error = '';
+    // Capture the code from the URL as well as the rendered session. During a
+    // route-state transition the form can receive its submit event just after
+    // Svelte has cleared `session`; returning here used to leave a filled form
+    // with no request, confirmation, or error.
+    const code = session?.code || (path.startsWith('/session/') ? path.split('/').pop() || '' : '');
+    if (!/^[A-Z0-9]{6}$/.test(code)) {
+      error = 'This draft ticket is still opening. Wait a moment, then try again.';
+      return;
+    }
+    if (ticketBusy) return;
+    const data = Object.fromEntries(new FormData(form)); ticketBusy = true; error = '';
     try {
-      await api<Ticket>(`/api/sessions/${session.code}/tickets`, {method:'POST', body:JSON.stringify(data)});
+      await api<Ticket>(`/api/sessions/${code}/tickets`, {method:'POST', body:JSON.stringify(data)});
       notice = 'Your draft ticket is recorded. You may close this page.';
       form.reset();
-    } catch (e) { error = errorMessage(e); } finally { busy = false; }
+    } catch (e) { error = errorMessage(e); } finally { ticketBusy = false; }
   }
 
   async function loadTeacherSession() {
@@ -284,13 +296,13 @@
         <div class="prompt-slip"><strong>{session.title}</strong><p>{session.prompt}</p></div>
         {#if notice}<div class="success-panel" role="status"><span aria-hidden="true">✓</span><p>{notice}</p></div>
         {:else}
-          <form class="ticket-form" on:submit={saveTicket}>
+          <form class="ticket-form" on:submit|preventDefault={saveTicket}>
             <label for="pseudonym">Class nickname <span>Use the nickname your teacher assigned.</span></label><input id="pseudonym" name="pseudonym" required minlength="2" maxlength="40" autocomplete="off" />
             <label for="claim">Your working claim <span>What are you arguing now?</span></label><textarea id="claim" name="claim" required minlength="3" maxlength="280" rows="3"></textarea>
             <label for="evidence">Evidence location <span>Name a page, paragraph, scene, or source.</span></label><textarea id="evidence" name="evidence" required minlength="3" maxlength="280" rows="3"></textarea>
             <label for="revision">One revision choice <span>What did you add, cut, move, or clarify?</span></label><textarea id="revision" name="revision" required minlength="3" maxlength="280" rows="3"></textarea>
             <label for="reflection">Exit reflection <span>What needs work next?</span></label><textarea id="reflection" name="reflection" required minlength="3" maxlength="500" rows="3"></textarea>
-            {#if error}<p class="form-error" role="alert">{error}</p>{/if}<button class="button primary" disabled={busy}>{busy ? 'Recording ticket…' : 'Record my draft ticket'}</button>
+            {#if error}<p class="form-error" role="alert">{error}</p>{/if}<button class="button primary" type="submit" disabled={ticketBusy}>{ticketBusy ? 'Recording ticket…' : 'Record my draft ticket'}</button>
           </form>
         {/if}
       {:else if error}<div class="error-panel" role="alert"><p>{error}</p><a class="button secondary" href="/join" on:click={clickLink}>Enter another code</a></div>

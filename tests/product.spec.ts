@@ -106,7 +106,17 @@ test('@claim:pseudonymous-flow teacher sees four submitted checkpoints', async (
   await page.getByLabel('Evidence location').fill('Page 12, final paragraph.');
   await page.getByLabel('One revision choice').fill('I moved the quotation before my explanation.');
   await page.getByLabel('Exit reflection').fill('I need to explain the last image next.');
+  const ticketRequest = page.waitForRequest(request =>
+    request.method() === 'POST' && new URL(request.url()).pathname === `/api/sessions/${created.session.code}/tickets`,
+    {timeout:5_000}
+  );
+  const ticketResponse = page.waitForResponse(response =>
+    response.request().method() === 'POST' && new URL(response.url()).pathname === `/api/sessions/${created.session.code}/tickets`,
+    {timeout:5_000}
+  );
   await page.getByRole('button',{name:'Record my draft ticket'}).click();
+  await expect(ticketRequest).resolves.toBeTruthy();
+  expect((await ticketResponse).status()).toBe(201);
   await expect(page.getByText('Your draft ticket is recorded.')).toBeVisible();
   const teacher = await request.get(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}});
   const data = await teacher.json();
@@ -187,7 +197,17 @@ test('@claim:privacy-minimal no tracking, keystroke logging, or capture occurs',
   expect(await page.evaluate(() => JSON.stringify({...localStorage}))).toBe(localBefore);
   expect(await page.evaluate(() => JSON.stringify({...sessionStorage}))).toBe(sessionBefore);
 
+  const ticketRequest = page.waitForRequest(request =>
+    request.method() === 'POST' && new URL(request.url()).pathname === `/api/sessions/${created.session.code}/tickets`,
+    {timeout:5_000}
+  );
+  const ticketResponse = page.waitForResponse(response =>
+    response.request().method() === 'POST' && new URL(response.url()).pathname === `/api/sessions/${created.session.code}/tickets`,
+    {timeout:5_000}
+  );
   await page.getByRole('button',{name:'Record my draft ticket'}).click();
+  await expect(ticketRequest).resolves.toBeTruthy();
+  expect((await ticketResponse).status()).toBe(201);
   await expect(page.getByText('Your draft ticket is recorded.')).toBeVisible();
   const origin = new URL(page.url()).origin;
   expect(requests.every(entry => new URL(entry.url).origin === origin)).toBe(true);
@@ -205,6 +225,26 @@ test('@claim:privacy-minimal no tracking, keystroke logging, or capture occurs',
   const ticketPosts = requests.filter(entry => entry.method === 'POST' && new URL(entry.url).pathname.endsWith('/tickets'));
   expect(ticketPosts).toHaveLength(1);
   expect(await page.evaluate(() => (window as any).__mediaCalls)).toBe(0);
+});
+
+test('student ticket submission preserves the form and announces a retryable server failure', async ({page, request}) => {
+  const created = await newSession(request);
+  await page.goto(`/session/${created.session.code}`);
+  await page.getByLabel('Class nickname').fill('Green Comet');
+  await page.getByLabel('Your working claim').fill('The doorway shows a change.');
+  await page.getByLabel('Evidence location').fill('Page 12, final paragraph.');
+  await page.getByLabel('One revision choice').fill('I moved the quotation earlier.');
+  await page.getByLabel('Exit reflection').fill('I will explain the last image next.');
+  await page.route(`**/api/sessions/${created.session.code}/tickets`, route => route.fulfill({
+    status: 503,
+    contentType: 'application/json',
+    body: JSON.stringify({error:'The service is briefly unavailable. Keep this form open, then try again.'})
+  }));
+
+  await page.getByRole('button', {name:'Record my draft ticket'}).click();
+  await expect(page.getByRole('alert')).toHaveText('The service is briefly unavailable. Keep this form open, then try again.');
+  await expect(page.getByLabel('Class nickname')).toHaveValue('Green Comet');
+  await expect(page.getByRole('button', {name:'Record my draft ticket'})).toBeEnabled();
 });
 
 test('@claim:no-ai-detection-or-authorship-verdict demo has no detection or verdict path', async ({page, request}) => {

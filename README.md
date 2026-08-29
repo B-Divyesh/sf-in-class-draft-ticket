@@ -49,6 +49,12 @@ An Azure Container Apps revision refuses to start without `DATABASE_URL`. This p
 
 Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. The deploy check starts a new revision. It then confirms that the same session remains available.
 
+The release-only topology claim runs that same observable gate. It needs a clean, pushed `main` branch and factory Azure credentials:
+
+```sh
+npm run test:production-topology
+```
+
 ## Privacy and limits
 
 Sessions expire after the teacher's chosen one, seven, or thirty days. Free sessions accept up to 40 tickets. Teachers can delete a session early. See `/privacy` and `/terms` for the full plain-language policies.

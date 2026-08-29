@@ -11,7 +11,7 @@
     "pretest:contracts": "cargo build",
     "test": "playwright test",
     "test:contracts": "node --test contract-tests/release-contract.test.mjs",
-    "test:production-topology": "node --test --test-name-pattern=@claim:production-topology contract-tests/release-contract.test.mjs"
+    "test:production-topology": "node deployment/test-production-topology.mjs"
   },
   "dependencies": {
     "svelte": "5.56.10"

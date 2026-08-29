@@ -74,6 +74,6 @@
     "claim": "The release deployment uses one PostgreSQL-backed replica and verifies a session survives a real revision restart.",
     "where": "README container section",
     "test": "npm run test:production-topology",
-    "sandbox": "render the committed Container App contract and inspect the deployment gate's persisted-record and revision-restart checks"
+    "sandbox": "a clean, pushed release candidate with factory Azure credentials; run the declared gate, which deploys that SHA, creates a disposable session, restarts the active revision, and reads then deletes the same session"
   }
 ]

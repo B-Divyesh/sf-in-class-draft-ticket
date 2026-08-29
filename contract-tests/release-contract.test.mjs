@@ -151,7 +151,7 @@ test('deployment verifier rejects the SQLite three-replica revision reported by 
   );
 });
 
-test('@claim:production-topology product deploy path binds PostgreSQL and proves persistence across a revision restart', async () => {
+test('deployment script binds PostgreSQL and includes the live revision-restart gate', async () => {
   const deploy = await read('deployment/deploy.sh');
   assert.match(deploy, /status --porcelain --untracked-files=normal/);
   assert.match(deploy, /ls-remote --exit-code origin/);
@@ -218,7 +218,8 @@ test('every listed product claim has exactly one tagged regression test', async 
   const testSources = await Promise.all([
     read('tests/product.spec.ts'),
     read('contract-tests/release-contract.test.mjs'),
-    read('src/main.rs')
+    read('src/main.rs'),
+    read('deployment/test-production-topology.mjs')
   ]);
   for (const { id } of claims) {
     const matches = testSources.join('\n').match(new RegExp(`@claim:${id}\\b`, 'g')) ?? [];
