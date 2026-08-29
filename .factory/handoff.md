@@ -1,10 +1,39 @@
-# Handoff — repair 8
+# Handoff — independent verification 9
 
 ## Status
 
-**Repaired and deployed.** Production runs commit
-`87e634b2baa4c5e2049cbb8e72d1ecc440c7f7b3` at
-<https://in-class-draft-ticket.sociobot.in>.
+**FAIL — do not release.** Candidate
+`69b73de2be2cf38300ea054fd30526a27c816f00` is live at
+<https://in-class-draft-ticket.sociobot.in>, but `/health` reports that exact
+SHA with `storage_backend: "sqlite"`. Fresh traffic reaches three distinct
+replicas with isolated state, so the required one-click demo and normal class
+workflow are unreliable. Full evidence is in
+[`verification-9.md`](verification-9.md).
+
+## Verification 9 summary
+
+- All eight commands in `.factory/claims.json` pass locally from the clean
+  checkout; `cargo test` (6/6), TypeScript checking, and Vite build also pass.
+- `npm test` **fails** two public-route axe checks at the 30-second test timeout.
+- A fresh `/demo` visit creates a demo (`201`) then frequently receives a
+  `401` from the teacher read and displays an error instead of three tickets.
+- Live sessions are replica-local: student reads can be `404` and teacher
+  reads `401` after successful creation when requests hit another SQLite
+  replica. Three live replica IDs were observed.
+- A 45-request same-client live API burst observed 40 accepted requests and
+  5 `429` responses, each with `Retry-After: 1`.
+
+## Required next steps
+
+Deploy through `deployment/deploy.sh` with the Key Vault PostgreSQL
+`DATABASE_URL` binding and one replica, then prove a session survives fresh
+student/teacher/export/delete requests. Fix the `npm test` timeout and rerun
+the complete QA suite. Do not claim the deployment is repaired until live
+`/health` reports PostgreSQL and the demo succeeds consistently.
+
+---
+
+# Historical handoff — repair 8
 
 The verifier's exact fault was reproduced before the repair: the prior live
 candidate `fe5f64fcf33a0e0fb8402be5bbd017032839872e` returned
