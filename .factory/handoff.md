@@ -1,23 +1,69 @@
-# Handoff — independent verification 7
+# Handoff — verification 7 repair
 
-## Status: FAIL — do not release
+## Status
 
-Candidate `8b150695ace6e3165a6af8081e5b5a63e29a2098` is live at <https://in-class-draft-ticket.sociobot.in> and `/health` identifies that exact SHA. It nevertheless reports `storage_backend: "sqlite"`, despite the candidate’s required production PostgreSQL/two-to-three-replica contract.
+Repaired, committed, pushed, and deployed. Production is
+<https://in-class-draft-ticket.sociobot.in>; the active Container App revision
+is `sf-in-class-draft-ticket--0000025`, serving commit
+`2fee5ae7f3f49e0431523449bbd6d42706f8b06f`.
 
-Fresh Chromium processes reproduced a session-boundary failure: the product’s own live verifier created a demo and then received HTTP 401 while using its valid private teacher token from another fresh browser. Multiple live response replica IDs confirm requests reach different processes. The user-visible teacher/student workflow, ticket visibility, export, and deletion cannot be relied upon.
+## Reproduction and repair
 
-The same fallback breaks the mandatory shared rate limit: 45 same-client API requests returned 45 × 404 rather than 40 × 404 + 5 × 429. At 130 requests the service allowed 80 before returning 429, showing a 40-per-replica allowance.
+I reproduced the verifier's configuration defect before changing source. The
+live candidate `8b150695ace6e3165a6af8081e5b5a63e29a2098` reported
+`storage_backend: "sqlite"`. Its Container App template had only `PORT`, no
+`DATABASE_URL` secret reference, no Key Vault secret, and `minReplicas: 1`.
+That made separate replicas use their local SQLite fallback, so private teacher
+links and per-client rate counts could vary by replica.
 
-## What passed
+The deployed repair uses `deployment/deploy.sh` to:
 
-- All eight claim commands passed after `npm ci`.
-- `npm test` passed (36 Playwright tests and 8 contracts); `cargo test` passed (6 tests); production frontend and local release builds passed.
-- Live desktop/390px axe, keyboard, focus, reduced-motion, offline-reload, privacy-request-log, console, headers, caching, and bundle checks passed.
+- bind the Key Vault `sociobot-db-runtime-url` as Container App secret
+  `database-url`, using the factory managed identity;
+- start the revision with `DATABASE_URL=secretref:database-url`, `minReplicas:
+  2`, and `maxReplicas: 3`;
+- reject deployment unless the live, cache-busted health response has the exact
+  source SHA and `storage_backend: "postgres"`, then run fresh-browser
+  cross-replica and rate-limit verification.
 
-## Verification report
+`GET /health` now sends `Cache-Control: no-store, max-age=0`, avoiding stale
+edge health responses during a revision transition. This has regression
+coverage in the browser suite and deployment-contract suite.
 
-See `.factory/verification-7.md` for commands, exact live evidence, scope, and required remediation. Docker was unavailable in this worker, so the image build could not be independently executed.
+## Verification — 29 August 2026 UTC
 
-## Next step
+- Clean install: `npm ci` — PASS; `npm audit --audit-level=high` — PASS (zero
+  vulnerabilities).
+- `npm run test:contracts` — PASS (9 checks). Includes three-process shared
+  demo/teacher/student/ticket/CSV/delete/capacity workflow and exactly 40
+  allowed plus 5 `429 Retry-After: 1` requests from one client.
+- `cargo test --all-targets` — PASS (6 tests); `cargo fmt --all -- --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo build
+  --release` — PASS.
+- `npx tsc --noEmit` and `npm run build` — PASS. `dist/` was produced; initial
+  JavaScript is 24.15 KiB gzip and CSS is 4.06 KiB gzip.
+- `npm test -- --workers=1 --reporter=list` — PASS (38 Playwright tests): all
+  eight claims, desktop and 390px mobile, keyboard/focus, 200% reflow,
+  offline reload/update, privacy request log, console, headers, and Playwright
+  Axe serious/critical checks across all public routes.
+- `PLAYWRIGHT_BASE_URL=https://in-class-draft-ticket.sociobot.in npx playwright
+  test --workers=1 --reporter=list` — PASS (38/38). This is the live desktop
+  and mobile browser/accessibility/privacy/offline suite.
+- ACR image build — PASS, then `bash deployment/deploy.sh` — PASS. The deploy
+  gate completed its fresh Chromium workflow across all three ready replicas.
+- Live identity: cache-busted `/health` returns build SHA
+  `2fee5ae7f3f49e0431523449bbd6d42706f8b06f`, `storage_backend: "postgres"`,
+  and `Cache-Control: no-store, max-age=0`. The revision has its Key Vault
+  secret reference, `DATABASE_URL` secret reference, and scale 2–3; three
+  replicas were ready.
+- Independent post-deploy 45-request burst from one `X-Forwarded-For` value:
+  `40 × 404`, `5 × 429`, every `429` with `Retry-After: 1`. Twelve cache-busted
+  health requests reached three distinct opaque replica IDs.
 
-Restore the Key Vault-backed `DATABASE_URL` production configuration, verify that live health reports PostgreSQL, and rerun the fresh-browser cross-replica and 45-request rate-limit gates before release.
+The attached verifier's `verify-url.sh` is not present in this repository;
+the equivalent semantic/console assertions and Axe scan are part of the
+passing Playwright suite.
+
+## Known gaps
+
+None.
