@@ -68,12 +68,5 @@
     "where": "teacher view, setup, privacy, README",
     "test": "npm test -- --grep @claim:teacher-control",
     "sandbox": "fresh API session; reject unauthenticated read, CSV export, and deletion, then accept all three with the private token"
-  },
-  {
-    "id": "production-topology",
-    "claim": "The release deployment uses one PostgreSQL-backed replica and verifies a session survives a real revision restart.",
-    "where": "README container section",
-    "test": "npm run test:production-topology",
-    "sandbox": "a clean, pushed release candidate with factory Azure credentials; run the declared gate, which deploys that SHA, creates a disposable session, restarts the active revision, and reads then deletes the same session"
   }
 ]

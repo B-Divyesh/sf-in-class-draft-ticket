@@ -43,17 +43,17 @@ docker run --rm -p 8080:8080 -v draft-ticket-data:/app/data in-class-draft-ticke
 
 The container runs as a non-root user. `PORT` defaults to `8080`. `DATA_DIR` and `DATABASE_URL` are optional overrides. `GET /health` returns the build SHA.
 
-The container needs no configuration beyond `PORT`: without `DATABASE_URL` it uses local SQLite under `/app/data`. Production supplies `DATABASE_URL` from Key Vault and runs one PostgreSQL-backed replica. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records the database secret reference and scale settings. The deploy gate creates a session, restarts the active revision, then reads and deletes that same session before it reports success.
+The container needs no configuration beyond `PORT`. Without `DATABASE_URL`, it uses local SQLite under `/app/data`.
 
-An Azure Container Apps revision refuses to start without `DATABASE_URL`. This prevents a generic deployment from silently switching production to replica-local SQLite. Local and self-hosted containers keep the zero-configuration SQLite default.
+Local and self-hosted containers keep the zero-configuration SQLite default.
 
-Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. The deploy check starts a new revision. It then confirms that the same session remains available.
+## Release
 
-The release-only topology claim runs that same observable gate. It needs a clean, pushed `main` branch and factory Azure credentials:
+Authorized factory workers deploy the committed revision with `npm run deploy:release`. This command changes the live service, so it is not a claim test.
 
-```sh
-npm run test:production-topology
-```
+The release command rejects dirty or unpushed code. It then checks the deployed SHA, browser flows, rate limiting, and record persistence after a restart.
+
+The latest SHA-bound deployment evidence is recorded in [`.factory/polish-3.md`](.factory/polish-3.md). The deployment contract remains in [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json).
 
 ## Privacy and limits
 

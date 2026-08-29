@@ -218,12 +218,21 @@ test('every listed product claim has exactly one tagged regression test', async 
   const testSources = await Promise.all([
     read('tests/product.spec.ts'),
     read('contract-tests/release-contract.test.mjs'),
-    read('src/main.rs'),
-    read('deployment/test-production-topology.mjs')
+    read('src/main.rs')
   ]);
   for (const { id } of claims) {
     const matches = testSources.join('\n').match(new RegExp(`@claim:${id}\\b`, 'g')) ?? [];
     assert.equal(matches.length, 1, `${id} needs exactly one tagged test`);
+  }
+});
+
+test('every product claim runs in a clean local sandbox', async () => {
+  const claims = JSON.parse(await read('.factory/claims.json'));
+  assert.equal(claims.length, 10, 'the registry must contain the ten user-facing product claims');
+  const unsafe = /(?:deploy|production-topology|verify-live|\baz\b|sociobot\.in)/i;
+  for (const claim of claims) {
+    assert.doesNotMatch(claim.test, unsafe, `${claim.id} must not deploy or call the live service`);
+    assert.doesNotMatch(claim.sandbox, unsafe, `${claim.id} must describe a disposable local sandbox`);
   }
 });
 
