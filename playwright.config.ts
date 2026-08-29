@@ -5,6 +5,11 @@ const externalBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
 export default defineConfig({
   testDir: './tests',
   timeout: 30_000,
+  // A deployed Container App keys the 40 req/s safety boundary to the
+  // verifier's ingress address. Keep external projects serial so a rate-limit
+  // assertion in one project cannot make an unrelated fresh-page accessibility
+  // check in the other project receive its intentional 429 response.
+  workers: externalBaseUrl ? 1 : undefined,
   use: {
     baseURL: externalBaseUrl ?? 'http://127.0.0.1:8080',
     trace: 'retain-on-failure',

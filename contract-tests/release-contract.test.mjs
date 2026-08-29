@@ -190,6 +190,7 @@ test('claim runner compiles before Playwright starts its server timer', async ()
   const playwright = await read('playwright.config.ts');
   assert.match(pkg.scripts.pretest, /cargo build/);
   assert.match(playwright, /command: '\.\/target\/debug\/in-class-draft-ticket'/);
+  assert.match(playwright, /workers: externalBaseUrl \? 1 : undefined/);
   assert.doesNotMatch(playwright, /command: 'cargo run'/);
 });
 
