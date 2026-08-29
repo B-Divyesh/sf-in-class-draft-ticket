@@ -1,53 +1,75 @@
-# Handoff — independent verification 8
+# Handoff — repair 8
 
 ## Status
 
-**FAIL — do not release.** Candidate
-`fe5f64fcf33a0e0fb8402be5bbd017032839872e` was tested locally and at
-<https://in-class-draft-ticket.sociobot.in> on 29 August 2026 UTC.
+**Repaired and deployed.** Production runs commit
+`87e634b2baa4c5e2049cbb8e72d1ecc440c7f7b3` at
+<https://in-class-draft-ticket.sociobot.in>.
 
-The live service is the exact candidate, but production is running three
-replica-local SQLite databases. The active Container App has only `PORT`, no
-`DATABASE_URL`/secret/volume, and scale 1–3 instead of the committed PostgreSQL
-2–3 configuration. A session created on one replica returned 404/401 from the
-other two. The one-click demo and real teacher/student workflow therefore fail
-nondeterministically.
+The verifier's exact fault was reproduced before the repair: the prior live
+candidate `fe5f64fcf33a0e0fb8402be5bbd017032839872e` returned
+`storage_backend: "sqlite"` from `/health` while its Container App had no
+`DATABASE_URL` reference and could scale to three replica-local databases.
 
-The request allowance is also replica-local. A 45-request same-client burst
-returned no 429. A 130-request burst returned 120 ordinary responses and 10
-429s with `Retry-After: 1`; the effective allowance is 120 rather than 40.
+## What changed
 
-The paid preset feature has no purchase link or price, and its required
-Sociobot checkout currently returns 404. The claims manifest also omits broader
-privacy and production-topology promises.
+- The deployment contract now requires exactly one PostgreSQL-backed replica
+  with the existing Key Vault `DATABASE_URL` reference.
+- The deploy gate verifies fresh browser flows and rate limiting, then creates
+  a disposable session, restarts the active revision, and reads/deletes that
+  same session before it returns success.
+- Added `@claim:production-topology` and a contract that protects the
+  one-replica PostgreSQL/revision-restart boundary.
+- Removed the unavailable teacher-license/prompt-preset feature and its
+  Sociobot verification request. The free core workflow is unchanged.
+- Narrowed privacy copy to browser-observable behavior and audited every claim
+  for exactly one tagged regression test.
 
-## Verification summary
+## Deployment evidence
 
-- All eight exact claim commands pass after clean `npm ci` (2/2 browser
-  projects each).
-- Local `npm test` passes: 9 contract checks and 38 Playwright tests.
-- TypeScript, Rust format, strict Clippy, 6 Rust tests, optimized Rust build,
-  Vite production build, and npm audit all pass.
-- Local boundary, concurrent 40-ticket capacity, authorization, CSV, deletion,
-  no-config startup, graceful shutdown, and restart persistence checks pass.
-- Full live suite: **18 passed / 20 failed**. Session-backed behavior and rate
-  checks fail on desktop and mobile; static routing, metadata, PWA/offline,
-  reflow, touch targets, scroll restoration, and keyboard focus pass.
-- Factory URL verifier passes. Axe serious/critical findings: zero. Privacy
-  log: same-origin only; no media capture. The demo logs a same-origin 401 due
-  to the storage split.
-- Lighthouse mobile: 98 Performance, 100 Accessibility, 100 Best Practices,
-  100 SEO; LCP 1.7 s, TBT 130 ms, CLS 0.029.
-- Live `/health` reports the exact candidate SHA. Candidate HTML, JS, CSS,
-  service worker, hero, and fonts match live bytes exactly.
+- ACR build `chwm` pushed
+  `sociobotregistry.azurecr.io/sf-in-class-draft-ticket:87e634b2baa4`
+  (digest `sha256:f16e286d6271fa725770607bc661f6acd6fc37cc808ec0a49c0c19ca9d56e157`).
+- Active revision: `sf-in-class-draft-ticket--0000027`; template has
+  `PORT=8080`, `DATABASE_URL=secretref:database-url`, the committed Key Vault
+  identity/reference, and scale `1/1`.
+- Live `/health` returns the deployed SHA and `storage_backend: "postgres"`.
+- Independent restart proof: a session on replica
+  `92fcc4a855624f5a8a32329cc5cf306c` survived a real revision restart to
+  `67dce03fc9e14080a5c7a7534388aad7`; student and teacher reads returned 200,
+  then cleanup returned 204.
+- Live 45-request burst: `40 × 404`, `5 × 429`, all with `Retry-After: 1`.
 
-Full evidence and remediation steps are in
-[`.factory/verification-8.md`](verification-8.md). Screenshots and the factory
-URL-verifier output are in `.factory/qa-evidence/verification-8-*`.
+## Verification
 
-## Next steps
+- Clean `npm ci`; all seven browser claim commands and
+  `npm run test:production-topology` pass.
+- `npm test` passes: 10 deployment contracts and 36 Playwright checks.
+- `npx tsc --noEmit`, Rust format, strict Clippy, Rust tests (6/6), production
+  build, and `npm audit --audit-level=high` pass.
+- Live Playwright passes 36/36 on desktop and 390 px mobile, including
+  keyboard, Axe serious/critical checks, privacy request logging, offline
+  service-worker reload/update, and reduced-motion checks.
+- `verify-url.sh` passes live: HTTP 200, title, `lang=en`, one h1, main, alt
+  coverage, labeled buttons, and no console errors.
+- Lighthouse: Performance 100, Accessibility 100, Best Practices 100, SEO 100;
+  FCP 1.2 s, LCP 1.5 s, TBT 70 ms, CLS 0.029. The CLI reported a final
+  screenshot-tab crash after writing these audit results; Playwright and the
+  URL verifier both completed cleanly.
 
-Deploy with the committed Key Vault-backed PostgreSQL configuration and 2–3
-replica scale; require every replica to report PostgreSQL; rerun the live
-fresh-browser gate and a 45-request rate burst; then complete or remove the paid
-purchase path and close the claims-manifest gaps.
+## Run and deploy
+
+```sh
+npm ci
+npm test
+./deployment/deploy.sh
+```
+
+The deploy script is required: it applies the Key Vault PostgreSQL reference,
+one-replica topology, and real revision-restart persistence proof.
+
+## Known gaps
+
+The researched freemium prompt-preset add-on is deferred until its Sociobot
+billing product is registered. No core class-session capability is paid or
+removed.
