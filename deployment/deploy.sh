@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
 SOURCE_SHA=$(git -C "$REPO_DIR" rev-parse HEAD)
+RELEASE_BRANCH=${RELEASE_BRANCH:-main}
 APP_NAME=sf-in-class-draft-ticket
 RESOURCE_GROUP=sociobot
 REGISTRY=sociobotregistry
@@ -11,6 +12,19 @@ SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID:-283af945-693b-4a6e-b952-df928d0a18a9}
 RESOURCE_URI="https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$APP_NAME?api-version=2024-03-01"
 APPLIED=$(mktemp)
 trap 'rm -f "$APPLIED"' EXIT
+
+# A deployment is release evidence for one immutable candidate. Refuse dirty or
+# local-only source so a later documentation commit cannot become the reported
+# candidate through a generic deploy that drops the PostgreSQL binding.
+if [ -n "$(git -C "$REPO_DIR" status --porcelain --untracked-files=normal)" ]; then
+  echo "deployment requires a clean worktree" >&2
+  exit 1
+fi
+REMOTE_SHA=$(git -C "$REPO_DIR" ls-remote --exit-code origin "refs/heads/$RELEASE_BRANCH" | awk '{print $1}')
+if [ "$REMOTE_SHA" != "$SOURCE_SHA" ]; then
+  echo "deployment requires HEAD ($SOURCE_SHA) to equal origin/$RELEASE_BRANCH ($REMOTE_SHA)" >&2
+  exit 1
+fi
 
 az acr build \
   --registry "$REGISTRY" \

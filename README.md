@@ -45,6 +45,8 @@ The container runs as a non-root user and reads only `PORT`, which defaults to `
 
 The container needs no configuration beyond `PORT`: without `DATABASE_URL` it uses local SQLite under `/app/data`. Production supplies `DATABASE_URL` from Key Vault and runs one PostgreSQL-backed replica. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records the database secret reference and scale settings. The deploy gate creates a session, restarts the active revision, then reads and deletes that same session before it reports success.
 
+An Azure Container Apps revision refuses to start without `DATABASE_URL`. This prevents a generic deployment from silently switching production to replica-local SQLite. Local and self-hosted containers keep the zero-configuration SQLite default.
+
 Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. That path builds in ACR, binds the Key Vault PostgreSQL URL to the new revision, and refuses success until fresh browser flows and the revision-restart persistence check pass.
 
 ## Privacy and limits

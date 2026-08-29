@@ -146,6 +146,9 @@ test('deployment verifier rejects the SQLite three-replica revision reported by 
 
 test('@claim:production-topology product deploy path binds PostgreSQL and proves persistence across a revision restart', async () => {
   const deploy = await read('deployment/deploy.sh');
+  assert.match(deploy, /status --porcelain --untracked-files=normal/);
+  assert.match(deploy, /ls-remote --exit-code origin/);
+  assert.match(deploy, /REMOTE_SHA.*SOURCE_SHA/s);
   assert.match(deploy, /az containerapp secret set/);
   assert.match(deploy, /keyvaultref:\$\{DATABASE_SECRET_URL\},identityref:\$\{DATABASE_IDENTITY\}/);
   assert.match(deploy, /az containerapp update/);
@@ -163,6 +166,15 @@ test('@claim:production-topology product deploy path binds PostgreSQL and proves
   assert.match(deploy, /assert-containerapp\.mjs/);
   assert.doesNotMatch(deploy, /az rest --method patch/);
   assert.doesNotMatch(deploy, /deploy-container\.sh/);
+});
+
+test('managed production cannot silently start on replica-local SQLite', async () => {
+  const database = await read('src/db.rs');
+  assert.match(database, /CONTAINER_APP_NAME/);
+  assert.match(database, /CONTAINER_APP_REVISION/);
+  assert.match(database, /DATABASE_URL is required in Azure Container Apps/);
+  assert.match(database, /managed_container_app_never_falls_back_to_replica_local_sqlite/);
+  assert.match(database, /unconfigured_local_runtime_keeps_the_sqlite_default/);
 });
 
 test('health identity cannot be cached across a SQLite-to-PostgreSQL revision repair', async () => {

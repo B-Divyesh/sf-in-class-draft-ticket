@@ -188,17 +188,38 @@ async fn connect_sqlite(data_dir: &Path) -> anyhow::Result<Database> {
 }
 
 pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
-    match std::env::var("DATABASE_URL") {
-        Ok(database_url) if !database_url.trim().is_empty() => {
-            connect_postgres(&database_url).await
-        }
-        _ => connect_sqlite(data_dir).await,
+    let database_url = std::env::var("DATABASE_URL").ok();
+    // Build workers can expose a replica marker without being the deployed
+    // product. The app and revision markers identify an actual Container App
+    // revision while keeping local/CI zero-configuration startup intact.
+    let managed_container_app = ["CONTAINER_APP_NAME", "CONTAINER_APP_REVISION"]
+        .iter()
+        .any(|name| std::env::var(name).is_ok_and(|value| !value.trim().is_empty()));
+
+    match storage_configuration(database_url.as_deref(), managed_container_app)? {
+        Some(database_url) => connect_postgres(&database_url).await,
+        None => connect_sqlite(data_dir).await,
     }
+}
+
+fn storage_configuration(
+    database_url: Option<&str>,
+    managed_container_app: bool,
+) -> anyhow::Result<Option<String>> {
+    if let Some(database_url) = database_url.map(str::trim).filter(|url| !url.is_empty()) {
+        return Ok(Some(database_url.to_owned()));
+    }
+    if managed_container_app {
+        anyhow::bail!(
+            "DATABASE_URL is required in Azure Container Apps; refusing replica-local SQLite"
+        );
+    }
+    Ok(None)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::retryable_migration_error;
+    use super::{retryable_migration_error, storage_configuration};
 
     #[test]
     fn concurrent_migration_conflicts_are_retryable() {
@@ -207,5 +228,23 @@ mod tests {
         ));
         assert!(retryable_migration_error("database is locked"));
         assert!(!retryable_migration_error("migration checksum changed"));
+    }
+
+    #[test]
+    fn managed_container_app_never_falls_back_to_replica_local_sqlite() {
+        let error = storage_configuration(None, true).unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("DATABASE_URL is required in Azure Container Apps"));
+        assert!(storage_configuration(Some("   "), true).is_err());
+        assert_eq!(
+            storage_configuration(Some(" postgres://shared "), true).unwrap(),
+            Some("postgres://shared".to_owned())
+        );
+    }
+
+    #[test]
+    fn unconfigured_local_runtime_keeps_the_sqlite_default() {
+        assert_eq!(storage_configuration(None, false).unwrap(), None);
     }
 }
