@@ -1,0 +1,6 @@
+ALTER TABLE sessions ADD COLUMN teacher_token_hash TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS app_config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);

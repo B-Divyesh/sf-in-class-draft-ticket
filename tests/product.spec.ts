@@ -39,17 +39,30 @@ test.afterEach(async ({request, page, context}) => {
   }
 });
 
-test('@claim:sample-demo demo is isolated and seeded', async ({page}) => {
+test('@claim:sample-demo demo is isolated, seeded, and expires after 24 hours', async ({page, request}) => {
+  const real = await newSession(request);
   await page.goto('/');
+  const realKey = `teacher:${real.session.code}`;
+  await page.evaluate(([key, value]) => localStorage.setItem(key, value), [realKey, real.teacher_token]);
+  const realBefore = await (await request.get(`/api/teacher/${real.session.code}`, {
+    headers:{Authorization:`Bearer ${real.teacher_token}`}
+  })).json();
   await page.getByRole('link', {name:'Try it with sample data'}).click();
   await expect(page).toHaveURL(/\?demo=1$/);
   await expect(page.getByText('Demo — sample data, nothing is saved to your classes')).toBeVisible();
   await expect(page.locator('.response-ticket')).toHaveCount(3);
-  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['demo:workspace']);
+  expect((await page.evaluate(() => Object.keys(localStorage).sort()))).toEqual(['demo:workspace', realKey].sort());
+  expect(await page.evaluate(key => localStorage.getItem(key), realKey)).toBe(real.teacher_token);
   const firstWorkspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace')!));
   sessionsForCleanup.push({session:{code:firstWorkspace.code}, teacher_token:firstWorkspace.token});
   const session = await page.request.get(`/api/sessions/${firstWorkspace.code}`);
-  expect((await session.json()).is_demo).toBe(true);
+  const sessionBody = await session.json();
+  expect(sessionBody.is_demo).toBe(true);
+  const demoLifetime = new Date(sessionBody.expires_at).getTime() - new Date(sessionBody.created_at).getTime();
+  expect(demoLifetime).toBe(24 * 60 * 60 * 1000);
+  expect(await (await request.get(`/api/teacher/${real.session.code}`, {
+    headers:{Authorization:`Bearer ${real.teacher_token}`}
+  })).json()).toEqual(realBefore);
 
   await page.getByRole('button', {name:'Reset demo'}).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace') || 'null')?.code)).not.toBe(firstWorkspace.code);
@@ -57,10 +70,18 @@ test('@claim:sample-demo demo is isolated and seeded', async ({page}) => {
   const resetWorkspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace')!));
   sessionsForCleanup.push({session:{code:resetWorkspace.code}, teacher_token:resetWorkspace.token});
   expect(resetWorkspace.code).not.toBe(firstWorkspace.code);
+  expect(await page.evaluate(key => localStorage.getItem(key), realKey)).toBe(real.teacher_token);
+  expect(await (await request.get(`/api/teacher/${real.session.code}`, {
+    headers:{Authorization:`Bearer ${real.teacher_token}`}
+  })).json()).toEqual(realBefore);
 
   await page.getByRole('button', {name:'Start for real'}).click();
   await expect(page).toHaveURL(/\/start$/);
   expect(await page.evaluate(() => localStorage.getItem('demo:workspace'))).toBeNull();
+  expect(await page.evaluate(key => localStorage.getItem(key), realKey)).toBe(real.teacher_token);
+  expect(await (await request.get(`/api/teacher/${real.session.code}`, {
+    headers:{Authorization:`Bearer ${real.teacher_token}`}
+  })).json()).toEqual(realBefore);
 });
 
 test('@claim:csv-export demo CSV contains every ticket', async ({page}) => {
@@ -141,17 +162,48 @@ test('@claim:free-capacity concurrent requests store exactly 40 free-session tic
   expect((await teacher.json()).tickets).toHaveLength(40);
 });
 
-test('@claim:privacy-minimal no tracking or capture occurs', async ({page}) => {
-  const origins = new Set<string>();
-  page.on('request', req => origins.add(new URL(req.url()).origin));
+test('@claim:privacy-minimal no tracking, keystroke logging, or capture occurs', async ({page, request}) => {
+  const created = await newSession(request);
+  const requests:Array<{method:string;url:string}> = [];
+  page.on('request', req => requests.push({method:req.method(),url:req.url()}));
   await page.addInitScript(() => {
     (window as any).__mediaCalls = 0;
     if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = async () => { (window as any).__mediaCalls++; throw new Error('blocked in test'); };
   });
-  await page.goto('/');
-  await page.getByRole('link',{name:'Try it with sample data'}).click();
-  await expect(page.locator('.response-ticket')).toHaveCount(3);
-  expect([...origins]).toEqual([new URL(page.url()).origin]);
+  await page.goto(`/session/${created.session.code}`);
+  await expect(page.getByRole('heading', {name:'Record your drafting choices'})).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  const requestCountBeforeTyping = requests.length;
+  const localBefore = await page.evaluate(() => JSON.stringify({...localStorage}));
+  const sessionBefore = await page.evaluate(() => JSON.stringify({...sessionStorage}));
+
+  await page.getByLabel('Class nickname').fill('Green Comet');
+  await page.getByLabel('Your working claim').fill('The doorway shows a change.');
+  await page.getByLabel('Evidence location').fill('Page 12, final paragraph.');
+  await page.getByLabel('One revision choice').fill('I moved the quotation earlier.');
+  await page.getByLabel('Exit reflection').fill('I will explain the last image next.');
+  await page.waitForTimeout(150);
+  expect(requests).toHaveLength(requestCountBeforeTyping);
+  expect(await page.evaluate(() => JSON.stringify({...localStorage}))).toBe(localBefore);
+  expect(await page.evaluate(() => JSON.stringify({...sessionStorage}))).toBe(sessionBefore);
+
+  await page.getByRole('button',{name:'Record my draft ticket'}).click();
+  await expect(page.getByText('Your draft ticket is recorded.')).toBeVisible();
+  const origin = new URL(page.url()).origin;
+  expect(requests.every(entry => new URL(entry.url).origin === origin)).toBe(true);
+  const allowed = [
+    /^\/$/, /^\/(demo|join|start|privacy|terms)$/, /^\/session\/[A-Z0-9]{6}$/,
+    /^\/api\/sessions\/[A-Z0-9]{6}$/, /^\/api\/sessions\/[A-Z0-9]{6}\/tickets$/,
+    /^\/assets\/(?:index-[^/]+\.(?:js|css)|draft-constellation\.webp)$/,
+    /^\/fonts\/(?:atkinson-regular|fraunces-semibold)\.ttf$/, /^\/favicon\.svg$/, /^\/sw\.js$/
+  ];
+  for (const entry of requests) {
+    const pathname = new URL(entry.url).pathname;
+    expect(allowed.some(pattern => pattern.test(pathname)), `unexpected request ${entry.method} ${pathname}`).toBe(true);
+    expect(pathname).not.toMatch(/analytics|telemetry|track|event|beacon/i);
+  }
+  const ticketPosts = requests.filter(entry => entry.method === 'POST' && new URL(entry.url).pathname.endsWith('/tickets'));
+  expect(ticketPosts).toHaveLength(1);
   expect(await page.evaluate(() => (window as any).__mediaCalls)).toBe(0);
 });
 
@@ -278,6 +330,33 @@ test.describe('public route accessibility', () => {
   }
 });
 
+test('first screens show all three facts and one completed sample ticket', async ({page}, testInfo) => {
+  const viewport = testInfo.project.name === 'mobile-chromium'
+    ? {width:390, height:844}
+    : {width:1440, height:900};
+  await page.setViewportSize(viewport);
+  await page.goto('/');
+  for (const fact of [
+    'Students use class nicknames.',
+    'Sessions expire automatically.',
+    'Free for classes up to 40.'
+  ]) {
+    const box = await page.getByText(fact, {exact:true}).boundingBox();
+    expect(box, fact).not.toBeNull();
+    expect(box!.y + box!.height, `${fact} must be inside ${viewport.height}px`).toBeLessThanOrEqual(viewport.height);
+  }
+
+  await page.goto('/?demo=1');
+  const feature = page.locator('.demo-feature');
+  await expect(feature.getByRole('heading', {name:'Blue Finch'})).toBeVisible();
+  await expect(feature.getByText('Memory acts like a second setting that keeps the past present.')).toBeVisible();
+  await expect(feature.getByText('I moved the scene before my explanation so readers see the image first.')).toBeVisible();
+  const box = await feature.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.y + box!.height, `completed ticket must be inside ${viewport.height}px`).toBeLessThanOrEqual(viewport.height);
+});
+
 test('390px layout reflows without horizontal scrolling at 200% text size', async ({page}) => {
   await page.setViewportSize({width:390,height:844});
   for (const route of ['/','/demo','/join','/start','/privacy','/terms']) {
@@ -317,6 +396,10 @@ test('public deep links return 200 documents and route metadata changes', async 
   await page.goto('/?demo=1');
   await expect(page).toHaveTitle('Demo — In-Class Draft Ticket');
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/?demo=1');
+
+  await page.goto('/');
+  await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', 'Record in-class drafting without surveillance');
+  await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', 'Record in-class drafting without surveillance');
 });
 
 test('direct 404 keeps the shared navigation, legal links, and complete metadata', async ({page, request}) => {
@@ -330,6 +413,7 @@ test('direct 404 keeps the shared navigation, legal links, and complete metadata
   await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
   await expect(page.locator('meta[name="twitter:description"]')).toHaveCount(1);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/404.html');
+  await expect(page.getByRole('heading', {name:'Page not found'})).toBeVisible();
   await expect(page.getByRole('link', {name:'Privacy'}).first()).toHaveAttribute('href', '/privacy');
   await expect(page.getByRole('link', {name:'Terms'})).toHaveAttribute('href', '/terms');
   expect((await request.get('/privacy')).status()).toBe(200);
@@ -339,7 +423,7 @@ test('direct 404 keeps the shared navigation, legal links, and complete metadata
 test('service worker installs, updates its cache, and reloads the shell offline', async ({page, context}) => {
   await page.goto('/');
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-  await expect.poll(() => page.evaluate(() => caches.keys())).toContain('draft-ticket-v2');
+  await expect.poll(() => page.evaluate(() => caches.keys())).toContain('draft-ticket-v3');
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole('heading', {name:'Record in-class drafting without surveillance'})).toBeVisible();

@@ -1,10 +1,10 @@
 [
   {
     "id": "sample-demo",
-    "claim": "The demo opens with three fictional draft tickets and saves nothing to a real class.",
-    "where": "landing action and demo banner",
+    "claim": "The demo opens with three fictional draft tickets, expires after 24 hours, and leaves real classes unchanged.",
+    "where": "landing action, demo banner, privacy, README",
     "test": "npm test -- --grep @claim:sample-demo",
-    "sandbox": "fresh browser context at /demo; assert three records, demo flag, and demo-only browser namespace"
+    "sandbox": "seed a real session and browser key; enter and reset /?demo=1; assert three records, 24-hour expiry, isolated storage, and unchanged real data"
   },
   {
     "id": "csv-export",
@@ -39,7 +39,14 @@
     "claim": "The app uses no webcam, microphone, keystroke logging, analytics, or third-party tracking; session requests stay on this service.",
     "where": "landing boundaries and privacy",
     "test": "npm test -- --grep @claim:privacy-minimal",
-    "sandbox": "fresh landing and demo pages; monitor requests and media APIs, allowing only same-origin traffic"
+    "sandbox": "fresh student form; type in every field and assert no request or browser-storage change, then submit through an exact same-origin path allowlist; stub media capture"
+  },
+  {
+    "id": "data-storage-minimization",
+    "claim": "The database stores only class content, random record IDs, hashed teacher credentials, timestamps, demo markers, rate-limit hash material, and short-lived rate counters; expired sessions delete their tickets.",
+    "where": "privacy page",
+    "test": "cargo test claim_data_storage_minimization -- --nocapture",
+    "sandbox": "fresh SQLite database; inspect every table and column, migrate a legacy credential, assert hashed values and 24-hour demo expiry, then run cleanup and assert cascade deletion"
   },
   {
     "id": "no-ai-detection-or-authorship-verdict",

@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS in_class_draft_ticket.sessions (
   code TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   prompt TEXT NOT NULL,
-  teacher_token TEXT NOT NULL,
+  teacher_token TEXT NOT NULL DEFAULT '',
+  teacher_token_hash TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
   is_demo BOOLEAN NOT NULL DEFAULT FALSE
@@ -20,6 +21,14 @@ CREATE TABLE IF NOT EXISTS in_class_draft_ticket.tickets (
 );
 
 CREATE INDEX IF NOT EXISTS tickets_session_idx ON in_class_draft_ticket.tickets(session_code, created_at);
+
+ALTER TABLE in_class_draft_ticket.sessions
+  ADD COLUMN IF NOT EXISTS teacher_token_hash TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS in_class_draft_ticket.app_config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS in_class_draft_ticket.api_rate_limits (
   client_key TEXT PRIMARY KEY,

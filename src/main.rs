@@ -14,7 +14,9 @@ use axum::{
     Json, Router,
 };
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
+use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use sqlx::FromRow;
 use tower_http::{
     compression::CompressionLayer,
@@ -32,6 +34,7 @@ struct AppState {
     db: db::Database,
     build_sha: &'static str,
     replica_id: String,
+    rate_limit_secret: String,
     test_clock_enabled: bool,
 }
 
@@ -92,6 +95,7 @@ struct ApiErrorBody {
     error: String,
 }
 
+#[derive(Debug)]
 struct ApiError(StatusCode, String);
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
@@ -115,6 +119,7 @@ async fn main() -> anyhow::Result<()> {
     let supplied_data_dir = std::env::var("DATA_DIR").ok();
     let data_dir = PathBuf::from(supplied_data_dir.as_deref().unwrap_or("./data"));
     let db = db::connect(&data_dir).await?;
+    let (rate_limit_secret, security_material_source) = initialize_security_material(&db).await?;
     // A short clock is available only in debug builds so the browser suite can
     // observe automatic expiry. Release binaries always use calendar days.
     let test_clock_enabled =
@@ -126,6 +131,7 @@ async fn main() -> anyhow::Result<()> {
         // release gate prove that a write and its authenticated reads reached
         // every ready replica rather than one sticky upstream connection.
         replica_id: Uuid::new_v4().simple().to_string(),
+        rate_limit_secret,
         test_clock_enabled,
     };
     let cleanup_state = state.clone();
@@ -133,59 +139,19 @@ async fn main() -> anyhow::Result<()> {
         let cleanup_period = if cleanup_state.test_clock_enabled {
             Duration::from_millis(100)
         } else {
-            Duration::from_secs(30)
+            Duration::from_secs(1)
         };
         let mut interval = tokio::time::interval(cleanup_period);
         loop {
             interval.tick().await;
-            let _guard = match cleanup_state.db.lock().await {
-                Ok(guard) => guard,
-                Err(error) => {
-                    warn!(%error, "shared database lock failed during cleanup");
-                    continue;
-                }
-            };
-            let result = if let Some(pool) = cleanup_state.db.sqlite() {
-                sqlx::query("DELETE FROM sessions WHERE expires_at <= ?")
-                    .bind(Utc::now())
-                    .execute(pool)
-                    .await
-                    .map(|done| done.rows_affected())
-            } else {
-                sqlx::query("DELETE FROM in_class_draft_ticket.sessions WHERE expires_at <= $1")
-                    .bind(Utc::now())
-                    .execute(cleanup_state.db.postgres().expect("database variant"))
-                    .await
-                    .map(|done| done.rows_affected())
-            };
-            match result {
-                Ok(deleted) if deleted > 0 => {
-                    info!(deleted, "expired sessions deleted");
-                }
+            match cleanup_database(&cleanup_state.db, Utc::now()).await {
+                Ok(deleted) if deleted > 0 => info!(deleted, "expired sessions deleted"),
                 Ok(_) => {}
-                Err(error) => warn!(%error, "expired-session cleanup failed"),
-            }
-            let stale_rate_limits = if let Some(pool) = cleanup_state.db.sqlite() {
-                sqlx::query("DELETE FROM api_rate_limits WHERE window_start < ?")
-                    .bind(Utc::now().timestamp() - 2)
-                    .execute(pool)
-                    .await
-                    .map(|_| ())
-            } else {
-                sqlx::query(
-                    "DELETE FROM in_class_draft_ticket.api_rate_limits WHERE window_start < $1",
-                )
-                .bind(Utc::now().timestamp() - 2)
-                .execute(cleanup_state.db.postgres().expect("database variant"))
-                .await
-                .map(|_| ())
-            };
-            if let Err(error) = stale_rate_limits {
-                warn!(%error, "stale rate-limit cleanup failed");
+                Err(error) => warn!(%error, "database cleanup failed"),
             }
         }
     });
-    info!(port, data_dir = %data_dir.display(), data_dir_source = if supplied_data_dir.is_some() { "supplied" } else { "defaulted" }, database = state.db.storage_backend(), build_sha = state.build_sha, "configuration loaded; durable database and shared rate counters enabled");
+    info!(port, data_dir = %data_dir.display(), data_dir_source = if supplied_data_dir.is_some() { "supplied" } else { "defaulted" }, security_material_source, database = state.db.storage_backend(), build_sha = state.build_sha, "configuration loaded; durable database and privacy-preserving rate counters enabled");
 
     let api = Router::new()
         .route("/sessions", post(create_session))
@@ -280,6 +246,7 @@ async fn spa_shell() -> Result<Html<String>, StatusCode> {
 async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> Response {
     let ip = client_ip(&req);
     let window_start = Utc::now().timestamp();
+    let client_key = rate_limit_key(&state.rate_limit_secret, &ip, window_start);
     // This counter lives beside sessions, not in a process-local map, so a
     // client cannot bypass the safety boundary by being routed to another
     // replica. The UPSERT is one SQLite write and remains atomic across them.
@@ -296,7 +263,7 @@ async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> 
                window_start = excluded.window_start \
              RETURNING request_count",
         )
-        .bind(&ip)
+        .bind(&client_key)
         .bind(window_start)
         .fetch_one(pool)
         .await
@@ -309,7 +276,7 @@ async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> 
                window_start = EXCLUDED.window_start \
              RETURNING request_count",
         )
-        .bind(&ip)
+        .bind(&client_key)
         .bind(window_start)
         .fetch_one(state.db.postgres().expect("database variant"))
         .await
@@ -350,6 +317,121 @@ fn client_ip(req: &Request) -> String {
         })
         .map(|ip| ip.to_string())
         .unwrap_or_else(|| "unidentified".to_string())
+}
+
+fn digest(value: &str) -> String {
+    Sha256::digest(value.as_bytes())
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+fn rate_limit_key(secret: &str, ip: &str, timestamp: i64) -> String {
+    let day = timestamp.div_euclid(86_400);
+    let mut mac =
+        Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("HMAC accepts any key length");
+    mac.update(format!("{day}:{ip}").as_bytes());
+    mac.finalize()
+        .into_bytes()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+async fn initialize_security_material(db: &db::Database) -> anyhow::Result<(String, &'static str)> {
+    let generated = format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple());
+    let _guard = db.lock().await?;
+    let (secret, inserted) = if let Some(pool) = db.sqlite() {
+        let inserted = sqlx::query(
+            "INSERT OR IGNORE INTO app_config(key,value) VALUES('rate_limit_secret', ?)",
+        )
+        .bind(&generated)
+        .execute(pool)
+        .await?
+        .rows_affected()
+            == 1;
+        let secret = sqlx::query_scalar::<_, String>(
+            "SELECT value FROM app_config WHERE key = 'rate_limit_secret'",
+        )
+        .fetch_one(pool)
+        .await?;
+        let columns =
+            sqlx::query_scalar::<_, String>("SELECT name FROM pragma_table_info('sessions')")
+                .fetch_all(pool)
+                .await?;
+        if columns.iter().any(|column| column == "teacher_token") {
+            let rows = sqlx::query_as::<_, (String, String)>(
+                "SELECT code,teacher_token FROM sessions WHERE teacher_token <> ''",
+            )
+            .fetch_all(pool)
+            .await?;
+            for (code, token) in rows {
+                sqlx::query("UPDATE sessions SET teacher_token_hash = ? WHERE code = ?")
+                    .bind(digest(&token))
+                    .bind(code)
+                    .execute(pool)
+                    .await?;
+            }
+            sqlx::query("ALTER TABLE sessions DROP COLUMN teacher_token")
+                .execute(pool)
+                .await?;
+        }
+        (secret, inserted)
+    } else {
+        let pool = db.postgres().expect("database variant");
+        let inserted = sqlx::query("INSERT INTO in_class_draft_ticket.app_config(key,value) VALUES('rate_limit_secret', $1) ON CONFLICT(key) DO NOTHING")
+            .bind(&generated).execute(pool).await?.rows_affected() == 1;
+        let secret = sqlx::query_scalar::<_, String>(
+            "SELECT value FROM in_class_draft_ticket.app_config WHERE key = 'rate_limit_secret'",
+        )
+        .fetch_one(pool)
+        .await?;
+        let has_legacy_token = sqlx::query_scalar::<_, bool>("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema = 'in_class_draft_ticket' AND table_name = 'sessions' AND column_name = 'teacher_token')")
+            .fetch_one(pool).await?;
+        if has_legacy_token {
+            let rows = sqlx::query_as::<_, (String, String)>("SELECT code,teacher_token FROM in_class_draft_ticket.sessions WHERE teacher_token <> ''")
+                .fetch_all(pool).await?;
+            for (code, token) in rows {
+                sqlx::query("UPDATE in_class_draft_ticket.sessions SET teacher_token_hash = $1 WHERE code = $2")
+                    .bind(digest(&token)).bind(code).execute(pool).await?;
+            }
+            sqlx::query("ALTER TABLE in_class_draft_ticket.sessions DROP COLUMN teacher_token")
+                .execute(pool)
+                .await?;
+        }
+        (secret, inserted)
+    };
+    Ok((secret, if inserted { "generated" } else { "persisted" }))
+}
+
+async fn cleanup_database(db: &db::Database, now: DateTime<Utc>) -> anyhow::Result<u64> {
+    let _guard = db.lock().await?;
+    let deleted = if let Some(pool) = db.sqlite() {
+        let deleted = sqlx::query("DELETE FROM sessions WHERE expires_at <= ?")
+            .bind(now)
+            .execute(pool)
+            .await?
+            .rows_affected();
+        sqlx::query("DELETE FROM api_rate_limits WHERE window_start < ?")
+            .bind(now.timestamp() - 2)
+            .execute(pool)
+            .await?;
+        deleted
+    } else {
+        let pool = db.postgres().expect("database variant");
+        let deleted =
+            sqlx::query("DELETE FROM in_class_draft_ticket.sessions WHERE expires_at <= $1")
+                .bind(now)
+                .execute(pool)
+                .await?
+                .rows_affected();
+        sqlx::query("DELETE FROM in_class_draft_ticket.api_rate_limits WHERE window_start < $1")
+            .bind(now.timestamp() - 2)
+            .execute(pool)
+            .await?;
+        deleted
+    };
+    Ok(deleted)
 }
 
 async fn cache_headers(req: Request, next: Next) -> Response {
@@ -405,6 +487,7 @@ async fn insert_session(
 ) -> Result<CreatedSession, ApiError> {
     let code = new_code();
     let teacher_token = format!("dt_{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple());
+    let teacher_token_hash = digest(&teacher_token);
     let created_at = Utc::now();
     let retention = test_retention_seconds
         .filter(|seconds| state.test_clock_enabled && (1..=10).contains(seconds))
@@ -413,12 +496,12 @@ async fn insert_session(
     let expires_at = created_at + retention;
     let _guard = state.db.lock().await.map_err(storage_error)?;
     if let Some(pool) = state.db.sqlite() {
-        sqlx::query("INSERT INTO sessions(code,title,prompt,teacher_token,created_at,expires_at,is_demo) VALUES(?,?,?,?,?,?,?)")
-            .bind(&code).bind(title).bind(prompt).bind(&teacher_token).bind(created_at).bind(expires_at).bind(demo).execute(pool).await
+        sqlx::query("INSERT INTO sessions(code,title,prompt,teacher_token_hash,created_at,expires_at,is_demo) VALUES(?,?,?,?,?,?,?)")
+            .bind(&code).bind(title).bind(prompt).bind(&teacher_token_hash).bind(created_at).bind(expires_at).bind(demo).execute(pool).await
             .map_err(internal)?;
     } else {
-        sqlx::query("INSERT INTO in_class_draft_ticket.sessions(code,title,prompt,teacher_token,created_at,expires_at,is_demo) VALUES($1,$2,$3,$4,$5,$6,$7)")
-            .bind(&code).bind(title).bind(prompt).bind(&teacher_token).bind(created_at).bind(expires_at).bind(demo).execute(state.db.postgres().expect("database variant")).await
+        sqlx::query("INSERT INTO in_class_draft_ticket.sessions(code,title,prompt,teacher_token_hash,created_at,expires_at,is_demo) VALUES($1,$2,$3,$4,$5,$6,$7)")
+            .bind(&code).bind(title).bind(prompt).bind(&teacher_token_hash).bind(created_at).bind(expires_at).bind(demo).execute(state.db.postgres().expect("database variant")).await
             .map_err(internal)?;
     }
     Ok(CreatedSession {
@@ -564,13 +647,14 @@ async fn authorized_session(
         )
     })?;
     let code = code.trim().to_uppercase();
+    let token_hash = digest(token);
     let _guard = state.db.lock().await.map_err(storage_error)?;
     let session = if let Some(pool) = state.db.sqlite() {
-        sqlx::query_as::<_, Session>("SELECT code,title,prompt,created_at,expires_at,is_demo FROM sessions WHERE code = ? AND teacher_token = ?")
-            .bind(&code).bind(token).fetch_optional(pool).await
+        sqlx::query_as::<_, Session>("SELECT code,title,prompt,created_at,expires_at,is_demo FROM sessions WHERE code = ? AND teacher_token_hash = ?")
+            .bind(&code).bind(&token_hash).fetch_optional(pool).await
     } else {
-        sqlx::query_as::<_, Session>("SELECT code,title,prompt,created_at,expires_at,is_demo FROM in_class_draft_ticket.sessions WHERE code = $1 AND teacher_token = $2")
-            .bind(&code).bind(token).fetch_optional(state.db.postgres().expect("database variant")).await
+        sqlx::query_as::<_, Session>("SELECT code,title,prompt,created_at,expires_at,is_demo FROM in_class_draft_ticket.sessions WHERE code = $1 AND teacher_token_hash = $2")
+            .bind(&code).bind(&token_hash).fetch_optional(state.db.postgres().expect("database variant")).await
     }.map_err(internal)?;
     session.ok_or_else(|| {
         ApiError(
@@ -746,6 +830,7 @@ fn storage_error(err: anyhow::Error) -> ApiError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sqlx::Row;
 
     #[test]
     fn session_codes_are_six_safe_characters() {
@@ -810,6 +895,221 @@ mod tests {
         assert_eq!(count, 1);
         drop(guard);
         restored.close().await;
+        tokio::fs::remove_dir_all(data_dir).await.unwrap();
+    }
+
+    // @claim:data-storage-minimization
+    #[tokio::test]
+    async fn claim_data_storage_minimization_inventory_hashes_and_deletion() {
+        let data_dir =
+            std::env::temp_dir().join(format!("draft-ticket-storage-claim-{}", Uuid::new_v4()));
+        let database = db::connect(&data_dir).await.unwrap();
+
+        // Prove a credential from the pre-hash schema is migrated without
+        // changing the private teacher link held by its owner.
+        let legacy_token = "dt_legacy-private-token";
+        let ticket_created = Utc::now();
+        let rate_window = Utc::now().timestamp();
+        let stored_rate_key;
+        {
+            let _guard = database.lock().await.unwrap();
+            sqlx::query("INSERT INTO sessions(code,title,prompt,teacher_token,created_at,expires_at,is_demo) VALUES(?,?,?,?,?,?,?)")
+                .bind("OLD234").bind("Legacy class").bind("What changed?").bind(legacy_token)
+                .bind(Utc::now()).bind(Utc::now() + ChronoDuration::days(1)).bind(false)
+                .execute(database.sqlite().unwrap()).await.unwrap();
+        }
+        let (secret, _) = initialize_security_material(&database).await.unwrap();
+        let state = AppState {
+            db: database.clone(),
+            build_sha: "test",
+            replica_id: "test-replica".into(),
+            rate_limit_secret: secret.clone(),
+            test_clock_enabled: true,
+        };
+
+        let legacy: String =
+            sqlx::query_scalar("SELECT teacher_token_hash FROM sessions WHERE code = 'OLD234'")
+                .fetch_one(database.sqlite().unwrap())
+                .await
+                .unwrap();
+        assert_eq!(legacy, digest(legacy_token));
+
+        let real = insert_session(
+            &state,
+            "Period 3",
+            "How did the draft change?",
+            1,
+            Some(1),
+            false,
+        )
+        .await
+        .unwrap();
+        let demo = insert_session(
+            &state,
+            "Sample session",
+            "Where does memory change the scene?",
+            1,
+            None,
+            true,
+        )
+        .await
+        .unwrap();
+        let demo_lifetime = demo.session.expires_at - demo.session.created_at;
+        assert_eq!(demo_lifetime, ChronoDuration::days(1));
+
+        {
+            let _guard = database.lock().await.unwrap();
+            sqlx::query("INSERT INTO tickets(id,session_code,pseudonym,claim,evidence,revision,reflection,created_at) VALUES(?,?,?,?,?,?,?,?)")
+                .bind("ticket-record-id").bind(&real.session.code).bind("Green Comet")
+                .bind("The doorway marks a choice.").bind("Page 12.")
+                .bind("I moved the quotation.").bind("Explain the final image next.").bind(ticket_created)
+                .execute(database.sqlite().unwrap()).await.unwrap();
+            let raw_ip = "203.0.113.81";
+            let client_key = rate_limit_key(&secret, raw_ip, rate_window);
+            assert_eq!(client_key.len(), 64);
+            assert!(!client_key.contains(raw_ip));
+            sqlx::query(
+                "INSERT INTO api_rate_limits(client_key,window_start,request_count) VALUES(?,?,?)",
+            )
+            .bind(&client_key)
+            .bind(rate_window)
+            .bind(1_i64)
+            .execute(database.sqlite().unwrap())
+            .await
+            .unwrap();
+            stored_rate_key = client_key;
+        }
+
+        let session_columns = sqlx::query("PRAGMA table_info(sessions)")
+            .fetch_all(database.sqlite().unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| row.get::<String, _>("name"))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            session_columns,
+            [
+                "code",
+                "title",
+                "prompt",
+                "created_at",
+                "expires_at",
+                "is_demo",
+                "teacher_token_hash"
+            ]
+        );
+        let ticket_columns = sqlx::query("PRAGMA table_info(tickets)")
+            .fetch_all(database.sqlite().unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| row.get::<String, _>("name"))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            ticket_columns,
+            [
+                "id",
+                "session_code",
+                "pseudonym",
+                "claim",
+                "evidence",
+                "revision",
+                "reflection",
+                "created_at"
+            ]
+        );
+        let rate_columns = sqlx::query("PRAGMA table_info(api_rate_limits)")
+            .fetch_all(database.sqlite().unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| row.get::<String, _>("name"))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            rate_columns,
+            ["client_key", "window_start", "request_count"]
+        );
+        let config_columns = sqlx::query("PRAGMA table_info(app_config)")
+            .fetch_all(database.sqlite().unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| row.get::<String, _>("name"))
+            .collect::<Vec<_>>();
+        assert_eq!(config_columns, ["key", "value"]);
+
+        let stored: (String, String, String, String, DateTime<Utc>, DateTime<Utc>, bool) = sqlx::query_as(
+            "SELECT code,title,prompt,teacher_token_hash,created_at,expires_at,is_demo FROM sessions WHERE code = ?",
+        )
+        .bind(&real.session.code)
+        .fetch_one(database.sqlite().unwrap())
+        .await
+        .unwrap();
+        assert_eq!(stored.0, real.session.code);
+        assert_eq!(stored.1, "Period 3");
+        assert_eq!(stored.2, "How did the draft change?");
+        assert_eq!(stored.3, digest(&real.teacher_token));
+        assert_eq!(stored.4, real.session.created_at);
+        assert_eq!(stored.5, real.session.expires_at);
+        assert!(!stored.6);
+        assert_ne!(stored.3, real.teacher_token);
+
+        let ticket: (String, String, String, String, String, String, String, DateTime<Utc>) = sqlx::query_as(
+            "SELECT id,session_code,pseudonym,claim,evidence,revision,reflection,created_at FROM tickets WHERE id = 'ticket-record-id'",
+        ).fetch_one(database.sqlite().unwrap()).await.unwrap();
+        assert_eq!(
+            ticket,
+            (
+                "ticket-record-id".into(),
+                real.session.code.clone(),
+                "Green Comet".into(),
+                "The doorway marks a choice.".into(),
+                "Page 12.".into(),
+                "I moved the quotation.".into(),
+                "Explain the final image next.".into(),
+                ticket_created
+            )
+        );
+        let config: (String, String) = sqlx::query_as("SELECT key,value FROM app_config")
+            .fetch_one(database.sqlite().unwrap())
+            .await
+            .unwrap();
+        assert_eq!(config, ("rate_limit_secret".into(), secret.clone()));
+        let rate: (String, i64, i64) =
+            sqlx::query_as("SELECT client_key,window_start,request_count FROM api_rate_limits")
+                .fetch_one(database.sqlite().unwrap())
+                .await
+                .unwrap();
+        assert_eq!(rate, (stored_rate_key, rate_window, 1));
+
+        cleanup_database(&database, Utc::now() + ChronoDuration::seconds(4))
+            .await
+            .unwrap();
+        let real_sessions: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sessions WHERE code = ?")
+            .bind(&real.session.code)
+            .fetch_one(database.sqlite().unwrap())
+            .await
+            .unwrap();
+        let real_tickets: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM tickets WHERE session_code = ?")
+                .bind(&real.session.code)
+                .fetch_one(database.sqlite().unwrap())
+                .await
+                .unwrap();
+        let rate_rows: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM api_rate_limits")
+            .fetch_one(database.sqlite().unwrap())
+            .await
+            .unwrap();
+        assert_eq!((real_sessions, real_tickets, rate_rows), (0, 0, 0));
+        let demo_sessions: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sessions WHERE code = ?")
+            .bind(&demo.session.code)
+            .fetch_one(database.sqlite().unwrap())
+            .await
+            .unwrap();
+        assert_eq!(demo_sessions, 1);
+
+        database.close().await;
         tokio::fs::remove_dir_all(data_dir).await.unwrap();
     }
 }

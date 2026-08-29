@@ -64,6 +64,13 @@ test('container build tracks stable Rust instead of a minor release', async () =
   assert.doesNotMatch(dockerfile, /^FROM rust:1\.\d+/m);
 });
 
+test('raw social metadata uses factual product copy', async () => {
+  const html = await read('index.html');
+  assert.match(html, /property="og:description" content="Record in-class drafting choices without surveillance\."/);
+  assert.match(html, /name="twitter:description" content="Record in-class drafting choices without surveillance\."/);
+  assert.doesNotMatch(html, /humane process record/i);
+});
+
 test('production uses one durable PostgreSQL-backed replica', async () => {
   const deployment = JSON.parse(await read('deployment/containerapp-contract.json'));
   assert.deepEqual(deployment.scale, { minReplicas: 1, maxReplicas: 1 });
@@ -210,7 +217,8 @@ test('every listed product claim has exactly one tagged regression test', async 
   const claims = JSON.parse(await read('.factory/claims.json'));
   const testSources = await Promise.all([
     read('tests/product.spec.ts'),
-    read('contract-tests/release-contract.test.mjs')
+    read('contract-tests/release-contract.test.mjs'),
+    read('src/main.rs')
   ]);
   for (const { id } of claims) {
     const matches = testSources.join('\n').match(new RegExp(`@claim:${id}\\b`, 'g')) ?? [];

@@ -30,7 +30,7 @@
     if (path === '/terms') return ['Terms — In-Class Draft Ticket','Read the service terms and session limits'];
     if (path.startsWith('/session/')) return ['Draft ticket — In-Class Draft Ticket','Record four in-class drafting checkpoints'];
     if (path.startsWith('/teacher/')) return ['Teacher session — In-Class Draft Ticket','Review and export this class session'];
-    return ['Page not found — In-Class Draft Ticket','This point is not connected'];
+    return ['Page not found — In-Class Draft Ticket','The requested page was not found'];
   };
 
   function navigate(to:string) {
@@ -216,7 +216,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Classroom drafting record</p>
         <h1 tabindex="-1">Record in-class drafting without surveillance</h1>
-        <p class="lede">For writing teachers who need useful evidence of student choices during class.</p>
+        <p class="lede">For writing teachers recording student choices during class.</p>
         <div class="hero-actions">
           <a class="button primary" href="/?demo=1" on:click={clickLink}>Try it with sample data</a>
           <span>See three completed tickets.</span>
@@ -230,7 +230,7 @@
       </div>
       <figure class="hero-art">
         <img src="/assets/draft-constellation.webp" width="1200" height="800" fetchpriority="high" alt="Four blank paper tickets joined by fine plotted lines." />
-        <figcaption>Four checkpoints make the drafting process easier to discuss.</figcaption>
+        <figcaption>Each ticket records a claim, evidence location, revision, and next step.</figcaption>
       </figure>
     </section>
 
@@ -257,7 +257,7 @@
     <section class="section-shell boundaries" aria-labelledby="boundary-heading">
       <div><p class="eyebrow">Clear boundaries</p><h2 id="boundary-heading">What this does not do</h2></div>
       <ul><li>No AI detection</li><li>No webcam or microphone</li><li>No keystroke logging</li><li>No claim of proving authorship</li></ul>
-      <p>The ticket gives teachers a starting point for feedback. It does not judge who wrote a draft.</p>
+      <p>Teachers can read each ticket beside the student's draft. The ticket does not judge who wrote a draft.</p>
     </section>
 
   {:else if path === '/start'}
@@ -313,6 +313,14 @@
     <section class="teacher-page section-shell demo-page">
       <p class="eyebrow">Sample teacher view</p><h1 tabindex="-1">Review a sample draft session</h1><p class="lede">These three fictional tickets show the session sheet after an in-class draft.</p>
       {#if demoData}
+        <article class="demo-feature" aria-labelledby="featured-ticket-heading">
+          <p class="ticket-number">Completed draft ticket · 01</p>
+          <h2 id="featured-ticket-heading">{demoData.tickets[0].pseudonym}</h2>
+          <dl>
+            <div><dt>Claim</dt><dd>{demoData.tickets[0].claim}</dd></div>
+            <div><dt>Revision choice</dt><dd>{demoData.tickets[0].revision}</dd></div>
+          </dl>
+        </article>
         <div class="session-head"><div><span class="code-label">Sample code</span><strong class="big-code">{demoData.session.code}</strong><p>{demoData.session.title}</p></div><button class="button primary" on:click={() => exportCsv(demoData!, demoToken)}>Export sample CSV</button></div>
         <div class="teacher-prompt"><strong>Writing prompt</strong><p>{demoData.session.prompt}</p></div>
         {#if notice}<p class="success" role="status">{notice}</p>{/if}
@@ -321,11 +329,11 @@
       {:else if error}<div class="error-panel" role="alert"><p>{error}</p><button class="button secondary" on:click={() => loadDemo(true)}>Reload sample data</button></div>{:else}<div class="loading" role="status">Plotting sample tickets…</div>{/if}
     </section>
   {:else if path === '/privacy'}
-    <article class="legal section-shell narrow"><p class="eyebrow">Effective 29 August 2026</p><h1 tabindex="-1">Privacy in plain words</h1><p>In-Class Draft Ticket stores only what teachers and students enter.</p><h2>What we store</h2><p>We store the class name, writing prompt, class nicknames, ticket answers, and timestamps. We do not ask for student names, email addresses, or accounts.</p><h2>Why we store it</h2><p>The teacher uses this data to discuss and export in-class drafting choices. The ticket does not judge authorship.</p><h2>When we delete it</h2><p>The teacher chooses one, seven, or thirty days. The teacher can also delete a session at any time. Demo sessions expire after one day.</p><h2>Who receives it</h2><p>Session data stays on this service. We do not run analytics or third-party tracking.</p><h2>Your choices</h2><p>Teachers can export or delete a session from the private teacher view. Contact <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a> for a data request.</p></article>
+    <article class="legal section-shell narrow"><p class="eyebrow">Effective 29 August 2026</p><h1 tabindex="-1">Privacy in plain words</h1><p>In-Class Draft Ticket stores class content and the service data needed to protect and delete each session.</p><h2>What we store</h2><p>We store class names, prompts, class nicknames, ticket answers, and creation and deletion timestamps.</p><p>Random IDs connect records without using student names. A demo marker keeps sample sessions separate.</p><p>Teacher links contain a random credential. The database stores only its one-way hash.</p><p>A random server key turns each request IP into a rotating, one-way rate-limit key before storage.</p><p>Rate-limit counters and keys are deleted within four seconds. We do not ask for student names, email addresses, or accounts.</p><h2>Why we store it</h2><p>The teacher uses this data to read and export in-class drafting choices. The ticket does not judge authorship.</p><h2>When we delete it</h2><p>The teacher chooses one, seven, or thirty days. The teacher can also delete a session at any time. Demo sessions expire after 24 hours.</p><h2>Who receives it</h2><p>Session data stays on this service. We do not run analytics or third-party tracking.</p><h2>Your choices</h2><p>Teachers can export or delete a session from the private teacher view. Contact <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a> for a data request.</p></article>
   {:else if path === '/terms'}
     <article class="legal section-shell narrow"><p class="eyebrow">Effective 29 August 2026</p><h1 tabindex="-1">Terms of use</h1><p>Use this service to record drafting choices during a class. Do not use it to collect sensitive student data.</p><h2>Teacher responsibility</h2><p>Teachers choose prompts, class nicknames, and retention periods. Teachers must follow their school rules and applicable privacy law.</p><h2>What the ticket means</h2><p>A draft ticket is a teaching aid. It does not prove authorship, detect AI use, or replace a teacher's judgment.</p><h2>Service limits</h2><p>Free sessions accept up to 40 tickets. The service may be unavailable during maintenance. Export important sessions before their deletion date.</p><h2>Warranty</h2><p>The service is provided as available without warranties. We are not liable for lost class work or indirect damages.</p></article>
   {:else}
-    <section class="not-found section-shell narrow"><div class="lost-plot" aria-hidden="true">● · · · ○</div><p class="eyebrow">404 · Missing page</p><h1 tabindex="-1">This point is not connected</h1><p>The address does not lead to a draft session or page.</p><a class="button primary" href="/" on:click={clickLink}>Return home</a></section>
+    <section class="not-found section-shell narrow"><div class="lost-plot" aria-hidden="true">● · · · ○</div><p class="eyebrow">404 · Missing page</p><h1 tabindex="-1">Page not found</h1><p>This point is not connected to a draft session or page.</p><a class="button primary" href="/" on:click={clickLink}>Return home</a></section>
   {/if}
 </main>
 

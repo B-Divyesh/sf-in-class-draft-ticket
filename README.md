@@ -2,13 +2,13 @@
 
 Record in-class drafting without surveillance.
 
-In-Class Draft Ticket is for writing teachers who want a short process record during class. A teacher creates a timed session and shares its six-character code. Students use class nicknames to record a claim, evidence location, revision choice, and exit reflection. The teacher reviews the tickets and exports the full session as CSV.
+In-Class Draft Ticket is for writing teachers who want a short process record during class. A teacher creates a session with a deletion date and shares its six-character code. Students use class nicknames to record a claim, evidence location, revision choice, and exit reflection. The teacher reviews the tickets and exports the full session as CSV.
 
 It does not detect AI, record keystrokes, use cameras, or claim to prove authorship.
 
 ## Try the demo
 
-Open `/?demo=1` for one fictional seminar with three completed tickets. Demo work uses the `demo:` browser namespace and a separate one-day backend workspace. Choose **Reset demo** for fresh sample data.
+Open `/?demo=1` for a sample session with three completed tickets. Demo work stays separate from your classes and expires after 24 hours. Choose **Reset demo** for fresh sample data.
 
 Production URL: <https://in-class-draft-ticket.sociobot.in/?demo=1>
 
