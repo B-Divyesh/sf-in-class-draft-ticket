@@ -1,6 +1,6 @@
 # Copy audit
 
-Checked 29 August 2026 for polish round 2. Counts treat hyphenated terms, URLs, and numbers as one word. No audited sentence exceeds 22 words or contains a banned marketing word.
+Checked 29 August 2026 for polish round 3. Counts treat hyphenated terms, URLs, and numbers as one word. No audited sentence exceeds 22 words or contains a banned marketing word.
 
 ## Landing page sentences
 
@@ -53,6 +53,22 @@ The headings name their sections: “Classroom drafting record,” “Four draft
 | Demo work stays separate from your classes and expires after 24 hours. | 12 | `sample-demo` |
 | Choose Reset demo for fresh sample data. | 7 | `sample-demo` |
 
+## README sentences changed in round 3
+
+| Copy | Words | Claim or status |
+| --- | ---: | --- |
+| The container needs no configuration beyond `PORT`. | 7 | Runtime instruction; release-contract test |
+| Without `DATABASE_URL`, it uses local SQLite under `/app/data`. | 7 | Runtime instruction; Rust configuration test |
+| Local and self-hosted containers keep the zero-configuration SQLite default. | 9 | Runtime instruction; Rust configuration test |
+| Authorized factory workers deploy the committed revision with `npm run deploy:release`. | 9 | Release instruction, not a product claim |
+| This command changes the live service, so it is not a claim test. | 13 | F-3-1 boundary |
+| The release command rejects dirty or unpushed code. | 8 | Release instruction; release-contract test |
+| It then checks the deployed SHA, browser flows, rate limiting, and record persistence after a restart. | 16 | Release instruction; release-contract test |
+| The latest SHA-bound deployment evidence is recorded in `.factory/polish-3.md`. | 9 | Evidence pointer |
+| The deployment contract remains in `deployment/containerapp-contract.json`. | 5 | Documentation pointer |
+
+The production-mutating operation is no longer listed in `.factory/claims.json`. The new `every product claim runs in a clean local sandbox` contract rejects deploy, Azure, live-verifier, and live-domain commands.
+
 ## First-screen read-aloud check
 
 “Record in-class drafting without surveillance. For writing teachers recording student choices during class. Try it with sample data.”
@@ -70,4 +86,4 @@ The job, user, and first action fit one breath. The three privacy, retention, an
 | Sample environment | demo |
 | Downloaded session sheet | CSV export |
 
-Catalog description: “Record in-class drafting choices without surveillance.” (53 characters).
+Catalog description: “Record four in-class drafting choices without surveillance.” (58 characters).
