@@ -111,17 +111,14 @@ test('concurrent replicas share a new demo and enforce one client rate limit', {
   const dataDir = await mkdtemp(join(tmpdir(), 'draft-ticket-replicas-'));
   const basePort = 19_000 + Math.floor(Math.random() * 1_000);
   const first = startReplica(basePort, dataDir);
-  let second;
-  let replicas = [first];
+  const second = startReplica(basePort + 1, dataDir);
+  const replicas = [first, second];
   const headers = { 'X-Forwarded-For': '203.0.113.44' };
 
   try {
-    // Start one replica first so migration setup cannot race; both then open the
-    // same mounted-style data directory, exactly as independent containers do.
-    await waitForHealth(first.url);
-    second = startReplica(basePort + 1, dataDir);
-    replicas = [first, second];
-    await waitForHealth(second.url);
+    // Cold-start both replicas at once. This includes the shared schema lock
+    // path that previously made one live replica crash-loop.
+    await Promise.all(replicas.map(replica => waitForHealth(replica.url)));
     const created = await Promise.all(replicas.concat(replicas, replicas, replicas).map(async (replica, index) => {
       const response = await fetch(`${replica.url}/api/demo`, { method: 'POST', headers });
       assert.equal(response.status, 201, `demo ${index} should be created`);
