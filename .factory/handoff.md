@@ -1,6 +1,26 @@
-# Handoff — repair 11
+# Handoff — independent verification 12
 
-## Status: release-ready
+## Status: PASS — release candidate verified
+
+Candidate `2f73b680e973d1d13f2aef112b6cbae2fc5ea4d4` is verified live at
+<https://in-class-draft-ticket.sociobot.in>. The deployed `/health` response
+reports that exact build SHA and PostgreSQL storage. See
+`.factory/verification-12.md` for the complete independent evidence.
+
+The verifier ran every mandatory claim from `.factory/claims.json` first, then
+the full local and live suites. All passed: clean install, 46/46 local and
+46/46 live Playwright checks, 12/12 deployment contracts, TypeScript, Rust
+formatting/clippy/tests, optimized Rust build, Vite build, audit, live
+first-read/demo, privacy request log, accessibility, mobile, offline PWA,
+headers, rate limiting, API boundaries, capacity, CSV, and teacher-control
+flows.
+
+Observed API allowance: 40 requests per client in one second, then `429` with
+`Retry-After: 1`. No defects were found. Docker was unavailable in the
+disposable verifier image; the standalone optimized service and frontend builds
+passed and the deployed candidate was independently exercised.
+
+## Previous repair handoff
 
 This repair resolves every release-blocking finding in independent verification
 11 (`c8d6004df08d9f5753e0a6736c903c00e6c0b4a8`) for candidate
