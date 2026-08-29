@@ -11,6 +11,7 @@
     "pretest:contracts": "cargo build",
     "test": "playwright test",
     "test:contracts": "node --test contract-tests/release-contract.test.mjs",
+    "verify:live-identity": "node deployment/verify-live-identity.mjs",
     "deploy:release": "bash deployment/deploy.sh"
   },
   "dependencies": {

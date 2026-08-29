@@ -78,6 +78,7 @@ for _ in $(seq 1 40); do
       sleep 15
       continue
     fi
+    LIVE_EXPECTED_SHA="$SOURCE_SHA" node "$REPO_DIR/deployment/verify-live-identity.mjs"
     PERSISTENCE_RECORD=$(mktemp)
     trap 'rm -f "$APPLIED" "$PERSISTENCE_RECORD"' EXIT
     LIVE_EXPECTED_REPLICAS=1 LIVE_PERSISTENCE_RECORD="$PERSISTENCE_RECORD" node "$REPO_DIR/deployment/verify-live.mjs"
@@ -88,7 +89,8 @@ for _ in $(seq 1 40); do
         "https://in-class-draft-ticket.sociobot.in/health?restart-check=${SOURCE_SHA}-${RANDOM}" \
         2>/dev/null || true)
       if printf '%s' "$LIVE_HEALTH" | node -e "let data='';process.stdin.on('data',chunk=>data+=chunk).on('end',()=>{try { const health=JSON.parse(data); process.exit(health.build_sha === process.argv[1] && health.storage_backend === 'postgres' ? 0 : 1); } catch { process.exit(1); }})" "$SOURCE_SHA"; then
-        if LIVE_EXPECTED_REPLICAS=1 LIVE_PERSISTENCE_RECORD="$PERSISTENCE_RECORD" node "$REPO_DIR/deployment/verify-live.mjs" --assert-persistence-record; then
+        if LIVE_EXPECTED_SHA="$SOURCE_SHA" node "$REPO_DIR/deployment/verify-live-identity.mjs" && \
+          LIVE_EXPECTED_REPLICAS=1 LIVE_PERSISTENCE_RECORD="$PERSISTENCE_RECORD" node "$REPO_DIR/deployment/verify-live.mjs" --assert-persistence-record; then
           echo "deployed $SOURCE_SHA with PostgreSQL persistence across a revision restart"
           exit 0
         fi

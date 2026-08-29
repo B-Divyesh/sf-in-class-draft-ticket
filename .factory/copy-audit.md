@@ -63,7 +63,9 @@ The headings name their sections: “Classroom drafting record,” “Four draft
 | Authorized factory workers deploy the committed revision with `npm run deploy:release`. | 9 | Release instruction, not a product claim |
 | This command changes the live service, so it is not a claim test. | 13 | F-3-1 boundary |
 | The release command rejects dirty or unpushed code. | 8 | Release instruction; release-contract test |
-| It then checks the deployed SHA, browser flows, rate limiting, and record persistence after a restart. | 16 | Release instruction; release-contract test |
+| It samples the uncached live build identity 20 times before and after a restart. | 14 | Release instruction; live-identity regression test |
+| It also checks browser flows, rate limiting, and record persistence. | 9 | Release instruction; release-contract test |
+| To check a deployed candidate without changing production, run: | 9 | Release instruction |
 | The latest SHA-bound deployment evidence is recorded in `.factory/polish-3.md`. | 9 | Evidence pointer |
 | The deployment contract remains in `deployment/containerapp-contract.json`. | 5 | Documentation pointer |
 

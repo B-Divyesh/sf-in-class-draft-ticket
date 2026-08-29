@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
+import { createServer } from 'node:http';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { once } from 'node:events';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { assertContainerAppContract } from '../deployment/assert-containerapp.mjs';
+import { verifyLiveIdentity } from '../deployment/verify-live-identity.mjs';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const repo = new URL('..', import.meta.url);
@@ -170,9 +173,57 @@ test('deployment script binds PostgreSQL and includes the live revision-restart 
   assert.match(deploy, /PostgreSQL persistence across a revision restart/);
   assert.match(deploy, /health\?deploy-check=/);
   assert.match(deploy, /health\.storage_backend === 'postgres'/);
+  assert.equal((deploy.match(/verify-live-identity\.mjs/g) ?? []).length, 2);
+  assert.equal((deploy.match(/LIVE_EXPECTED_SHA="\$SOURCE_SHA"/g) ?? []).length, 2);
   assert.match(deploy, /assert-containerapp\.mjs/);
   assert.doesNotMatch(deploy, /az rest --method patch/);
   assert.doesNotMatch(deploy, /deploy-container\.sh/);
+});
+
+test('live identity gate rejects the exact stale candidate mismatch from verification 16', async () => {
+  const expectedSha = '9f669994fc14775c69e2daf3a400e5cd5b4de2a0';
+  const staleSha = '8f17bd2d94dfb72a9be7e819d324d63df30114d2';
+  let reportedSha = staleSha;
+  const requestUrls = [];
+  const server = createServer((request, response) => {
+    requestUrls.push(request.url);
+    response.writeHead(200, {
+      'cache-control': 'no-store, max-age=0',
+      'content-type': 'application/json'
+    });
+    response.end(JSON.stringify({
+      build_sha: reportedSha,
+      replica_id: 'fixture-replica',
+      status: 'ok',
+      storage_backend: 'postgres'
+    }));
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address === 'object');
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    await assert.rejects(
+      verifyLiveIdentity({ baseUrl, expectedSha }),
+      new RegExp(`live build identity mismatch.*expected ${expectedSha}, received ${staleSha}`)
+    );
+    assert.equal(requestUrls.length, 20, 'the stale deployment is sampled twenty times');
+    assert.equal(new Set(requestUrls).size, 20, 'every stale-identity request has a unique cache-busting URL');
+
+    reportedSha = expectedSha;
+    const evidence = await verifyLiveIdentity({ baseUrl, expectedSha });
+    assert.deepEqual(
+      { buildSha: evidence.buildSha, storageBackend: evidence.storageBackend, sampleCount: evidence.sampleCount },
+      { buildSha: expectedSha, storageBackend: 'postgres', sampleCount: 20 }
+    );
+    assert.equal(requestUrls.length, 40, 'the matching deployment is independently sampled twenty times');
+    assert.equal(new Set(requestUrls).size, 40, 'all stale and matching requests have unique URLs');
+  } finally {
+    server.close();
+    await once(server, 'close');
+  }
 });
 
 test('managed production cannot silently start on replica-local SQLite', async () => {

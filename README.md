@@ -51,7 +51,13 @@ Local and self-hosted containers keep the zero-configuration SQLite default.
 
 Authorized factory workers deploy the committed revision with `npm run deploy:release`. This command changes the live service, so it is not a claim test.
 
-The release command rejects dirty or unpushed code. It then checks the deployed SHA, browser flows, rate limiting, and record persistence after a restart.
+The release command rejects dirty or unpushed code. It samples the uncached live build identity 20 times before and after a restart. It also checks browser flows, rate limiting, and record persistence.
+
+To check a deployed candidate without changing production, run:
+
+```sh
+LIVE_EXPECTED_SHA=$(git rev-parse HEAD) npm run verify:live-identity
+```
 
 The latest SHA-bound deployment evidence is recorded in [`.factory/polish-3.md`](.factory/polish-3.md). The deployment contract remains in [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json).
 
