@@ -155,11 +155,11 @@ test('API rate limit returns Retry-After', async ({request}) => {
   await new Promise(resolve => setTimeout(resolve, 1_100));
 });
 
-test('API rate limit uses the first forwarded client address', async ({request}, testInfo) => {
+test('API rate limit ignores caller-spoofed hops and uses the ingress-appended address', async ({request}, testInfo) => {
   const trustedAddress = testInfo.project.name === 'chromium' ? '203.0.113.77' : '203.0.113.78';
   await freshRateWindow();
   const results = await Promise.all(Array.from({length:45}, (_, i) => request.get('/api/sessions/ABCDEF', {
-      headers:{'X-Forwarded-For':`${trustedAddress}, 198.51.100.${i + 1}`}
+      headers:{'X-Forwarded-For':`198.51.100.${i + 1}, ${trustedAddress}`}
   })));
   const ordinary = results.filter(response => response.status() !== 429);
   const limited = results.filter(response => response.status() === 429);
@@ -189,6 +189,22 @@ test('public routes pass desktop and 390px accessibility checks without console 
     }
   }
   expect(consoleErrors).toEqual([]);
+});
+
+test('390px layout reflows without horizontal scrolling at 200% text size', async ({page}) => {
+  await page.setViewportSize({width:390,height:844});
+  for (const route of ['/','/demo','/join','/start','/privacy','/terms']) {
+    await page.goto(route);
+    await page.evaluate(() => {
+      // Browser text-only zoom changes the root text size. Inserting the rule
+      // in the product stylesheet exercises that layout without weakening CSP.
+      document.styleSheets[0].insertRule('html { font-size: 200% !important; }', 0);
+    });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth), route).toBeLessThanOrEqual(390);
+  }
+  await page.goto('/');
+  await expect(page.getByRole('heading', {name:'Record in-class drafting without surveillance'})).toBeVisible();
+  await expect(page.getByLabel('Have a license?')).toBeVisible();
 });
 
 test('routes expose one focused page heading and working legal links', async ({page}) => {

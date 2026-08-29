@@ -6,18 +6,27 @@ use sqlx::{
 };
 
 pub async fn migrate(pool: &SqlitePool) -> anyhow::Result<()> {
-    for attempt in 0..30 {
+    for attempt in 0..60 {
         match sqlx::migrate!("./migrations").run(pool).await {
             Ok(()) => return Ok(()),
-            Err(error) if error.to_string().contains("database is locked") && attempt < 29 => {
-                // A revision starts its replicas together. Let the replica
-                // holding SQLite's schema lock finish instead of crash-looping.
-                tokio::time::sleep(Duration::from_millis(250)).await;
+            Err(error) if retryable_migration_error(&error.to_string()) && attempt < 59 => {
+                // Container App starts a revision's replicas together. Two
+                // migrators can both observe a pending migration before one
+                // records it in `_sqlx_migrations`; the loser then sees either
+                // SQLite's lock or the history-table uniqueness constraint.
+                // Rerunning is safe because sqlx migrations are transactional.
+                tokio::time::sleep(Duration::from_millis(100)).await;
             }
             Err(error) => return Err(error.into()),
         }
     }
     unreachable!("the bounded migration retry always returns")
+}
+
+fn retryable_migration_error(message: &str) -> bool {
+    message.contains("database is locked")
+        || message.contains("database is busy")
+        || message.contains("UNIQUE constraint failed: _sqlx_migrations.version")
 }
 
 pub async fn connect(data_dir: &Path) -> anyhow::Result<SqlitePool> {
@@ -56,4 +65,18 @@ pub async fn connect(data_dir: &Path) -> anyhow::Result<SqlitePool> {
     };
     migrate(&pool).await?;
     Ok(pool)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::retryable_migration_error;
+
+    #[test]
+    fn concurrent_migration_conflicts_are_retryable() {
+        assert!(retryable_migration_error(
+            "(code: 1555) UNIQUE constraint failed: _sqlx_migrations.version"
+        ));
+        assert!(retryable_migration_error("database is locked"));
+        assert!(!retryable_migration_error("migration checksum changed"));
+    }
 }

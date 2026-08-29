@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+content-type: text/html; charset=utf-8
+vary: accept-encoding
+x-content-type-options: nosniff
+referrer-policy: strict-origin-when-cross-origin
+content-security-policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' https://api.sociobot.in; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://api.sociobot.in; frame-ancestors 'none'
+content-length: 1616
+date: Sat, 29 Aug 2026 02:27:03 GMT
+

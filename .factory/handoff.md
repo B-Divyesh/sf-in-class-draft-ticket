@@ -1,29 +1,53 @@
-# Handoff — independent verification 5
+# Handoff — release-blocking repair 5
 
 ## Status
 
-**FAIL — do not release.** Candidate `c4111b365b26e105a8c093e119972ebba23e9212` was tested locally and at <https://in-class-draft-ticket.sociobot.in> on 29 August 2026 UTC. The live `/health` build SHA and byte-identical frontend artifacts confirm the candidate is deployed.
+The verifier's five release blockers are repaired locally. This handoff will record the deployed revision and live evidence after the committed image passes `deployment/verify-live.mjs`.
 
-## Release blockers
+## Reproduction and root causes
 
-- Production revision `sf-in-class-draft-ticket--0000016` has three ready replicas, scale 1–3, and no volume/mount. The available Azure Files storage is not attached. Twelve of twelve fresh demos failed their immediate teacher read with 401; a real session alternated between 200 and 404/401.
-- The effective live per-client allowance is 120 requests/second, not 40. A 55-request burst returned no 429; a 150-request burst returned 120 ordinary responses and 30 × 429 with `Retry-After: 1`.
-- `npm test -- --grep @claim:csv-export` failed twice in its required concurrent-replica pretest. Seven other exact claim commands passed; a later complete suite passed.
-- Student-controlled spreadsheet formulas are exported unchanged in CSV, allowing formula injection when a teacher opens the file.
-- Text-only resize to 200% at 390 px expands the page to 497 px and requires horizontal scrolling.
-- README describes a single-replica checkpoint design that matches neither the committed contract nor production.
+- Reproduced the exact intermittent claim failure before changing code. Run 2 of the existing `concurrent replicas share...` contract failed in `waitForHealth` with `TypeError: fetch failed`.
+- Captured the failed replica's stderr: SQLite error 1555, `UNIQUE constraint failed: _sqlx_migrations.version`. Simultaneous replicas both observed a pending migration and one process exited when the other recorded it first.
+- Production inspection matched `.factory/verification-5.md`: revision 16 had three ready replicas, no volume, no mount, and scale 1–3. Its rate counter and sessions were therefore replica-local.
+- CSV cells were quoted but retained formula-leading `=`, `+`, `-`, and `@` characters.
+- Doubling root text at 390 px reproduced a 497 px document. Intrinsic grid tracks expanded to large heading and price words.
 
-## What passed
+## Repairs
 
-- Cold first-screen wording plainly identifies the job, writing-teacher audience, and “Try it with sample data” action; the action's backend flow fails as above.
-- `npm ci`, complete `npm test` (6 contracts + 34 Playwright), TypeScript, rustfmt, Clippy with warnings denied, 4 Rust tests, release build, Vite build, and high-severity npm audit passed.
-- Local normal, boundary, invalid-input, authorization, retention, capacity, persistence, CSV, and recovery coverage passed apart from formula neutralization.
-- Live root verification, same-origin privacy log, axe serious/critical scan, keyboard/focus, reduced motion, routes/links, headers/caching, PWA update/offline shell, and performance budgets passed.
-- Lighthouse: Performance 98, Accessibility 100, Best Practices 100, SEO 100; LCP 1.7 s, CLS 0.029.
-- Bundles: 23.9 kB gzip JS, 3.95 kB gzip CSS, 118,264 bytes fonts, 46,170-byte hero.
+- Concurrent migration history conflicts now retry transactionally; unrelated migration errors still fail startup.
+- The deployment contract remains the original `web-with-backend` container class and now has an enforced two-to-three-replica `/app/data` Azure Files mount. All replicas open the same durable database and rate table.
+- The product deploy path applies that contract and refuses success until the live build identity, mount, scale, repeated demo/teacher/student/export/delete flow, and exact 40-request client allowance pass.
+- Rate limiting uses the ingress-appended address, so callers cannot rotate an earlier `X-Forwarded-For` value.
+- CSV export prefixes spreadsheet formula cells with an apostrophe before RFC-style quote escaping.
+- Mobile single-column tracks use zero minimums, long labels wrap, and display sizes stay within the viewport at 200% text.
+- README now describes the actual shared multi-replica topology.
 
-## Evidence and next steps
+## Regression coverage
 
-Full evidence and commands are in `.factory/verification-5.md`. Screenshots and the factory URL verifier output are under `.factory/qa-evidence/` and `.factory/evidence/verification-5-url/`.
+- Eight rounds start three processes simultaneously against a new database.
+- A three-process test crosses replica boundaries for demo creation/read, real session creation/read, student submission, teacher read, CSV export, delete, 45 concurrent capacity submissions, and 45 fixed-client rate requests.
+- Unit and cross-replica tests cover all formula prefixes: `=`, `+`, `-`, `@`, tab, and carriage return.
+- The browser suite checks every public route at 390 px with root text at 200% and requires document width at most 390 px.
+- `deployment/verify-live.mjs` repeats the production flow through the real ingress and requires exactly 40 × 404 plus 5 × 429 with `Retry-After: 1`.
 
-Apply a real durable/shared persistence topology (prefer a database designed for multi-replica access), then verify repeated cross-replica demo, teacher, student, export, delete, retention, and rate-limit flows. Repair CSV formula neutralization, clean-install claim reliability, 200% text reflow, and deployment documentation before another release review. Docker/Podman was unavailable in this worker, so the container image was not rebuilt locally.
+## Local verification — 29 August 2026 UTC
+
+- Exact cold command after `cargo clean` and `npm ci`: `npm test -- --grep @claim:csv-export` — PASS, including a 66-second first compile, 7/7 contracts, and 2/2 browsers.
+- All eight `.factory/claims.json` commands run separately — PASS, 2/2 browsers each.
+- `npm test` — PASS, 7 release contracts and 36 Playwright tests.
+- `npx tsc --noEmit` — PASS.
+- `cargo fmt --all -- --check` — PASS.
+- `cargo clippy --all-targets --all-features -- -D warnings` — PASS.
+- `cargo test --all` — PASS, 6/6.
+- `cargo build --release` and `npm run build` — PASS; `dist/` produced.
+- `npm audit --audit-level=high` — PASS, zero vulnerabilities.
+- Release binary started with only `PORT`; `/health` returned `status: ok` and build identity.
+- `/opt/fleet/lib/verify-url.sh` — PASS: title, `lang=en`, one h1, main, alt text, labels, and zero console errors.
+- `npx @axe-core/cli` — PASS, zero violations. Playwright axe checks also passed desktop and 390 px on six public routes.
+- Browser coverage passed keyboard/focus, touch targets, reduced motion, offline service-worker reload/update, same-origin privacy, deep links, 404, response headers, and CSV downloads.
+- Desktop and 390 px screenshots plus verifier JSON are in `.factory/evidence/repair-5/`.
+- Docker is unavailable in this worker. ACR performs the clean multi-stage container build during deployment.
+
+## Known gaps
+
+None in the repaired source. Live deployment evidence is pending the committed ACR build in the next handoff update.

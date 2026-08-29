@@ -265,14 +265,16 @@ async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> 
 }
 
 fn client_ip(req: &Request) -> String {
-    // The ingress supplies the client address as the first X-Forwarded-For
-    // hop. Use it consistently on every replica rather than socket peers.
+    // Azure's trusted ingress appends the address it observed to
+    // X-Forwarded-For. A caller can supply earlier values, so the right-most
+    // valid hop is the only value a public request cannot rotate itself.
     req.headers()
         .get("x-forwarded-for")
         .and_then(|value| value.to_str().ok())
         .and_then(|chain| {
             chain
                 .split(',')
+                .rev()
                 .find_map(|part| part.trim().parse::<IpAddr>().ok())
         })
         .map(|ip| ip.to_string())
@@ -573,7 +575,15 @@ async fn create_demo(
 }
 
 fn csv_cell(value: &str) -> String {
-    format!("\"{}\"", value.replace('"', "\"\""))
+    // Spreadsheet programs can evaluate quoted CSV cells that begin with a
+    // formula marker. An apostrophe makes the cell text while keeping the
+    // student's original value readable in the sheet.
+    let safe = if value.starts_with(['=', '+', '-', '@', '\t', '\r']) {
+        format!("'{value}")
+    } else {
+        value.to_string()
+    };
+    format!("\"{}\"", safe.replace('"', "\"\""))
 }
 fn internal(err: sqlx::Error) -> ApiError {
     warn!(error = %err, "database request failed");
@@ -602,7 +612,15 @@ mod tests {
     }
 
     #[test]
-    fn forwarded_client_uses_first_ingress_address() {
+    fn csv_cells_neutralize_every_formula_prefix() {
+        for value in ["=1+1", "+2+2", "-1+1", "@SUM(1,1)", "\t=1+1", "\r=1+1"] {
+            assert_eq!(csv_cell(value), format!("\"'{value}\""));
+        }
+        assert_eq!(csv_cell("ordinary text"), "\"ordinary text\"");
+    }
+
+    #[test]
+    fn forwarded_client_uses_ingress_appended_address() {
         let request = Request::builder()
             .header(
                 "x-forwarded-for",
@@ -610,7 +628,7 @@ mod tests {
             )
             .body(Body::empty())
             .unwrap();
-        assert_eq!(client_ip(&request), "198.51.100.44");
+        assert_eq!(client_ip(&request), "203.0.113.9");
     }
 
     #[tokio::test]

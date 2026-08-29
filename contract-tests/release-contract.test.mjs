@@ -9,35 +9,46 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const repo = new URL('..', import.meta.url);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function waitForHealth(url) {
+async function waitForHealth(replica) {
   let lastError;
-  for (let attempt = 0; attempt < 100; attempt += 1) {
+  for (let attempt = 0; attempt < 300; attempt += 1) {
+    if (replica.process.exitCode !== null) {
+      throw new Error(`replica exited with ${replica.process.exitCode}: ${replica.logs()}`);
+    }
     try {
-      const response = await fetch(`${url}/health`);
+      const response = await fetch(`${replica.url}/health`);
       if (response.ok) return;
     } catch (error) {
       lastError = error;
     }
     await delay(50);
   }
-  throw lastError ?? new Error(`server at ${url} did not become healthy`);
+  throw new Error(`server at ${replica.url} did not become healthy: ${lastError ?? ''}\n${replica.logs()}`);
 }
 
 function startReplica(port, dataDir) {
   const server = spawn('./target/debug/in-class-draft-ticket', [], {
     cwd: repo,
     env: { ...process.env, PORT: String(port), DATA_DIR: dataDir },
-    stdio: 'ignore'
+    stdio: ['ignore', 'pipe', 'pipe']
   });
+  let output = '';
+  server.stdout.on('data', chunk => { output += chunk; });
+  server.stderr.on('data', chunk => { output += chunk; });
   return {
+    process: server,
     url: `http://127.0.0.1:${port}`,
+    logs: () => output,
     async stop() {
       if (server.exitCode !== null) return;
       server.kill('SIGTERM');
-      await Promise.race([
-        new Promise(resolve => server.once('exit', resolve)),
-        delay(5_000).then(() => server.kill('SIGKILL'))
-      ]);
+      await new Promise(resolve => {
+        const timeout = setTimeout(() => server.kill('SIGKILL'), 5_000);
+        server.once('exit', () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      });
     }
   };
 }
@@ -91,7 +102,8 @@ test('product deploy path uses the contract renderer instead of the generic thre
   const deploy = await read('deployment/deploy.sh');
   assert.match(deploy, /render-containerapp\.mjs/);
   assert.match(deploy, /az rest --method patch/);
-  assert.match(deploy, /shared-storage multi-replica contract/);
+  assert.match(deploy, /verify-live\.mjs/);
+  assert.match(deploy, /verified shared storage and rate limiting/);
   assert.match(deploy, /session-data/);
   assert.doesNotMatch(deploy, /deploy-container\.sh/);
 });
@@ -104,22 +116,42 @@ test('claim runner compiles before Playwright starts its server timer', async ()
   assert.doesNotMatch(playwright, /command: 'cargo run'/);
 });
 
-test('concurrent replicas share a new demo and enforce one client rate limit', {
+test('simultaneous replica starts never race migration history', {
   concurrency: false,
   timeout: 45_000
+}, async () => {
+  // This is the exact cold-start boundary that intermittently failed the
+  // verifier's required claim command with a duplicate _sqlx_migrations row.
+  for (let round = 0; round < 8; round += 1) {
+    const dataDir = await mkdtemp(join(tmpdir(), 'draft-ticket-cold-start-'));
+    const basePort = 20_000 + Math.floor(Math.random() * 10_000);
+    const replicas = Array.from({ length: 3 }, (_, index) => startReplica(basePort + index, dataDir));
+    try {
+      await Promise.all(replicas.map(waitForHealth));
+    } finally {
+      await Promise.all(replicas.map(replica => replica.stop()));
+      await rm(dataDir, { recursive: true, force: true });
+    }
+  }
+});
+
+test('replicas share demo, teacher, student, export, delete, capacity, and rate state', {
+  concurrency: false,
+  timeout: 60_000
 }, async () => {
   const dataDir = await mkdtemp(join(tmpdir(), 'draft-ticket-replicas-'));
   const basePort = 19_000 + Math.floor(Math.random() * 1_000);
   const first = startReplica(basePort, dataDir);
   const second = startReplica(basePort + 1, dataDir);
-  const replicas = [first, second];
-  const headers = { 'X-Forwarded-For': '203.0.113.44' };
+  const third = startReplica(basePort + 2, dataDir);
+  const replicas = [first, second, third];
+  const headers = { 'X-Forwarded-For': '198.51.100.2, 203.0.113.44' };
 
   try {
     // Cold-start both replicas at once. This includes the shared schema lock
     // path that previously made one live replica crash-loop.
-    await Promise.all(replicas.map(replica => waitForHealth(replica.url)));
-    const created = await Promise.all(replicas.concat(replicas, replicas, replicas).map(async (replica, index) => {
+    await Promise.all(replicas.map(waitForHealth));
+    const created = await Promise.all(replicas.concat(replicas).map(async (replica, index) => {
       const response = await fetch(`${replica.url}/api/demo`, { method: 'POST', headers });
       assert.equal(response.status, 201, `demo ${index} should be created`);
       return response.json();
@@ -141,15 +173,99 @@ test('concurrent replicas share a new demo and enforce one client rate limit', {
       ];
     }));
 
+    const sessionResponse = await fetch(`${first.url}/api/sessions`, {
+      method: 'POST',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Replica boundary seminar',
+        prompt: 'Where does the draft change direction?',
+        retention_days: 7
+      })
+    });
+    assert.equal(sessionResponse.status, 201);
+    const session = await sessionResponse.json();
+    assert.equal((await fetch(`${second.url}/api/sessions/${session.session.code}`, { headers })).status, 200);
+
+    const formulaTicket = {
+      pseudonym: '=HYPERLINK("https://example.invalid")',
+      claim: '@SUM(1,1)',
+      evidence: '+2+2',
+      revision: '-1+1',
+      reflection: '=1+1'
+    };
+    const submitted = await fetch(`${third.url}/api/sessions/${session.session.code}/tickets`, {
+      method: 'POST',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify(formulaTicket)
+    });
+    assert.equal(submitted.status, 201);
+
+    const teacherHeaders = { ...headers, Authorization: `Bearer ${session.teacher_token}` };
+    const teacher = await fetch(`${second.url}/api/teacher/${session.session.code}`, { headers: teacherHeaders });
+    assert.equal(teacher.status, 200);
+    assert.equal((await teacher.json()).tickets.length, 1);
+    const exported = await fetch(`${first.url}/api/teacher/${session.session.code}/export`, { headers: teacherHeaders });
+    assert.equal(exported.status, 200);
+    const csv = await exported.text();
+    for (const safeValue of ["'=HYPERLINK", "'@SUM", "'+2+2", "'-1+1", "'=1+1"]) {
+      assert.match(csv, new RegExp(safeValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    }
+    assert.doesNotMatch(csv, /,"[=+@-]/);
+
+    const capacityResponse = await fetch(`${second.url}/api/sessions`, {
+      method: 'POST',
+      headers: { 'X-Forwarded-For': '203.0.113.45', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Capacity seminar',
+        prompt: 'Where does this paragraph change?',
+        retention_days: 1
+      })
+    });
+    assert.equal(capacityResponse.status, 201);
+    const capacity = await capacityResponse.json();
+    const ticketBody = {
+      pseudonym: 'Blue Finch',
+      claim: 'A focused working claim.',
+      evidence: 'Page 4, paragraph 2.',
+      revision: 'I moved the quotation earlier.',
+      reflection: 'I will explain the image next.'
+    };
+    const submissions = await Promise.all(Array.from({ length: 45 }, (_, index) => fetch(
+      `${replicas[index % replicas.length].url}/api/sessions/${capacity.session.code}/tickets`, {
+        method: 'POST',
+        headers: {
+          'X-Forwarded-For': `198.51.100.${index + 1}, 203.0.114.${index + 1}`,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({ ...ticketBody, pseudonym: `Blue Finch ${index}` })
+      }
+    )));
+    assert.equal(submissions.filter(response => response.status === 201).length, 40);
+    assert.equal(submissions.filter(response => response.status === 409).length, 5);
+    const capacityTeacher = await fetch(`${third.url}/api/teacher/${capacity.session.code}`, {
+      headers: { 'X-Forwarded-For': '203.0.113.46', Authorization: `Bearer ${capacity.teacher_token}` }
+    });
+    assert.equal(capacityTeacher.status, 200);
+    assert.equal((await capacityTeacher.json()).tickets.length, 40);
+
     await delay(1_100);
     await inFreshRateWindow();
     const burst = await Promise.all(Array.from({ length: 45 }, (_, index) => fetch(
-      `${replicas[index % replicas.length].url}/api/sessions/ZZZZZZ`, { headers }
+      `${replicas[index % replicas.length].url}/api/sessions/ZZZZZZ`, {
+        headers: { 'X-Forwarded-For': `198.51.100.${index + 1}, 203.0.113.200` }
+      }
     )));
     assert.equal(burst.filter(response => response.status === 404).length, 40);
     const limited = burst.filter(response => response.status === 429);
     assert.equal(limited.length, 5);
     assert.ok(limited.every(response => response.headers.get('retry-after') === '1'));
+
+    const deleted = await fetch(`${third.url}/api/teacher/${session.session.code}`, {
+      method: 'DELETE', headers: teacherHeaders
+    });
+    assert.equal(deleted.status, 204);
+    assert.equal((await fetch(`${first.url}/api/sessions/${session.session.code}`, { headers })).status, 404);
+    assert.equal((await fetch(`${second.url}/api/teacher/${session.session.code}`, { headers: teacherHeaders })).status, 401);
   } finally {
     await Promise.all(replicas.map(replica => replica.stop()));
     await rm(dataDir, { recursive: true, force: true });

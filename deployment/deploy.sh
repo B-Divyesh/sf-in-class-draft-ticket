@@ -47,7 +47,8 @@ for _ in $(seq 1 40); do
     | node -e "let data='';process.stdin.on('data',chunk=>data+=chunk).on('end',()=>console.log(JSON.parse(data).build_sha||''))" \
     2>/dev/null || true)
   if [ "$LIVE_SHA" = "$SOURCE_SHA" ] && contract_is_applied; then
-    echo "deployed $SOURCE_SHA with the shared-storage multi-replica contract"
+    node "$REPO_DIR/deployment/verify-live.mjs"
+    echo "deployed $SOURCE_SHA with verified shared storage and rate limiting"
     exit 0
   fi
   sleep 15
