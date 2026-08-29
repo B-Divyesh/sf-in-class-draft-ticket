@@ -40,13 +40,27 @@ test.afterEach(async ({request, page, context}) => {
 });
 
 test('@claim:sample-demo demo is isolated and seeded', async ({page}) => {
-  await page.goto('/demo');
+  await page.goto('/');
+  await page.getByRole('link', {name:'Try it with sample data'}).click();
+  await expect(page).toHaveURL(/\?demo=1$/);
   await expect(page.getByText('Demo — sample data, nothing is saved to your classes')).toBeVisible();
   await expect(page.locator('.response-ticket')).toHaveCount(3);
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual(['demo:workspace']);
-  const workspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace')!));
-  const session = await page.request.get(`/api/sessions/${workspace.code}`);
+  const firstWorkspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace')!));
+  sessionsForCleanup.push({session:{code:firstWorkspace.code}, teacher_token:firstWorkspace.token});
+  const session = await page.request.get(`/api/sessions/${firstWorkspace.code}`);
   expect((await session.json()).is_demo).toBe(true);
+
+  await page.getByRole('button', {name:'Reset demo'}).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace') || 'null')?.code)).not.toBe(firstWorkspace.code);
+  await expect(page.locator('.response-ticket')).toHaveCount(3);
+  const resetWorkspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace')!));
+  sessionsForCleanup.push({session:{code:resetWorkspace.code}, teacher_token:resetWorkspace.token});
+  expect(resetWorkspace.code).not.toBe(firstWorkspace.code);
+
+  await page.getByRole('button', {name:'Start for real'}).click();
+  await expect(page).toHaveURL(/\/start$/);
+  expect(await page.evaluate(() => localStorage.getItem('demo:workspace'))).toBeNull();
 });
 
 test('@claim:csv-export demo CSV contains every ticket', async ({page}) => {
@@ -139,6 +153,52 @@ test('@claim:privacy-minimal no tracking or capture occurs', async ({page}) => {
   await expect(page.locator('.response-ticket')).toHaveCount(3);
   expect([...origins]).toEqual([new URL(page.url()).origin]);
   expect(await page.evaluate(() => (window as any).__mediaCalls)).toBe(0);
+});
+
+test('@claim:no-ai-detection-or-authorship-verdict demo has no detection or verdict path', async ({page, request}) => {
+  const requests:string[] = [];
+  page.on('request', req => requests.push(req.url()));
+  await page.goto('/?demo=1');
+  await expect(page.locator('.response-ticket')).toHaveCount(3);
+  expect(requests.every(url => new URL(url).origin === new URL(page.url()).origin)).toBe(true);
+  expect(requests.some(url => /detect|authorship|\/v1\/responses|\/models/i.test(new URL(url).pathname))).toBe(false);
+  await expect(page.getByRole('button', {name:/detect|authorship|judge/i})).toHaveCount(0);
+  await expect(page.getByRole('link', {name:/detect|authorship|judge/i})).toHaveCount(0);
+
+  await page.getByRole('link', {name:'In-Class Draft Ticket home'}).click();
+  await expect(page.getByRole('heading', {name:'What this does not do'})).toBeVisible();
+  await expect(page.getByText('No AI detection', {exact:true})).toBeVisible();
+  await expect(page.getByText('No claim of proving authorship', {exact:true})).toBeVisible();
+  expect([404, 405]).toContain((await request.post('/api/detect')).status());
+  expect([404, 405]).toContain((await request.post('/api/authorship')).status());
+});
+
+test('@claim:free-no-account-core-flow teacher and student finish without sign-in or payment', async ({page}) => {
+  const requests:string[] = [];
+  page.on('request', req => requests.push(req.url()));
+  await page.goto('/start');
+  await expect(page.getByRole('link', {name:/sign in|buy|checkout|pay/i})).toHaveCount(0);
+  await page.getByLabel('Class or section name').fill('Period 3 workshop');
+  await page.getByLabel('Writing prompt').fill('How does setting shape the narrator’s choice?');
+  await page.getByRole('button', {name:'Create session code'}).click();
+  await expect(page.getByRole('heading', {name:'Review this drafting session'})).toBeVisible();
+  const code = (await page.locator('.big-code').textContent())!.trim();
+  const teacherToken = await page.evaluate(code => localStorage.getItem(`teacher:${code}`)!, code);
+  sessionsForCleanup.push({session:{code}, teacher_token:teacherToken});
+
+  await page.goto(`/session/${code}`);
+  await page.getByLabel('Class nickname').fill('Green Comet');
+  await page.getByLabel('Your working claim').fill('The doorway shows the narrator changing her mind.');
+  await page.getByLabel('Evidence location').fill('Page 12, final paragraph.');
+  await page.getByLabel('One revision choice').fill('I moved the quotation before my explanation.');
+  await page.getByLabel('Exit reflection').fill('I need to explain the last image next.');
+  await page.getByRole('button', {name:'Record my draft ticket'}).click();
+  await expect(page.getByText('Your draft ticket is recorded.')).toBeVisible();
+
+  await page.goto(`/teacher/${code}`);
+  await expect(page.getByText('Green Comet', {exact:true})).toBeVisible();
+  expect(requests.every(url => new URL(url).origin === new URL(page.url()).origin)).toBe(true);
+  expect(requests.some(url => /checkout|payment|sign-?in|login/i.test(new URL(url).pathname))).toBe(false);
 });
 
 test('@claim:teacher-control private token protects read, export, and delete', async ({request}) => {
@@ -253,6 +313,27 @@ test('public deep links return 200 documents and route metadata changes', async 
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/privacy');
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Privacy — In-Class Draft Ticket');
   await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', 'Read how class session data is handled');
+
+  await page.goto('/?demo=1');
+  await expect(page).toHaveTitle('Demo — In-Class Draft Ticket');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/?demo=1');
+});
+
+test('direct 404 keeps the shared navigation, legal links, and complete metadata', async ({page, request}) => {
+  const response = await page.goto('/not-a-route');
+  expect(response?.status()).toBe(404);
+  const axe = await new AxeBuilder({page}).analyze();
+  expect(axe.violations.filter(violation => ['serious', 'critical'].includes(violation.impact || ''))).toEqual([]);
+  await expect(page.locator('header')).toHaveCount(1);
+  await expect(page.locator('footer')).toHaveCount(1);
+  await expect(page.locator('meta[name="description"]')).toHaveCount(1);
+  await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
+  await expect(page.locator('meta[name="twitter:description"]')).toHaveCount(1);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/404.html');
+  await expect(page.getByRole('link', {name:'Privacy'}).first()).toHaveAttribute('href', '/privacy');
+  await expect(page.getByRole('link', {name:'Terms'})).toHaveAttribute('href', '/terms');
+  expect((await request.get('/privacy')).status()).toBe(200);
+  expect((await request.get('/terms')).status()).toBe(200);
 });
 
 test('service worker installs, updates its cache, and reloads the shell offline', async ({page, context}) => {
@@ -278,10 +359,12 @@ test('Back restores the prior landing scroll position', async ({page}) => {
 test('mobile wordmark, navigation, and footer links meet the 44px target', async ({page}) => {
   await page.setViewportSize({width:390,height:844});
   await page.goto('/');
-  const heights = await page.locator('.wordmark, .site-header nav a, .site-footer nav a').evaluateAll(links => links
-    .filter(link => getComputedStyle(link).display !== 'none')
-    .map(link => link.getBoundingClientRect().height));
-  expect(heights.length).toBeGreaterThan(0);
+  const headerLinks = page.locator('.site-header nav a');
+  await expect(headerLinks).toHaveCount(4);
+  for (const name of ['Demo', 'Join', 'Start a class', 'Privacy']) {
+    await expect(page.getByRole('navigation', {name:'Main navigation'}).getByRole('link', {name, exact:true})).toBeVisible();
+  }
+  const heights = await page.locator('.wordmark, .site-header nav a, .site-footer nav a').evaluateAll(links => links.map(link => link.getBoundingClientRect().height));
   expect(heights.every(height => height >= 44)).toBe(true);
 });
 

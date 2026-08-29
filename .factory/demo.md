@@ -1,6 +1,6 @@
 # Demo sandbox
 
-- URL: `https://in-class-draft-ticket.sociobot.in/demo` (local: `http://localhost:8080/demo`)
+- URL: `https://in-class-draft-ticket.sociobot.in/?demo=1` (local: `http://localhost:8080/?demo=1`; `/demo` is an equivalent route)
 - Sample: one fictional literature seminar with three completed draft tickets from Blue Finch, Copper Kite, and Quiet Maple.
 - Reset: choose **Reset demo** in the persistent demo bar. This discards the current demo reference and provisions a fresh one-day workspace.
 - Leave: choose **Start for real**. The demo reference is discarded before teacher setup opens.

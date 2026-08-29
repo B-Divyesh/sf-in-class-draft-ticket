@@ -6,6 +6,8 @@
   type TeacherData = { session:Session; tickets:Ticket[] };
 
   let path = window.location.pathname;
+  let search = window.location.search;
+  let demoMode = path === '/demo' || (path === '/' && new URLSearchParams(search).get('demo') === '1');
   let online = navigator.onLine;
   let announcement = '';
   let busy = false;
@@ -20,10 +22,10 @@
   let writingPrompt = '';
 
   const pageMeta = (): [string, string] => {
+    if (demoMode) return ['Demo — In-Class Draft Ticket','Review three sample draft tickets'];
     if (path === '/') return ['In-Class Draft Ticket — Record drafting choices','Record in-class drafting without surveillance'];
     if (path === '/start') return ['Start a session — In-Class Draft Ticket','Set up a short in-class drafting session'];
     if (path === '/join') return ['Join a session — In-Class Draft Ticket','Open a draft ticket with a class code'];
-    if (path === '/demo') return ['Demo — In-Class Draft Ticket','Review three sample draft tickets'];
     if (path === '/privacy') return ['Privacy — In-Class Draft Ticket','Read how class session data is handled'];
     if (path === '/terms') return ['Terms — In-Class Draft Ticket','Read the service terms and session limits'];
     if (path.startsWith('/session/')) return ['Draft ticket — In-Class Draft Ticket','Record four in-class drafting checkpoints'];
@@ -34,7 +36,9 @@
   function navigate(to:string) {
     history.replaceState({...history.state, scrollY: window.scrollY}, '', location.href);
     history.pushState({scrollY: 0}, '', to);
-    path = to;
+    path = location.pathname;
+    search = location.search;
+    demoMode = path === '/demo' || (path === '/' && new URLSearchParams(search).get('demo') === '1');
     error = ''; notice = ''; session = null; teacherData = null;
     window.scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
     routeChanged();
@@ -45,7 +49,7 @@
     document.title = title;
     const setHead = (selector:string, value:string) => document.querySelector(selector)?.setAttribute(selector.startsWith('link') ? 'href' : 'content', value);
     setHead('meta[name="description"]', description);
-    setHead('link[rel="canonical"]', `https://in-class-draft-ticket.sociobot.in${path}`);
+    setHead('link[rel="canonical"]', `https://in-class-draft-ticket.sociobot.in${demoMode && search ? '/?demo=1' : path}`);
     setHead('meta[property="og:title"]', title);
     setHead('meta[property="og:description"]', description);
     setHead('meta[name="twitter:title"]', title);
@@ -57,7 +61,7 @@
     });
     if (path.startsWith('/session/')) loadStudentSession();
     if (path.startsWith('/teacher/')) loadTeacherSession();
-    if (path === '/demo') loadDemo(false);
+    if (demoMode) loadDemo(false);
   }
 
   function clickLink(event:MouseEvent) {
@@ -173,6 +177,8 @@
     history.replaceState({...history.state, scrollY: window.scrollY}, '', location.href);
     const pop = (event:PopStateEvent) => {
       path = location.pathname;
+      search = location.search;
+      demoMode = path === '/demo' || (path === '/' && new URLSearchParams(search).get('demo') === '1');
       routeChanged();
       requestAnimationFrame(() => window.scrollTo({top:event.state?.scrollY || 0, behavior:'auto'}));
     };
@@ -187,7 +193,7 @@
 <div class="announcement" aria-live="polite">{announcement}</div>
 {#if !online}<div class="offline" role="status">You are offline. Reconnect before using a session.</div>{/if}
 
-{#if path === '/demo'}
+{#if demoMode}
   <aside class="demo-bar" aria-label="Demo controls">
     <span><strong>Demo</strong> — sample data, nothing is saved to your classes</span>
     <span class="demo-actions"><button class="text-button" on:click={() => loadDemo(true)}>Reset demo</button><button class="text-button" on:click={startReal}>Start for real</button></span>
@@ -205,14 +211,14 @@
 </header>
 
 <main id="main">
-  {#if path === '/'}
+  {#if path === '/' && !demoMode}
     <section class="hero section-shell">
       <div class="hero-copy">
-        <p class="eyebrow">A process record, not a detector</p>
+        <p class="eyebrow">Classroom drafting record</p>
         <h1 tabindex="-1">Record in-class drafting without surveillance</h1>
         <p class="lede">For writing teachers who need useful evidence of student choices during class.</p>
         <div class="hero-actions">
-          <a class="button primary" href="/demo" on:click={clickLink}>Try it with sample data</a>
+          <a class="button primary" href="/?demo=1" on:click={clickLink}>Try it with sample data</a>
           <span>See three completed tickets.</span>
         </div>
         <a class="button secondary" href="/start" on:click={clickLink}>Start a class session</a>
@@ -230,7 +236,7 @@
 
     <section class="preview-band" aria-labelledby="preview-heading">
       <div class="section-shell preview-grid">
-        <div><p class="eyebrow">Live preview</p><h2 id="preview-heading">A ticket stays short</h2><p>Students name one claim, one evidence location, one revision, and one next step.</p></div>
+        <div><p class="eyebrow">Live preview</p><h2 id="preview-heading">Four drafting prompts</h2><p>Students name one claim, one evidence location, one revision, and one next step.</p></div>
         <div class="mini-ticket" aria-label="Example draft ticket">
           <span class="ticket-number">03 / Quiet Maple</span>
           <p><strong>Claim</strong> Memory acts like a second setting.</p>
@@ -240,7 +246,7 @@
     </section>
 
     <section class="section-shell steps" aria-labelledby="how-heading">
-      <p class="eyebrow">Three stops, one class period</p><h2 id="how-heading">How it works</h2>
+      <p class="eyebrow">How it works in three steps</p><h2 id="how-heading">How it works</h2>
       <ol class="plot-steps">
         <li><span>1</span><div><h3>Create a session</h3><p>Add the class name, prompt, and deletion date. Keep the private teacher link.</p></div></li>
         <li><span>2</span><div><h3>Share the code</h3><p>Students use a class nickname and answer four short prompts.</p></div></li>
@@ -256,7 +262,7 @@
 
   {:else if path === '/start'}
     <section class="task-page section-shell narrow">
-      <p class="eyebrow">Teacher setup · about one minute</p><h1 tabindex="-1">Start an in-class draft session</h1><p class="lede">Set the prompt and deletion date. You will get a student code and a private teacher link.</p>
+      <p class="eyebrow">Teacher setup</p><h1 tabindex="-1">Start an in-class draft session</h1><p class="lede">Set the prompt and deletion date. You will get a student code and a private teacher link.</p>
       <form class="ticket-form" on:submit|preventDefault={startSession}>
         <label for="title">Class or section name</label><input id="title" name="title" bind:value={classTitle} required minlength="2" maxlength="80" autocomplete="off" placeholder="Room 204 · Period 3" />
         <label for="prompt">Writing prompt</label><textarea id="prompt" name="prompt" bind:value={writingPrompt} required minlength="4" maxlength="240" rows="4" placeholder="How does the author use setting to shape the narrator's choice?"></textarea>
@@ -303,7 +309,7 @@
         <div class="danger-zone"><h2>Remove this session</h2><p>This deletes the prompt and every ticket now.</p><button class="button danger" on:click={() => removeSession(teacherData!, localStorage.getItem(`teacher:${teacherData!.session.code}`) || '')}>Delete this session</button></div>
       {:else if error}<div class="error-panel" role="alert"><p>{error}</p><a class="button secondary" href="/start" on:click={clickLink}>Create a new session</a></div>{:else}<div class="loading" role="status">Loading class tickets…</div>{/if}
     </section>
-  {:else if path === '/demo'}
+  {:else if demoMode}
     <section class="teacher-page section-shell demo-page">
       <p class="eyebrow">Sample teacher view</p><h1 tabindex="-1">Review a sample draft session</h1><p class="lede">These three fictional tickets show the session sheet after an in-class draft.</p>
       {#if demoData}

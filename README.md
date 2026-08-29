@@ -8,9 +8,9 @@ It does not detect AI, record keystrokes, use cameras, or claim to prove authors
 
 ## Try the demo
 
-Open `/demo` for one fictional seminar with three completed tickets. Demo work uses the `demo:` browser namespace and a separate one-day backend workspace. Choose **Reset demo** for fresh sample data.
+Open `/?demo=1` for one fictional seminar with three completed tickets. Demo work uses the `demo:` browser namespace and a separate one-day backend workspace. Choose **Reset demo** for fresh sample data.
 
-Production URL: <https://in-class-draft-ticket.sociobot.in/demo>
+Production URL: <https://in-class-draft-ticket.sociobot.in/?demo=1>
 
 ## Run locally
 
@@ -47,13 +47,13 @@ The container needs no configuration beyond `PORT`: without `DATABASE_URL` it us
 
 An Azure Container Apps revision refuses to start without `DATABASE_URL`. This prevents a generic deployment from silently switching production to replica-local SQLite. Local and self-hosted containers keep the zero-configuration SQLite default.
 
-Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. That path builds in ACR, binds the Key Vault PostgreSQL URL to the new revision, and refuses success until fresh browser flows and the revision-restart persistence check pass.
+Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. The deploy check starts a new revision. It then confirms that the same session remains available.
 
 ## Privacy and limits
 
 Sessions expire after the teacher's chosen one, seven, or thirty days. Free sessions accept up to 40 tickets. Teachers can delete a session early. See `/privacy` and `/terms` for the full plain-language policies.
 
-All class-session features are free. The researched freemium add-on is intentionally not offered until its Sociobot billing product is registered; the core teacher and student workflow remains available without payment or an account.
+There is no paid plan. Teachers and students can use the core workflow for free and without an account.
 
 ## Project notes
 

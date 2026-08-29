@@ -42,6 +42,20 @@
     "sandbox": "fresh landing and demo pages; monitor requests and media APIs, allowing only same-origin traffic"
   },
   {
+    "id": "no-ai-detection-or-authorship-verdict",
+    "claim": "The app does not detect AI use, prove authorship, or judge who wrote a draft.",
+    "where": "landing boundaries, privacy, terms, README",
+    "test": "npm test -- --grep @claim:no-ai-detection-or-authorship-verdict",
+    "sandbox": "fresh demo; complete the sample read path, assert the boundary copy and absence of detection controls, and reject unimplemented detection endpoints"
+  },
+  {
+    "id": "free-no-account-core-flow",
+    "claim": "There is no paid plan; teachers and students can complete the core workflow without an account or payment.",
+    "where": "README privacy and limits",
+    "test": "npm test -- --grep @claim:free-no-account-core-flow",
+    "sandbox": "fresh browser storage; create a class, submit a ticket, and read it as the teacher while asserting no sign-in, checkout, or payment request occurs"
+  },
+  {
     "id": "teacher-control",
     "claim": "Only the private teacher link can read, export, or delete a session.",
     "where": "teacher view, setup, privacy, README",
