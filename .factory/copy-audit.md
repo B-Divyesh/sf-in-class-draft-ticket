@@ -86,4 +86,4 @@ The job, user, and first action fit one breath. The three privacy, retention, an
 | Sample environment | demo |
 | Downloaded session sheet | CSV export |
 
-Catalog description: “Record four in-class drafting choices without surveillance.” (58 characters).
+Catalog description: “Record four in-class drafting choices without surveillance.” (59 characters).
