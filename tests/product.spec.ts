@@ -189,21 +189,33 @@ test('API rate limit ignores caller-spoofed hops and uses the ingress-appended a
   await new Promise(resolve => setTimeout(resolve, 1_100));
 });
 
-test('public routes pass desktop and 390px accessibility checks without console errors', async ({page}) => {
-  const consoleErrors: string[] = [];
-  page.on('console', message => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  for (const viewport of [{width:1440,height:900},{width:390,height:844}]) {
-    await page.setViewportSize(viewport);
-    for (const route of ['/','/demo','/join','/start','/privacy','/terms']) {
+const publicAccessibilityRoutes = ['/', '/demo', '/join', '/start', '/privacy', '/terms'];
+
+test.describe('public route accessibility', () => {
+  for (const route of publicAccessibilityRoutes) {
+    test(`${route} passes axe, console, and reflow checks`, async ({page}, testInfo) => {
+      const mobile = testInfo.project.name === 'mobile-chromium';
+      const viewport = mobile ? {width:390, height:844} : {width:1440, height:900};
+      const consoleErrors: string[] = [];
+      page.on('console', message => {
+        if (message.type() === 'error') consoleErrors.push(message.text());
+      });
+
+      await page.setViewportSize(viewport);
       await page.goto(route);
       const results = await new AxeBuilder({page}).analyze();
-      expect(results.violations.filter(v => ['serious','critical'].includes(v.impact || '')), `${route} at ${viewport.width}px`).toEqual([]);
-      expect(await page.locator('body').evaluate(el => el.scrollWidth <= window.innerWidth), `${route} at ${viewport.width}px`).toBe(true);
-    }
+
+      expect(
+        results.violations.filter(violation => ['serious', 'critical'].includes(violation.impact || '')),
+        `${route} at ${viewport.width}px`
+      ).toEqual([]);
+      expect(
+        await page.locator('body').evaluate(element => element.scrollWidth <= window.innerWidth),
+        `${route} at ${viewport.width}px`
+      ).toBe(true);
+      expect(consoleErrors).toEqual([]);
+    });
   }
-  expect(consoleErrors).toEqual([]);
 });
 
 test('390px layout reflows without horizontal scrolling at 200% text size', async ({page}) => {
