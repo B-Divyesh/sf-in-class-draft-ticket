@@ -1,0 +1,218 @@
+{
+  "routes": [
+    {
+      "label": "desktop",
+      "route": "/",
+      "status": 200,
+      "title": "In-Class Draft Ticket — Record drafting choices",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "desktop",
+      "route": "/demo",
+      "status": 200,
+      "title": "Demo — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "desktop",
+      "route": "/join",
+      "status": 200,
+      "title": "Join a session — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "desktop",
+      "route": "/start",
+      "status": 200,
+      "title": "Start a session — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "desktop",
+      "route": "/privacy",
+      "status": 200,
+      "title": "Privacy — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "desktop",
+      "route": "/terms",
+      "status": 200,
+      "title": "Terms — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "mobile",
+      "route": "/",
+      "status": 200,
+      "title": "In-Class Draft Ticket — Record drafting choices",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "mobile",
+      "route": "/demo",
+      "status": 200,
+      "title": "Demo — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "mobile",
+      "route": "/join",
+      "status": 200,
+      "title": "Join a session — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "mobile",
+      "route": "/start",
+      "status": 200,
+      "title": "Start a session — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "mobile",
+      "route": "/privacy",
+      "status": 200,
+      "title": "Privacy — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    },
+    {
+      "label": "mobile",
+      "route": "/terms",
+      "status": 200,
+      "title": "Terms — In-Class Draft Ticket",
+      "lang": "en",
+      "h1": 1,
+      "main": 1,
+      "seriousCritical": [],
+      "overflow": false,
+      "consoleErrors": [],
+      "pageErrors": []
+    }
+  ],
+  "keyboard": {
+    "text": "Skip to main content",
+    "tag": "A",
+    "outline": "rgb(49, 94, 168) solid 3px",
+    "outlineColor": "rgb(49, 94, 168)",
+    "outlineWidth": "3px"
+  },
+  "mobile": {
+    "scrollWidth": 390,
+    "viewport": 390,
+    "targetHeights": [
+      {
+        "text": "●—●Draft Ticket",
+        "height": 44,
+        "width": 117.09375
+      },
+      {
+        "text": "Demo",
+        "height": 44,
+        "width": 84.5
+      },
+      {
+        "text": "Join",
+        "height": 44,
+        "width": 84.5
+      },
+      {
+        "text": "Start a class",
+        "height": 44,
+        "width": 84.5
+      },
+      {
+        "text": "Privacy",
+        "height": 44,
+        "width": 84.5
+      },
+      {
+        "text": "Privacy",
+        "height": 44,
+        "width": 55
+      },
+      {
+        "text": "Terms",
+        "height": 44,
+        "width": 51
+      },
+      {
+        "text": "Built by Param Factory (external site)",
+        "height": 44,
+        "width": 153
+      }
+    ]
+  },
+  "reducedMotion": {
+    "scrollBehavior": "auto",
+    "animations": 0,
+    "media": true
+  }
+}

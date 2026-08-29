@@ -1,0 +1,23 @@
+{
+  "before": {
+    "caches": [
+      "draft-ticket-v2"
+    ],
+    "controller": "https://in-class-draft-ticket.sociobot.in/sw.js",
+    "registrations": [
+      {
+        "active": "activated",
+        "scope": "https://in-class-draft-ticket.sociobot.in/"
+      }
+    ]
+  },
+  "updated": {
+    "active": "activated"
+  },
+  "offline": {
+    "url": "https://in-class-draft-ticket.sociobot.in/",
+    "h1": "Record in-class drafting without surveillance",
+    "online": false
+  },
+  "errors": []
+}

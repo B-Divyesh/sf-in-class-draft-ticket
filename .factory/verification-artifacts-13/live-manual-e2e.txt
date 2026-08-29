@@ -1,0 +1,17 @@
+EMPTY_CREATE_BLOCKED {"valid":false,"message":"Please fill out this field."}
+BOUNDARY_CREATE {
+  code: 'HSS732',
+  title_length: 80,
+  prompt_length: 240,
+  token_saved: true,
+  teacher_url: 'https://in-class-draft-ticket.sociobot.in/teacher/HSS732'
+}
+INVALID_STUDENT_BLOCKED [{"id":"pseudonym","message":"Please lengthen this text to 2 characters or more (you are currently using 1 character)."},{"id":"claim","message":"Please lengthen this text to 3 characters or more (you are currently using 2 characters)."},{"id":"evidence","message":"Please lengthen this text to 3 characters or more (you are currently using 2 characters)."},{"id":"revision","message":"Please lengthen this text to 3 characters or more (you are currently using 2 characters)."},{"id":"reflection","message":"Please lengthen this text to 3 characters or more (you are currently using 2 characters)."}]
+RECOVERY_SUBMIT recorded
+TEACHER_REVIEW { ticketCount: 1, csv_lines: 2, formula_neutralized: true }
+DELETE_RECOVERY {
+  status: 404,
+  body: '{"error":"That session code was not found. Check the six characters and try again."}'
+}
+REQUEST_ORIGINS [ 'https://in-class-draft-ticket.sociobot.in' ]
+CONSOLE_PAGE_ERRORS []

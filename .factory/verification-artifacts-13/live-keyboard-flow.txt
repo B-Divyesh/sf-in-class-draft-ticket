@@ -1,0 +1,58 @@
+{
+  "skip": {
+    "text": "Skip to main content",
+    "outline": "rgb(49, 94, 168) solid 3px"
+  },
+  "join": {
+    "id": "",
+    "text": "Join",
+    "tag": "A",
+    "tabs": 3
+  },
+  "codeFocus": {
+    "id": "code",
+    "text": "",
+    "tag": "INPUT",
+    "tabs": 1
+  },
+  "fields": [
+    {
+      "id": "pseudonym",
+      "text": "",
+      "tag": "INPUT",
+      "tabs": 21
+    },
+    {
+      "id": "claim",
+      "text": "",
+      "tag": "TEXTAREA",
+      "tabs": 1
+    },
+    {
+      "id": "evidence",
+      "text": "",
+      "tag": "TEXTAREA",
+      "tabs": 1
+    },
+    {
+      "id": "revision",
+      "text": "",
+      "tag": "TEXTAREA",
+      "tabs": 1
+    },
+    {
+      "id": "reflection",
+      "text": "",
+      "tag": "TEXTAREA",
+      "tabs": 1
+    }
+  ],
+  "submit": {
+    "id": "",
+    "text": "Record my draft ticket",
+    "tag": "BUTTON",
+    "tabs": 1
+  },
+  "stored": 1,
+  "pseudonym": "Keyboard Pine"
+}

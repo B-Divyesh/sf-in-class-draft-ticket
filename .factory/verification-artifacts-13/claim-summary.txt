@@ -1,0 +1,10 @@
+sample-demo 0
+csv-export 0
+pseudonymous-flow 0
+session-retention 0
+free-capacity 0
+privacy-minimal 0
+no-ai-detection-or-authorship-verdict 0
+free-no-account-core-flow 0
+teacher-control 0
+production-topology 0

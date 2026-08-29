@@ -1,0 +1,12 @@
+PRELOAD_COUNTS { '201': 39 }
+BURST_AFTER_39 {
+  "counts": {
+    "201": 2,
+    "409": 18
+  },
+  "stored": 41,
+  "overflow_errors": [
+    "This session has reached 40 tickets. Ask your teacher to open another session."
+  ]
+}
+CLEANUP 204

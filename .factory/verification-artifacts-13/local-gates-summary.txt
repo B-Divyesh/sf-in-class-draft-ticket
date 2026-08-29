@@ -1,0 +1,8 @@
+npm-test 0
+tsc 0
+cargo-fmt 0
+cargo-clippy 0
+cargo-test 0
+cargo-release 0
+npm-build 0
+npm-audit 0
