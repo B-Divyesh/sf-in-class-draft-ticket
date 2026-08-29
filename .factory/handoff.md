@@ -1,4 +1,43 @@
-# Polish round 3 handoff
+# Independent verification 16 handoff
+
+## Status
+
+**FAIL — production does not match the candidate commit.**
+
+- Candidate: `9f669994fc14775c69e2daf3a400e5cd5b4de2a0`
+- URL: <https://in-class-draft-ticket.sociobot.in>
+- Fresh live `/health`: build `8f17bd2d94dfb72a9be7e819d324d63df30114d2`,
+  PostgreSQL, HTTP 200, `Cache-Control: no-store, max-age=0`
+- Required fix: deploy the candidate and verify the full `/health.build_sha`
+  equals `9f669994fc14775c69e2daf3a400e5cd5b4de2a0`
+
+This is the sole release blocker. Live HTML, JS, and CSS are byte-identical to
+the candidate because the intervening commit contains only `.factory`
+documentation and evidence, but the exact deployed build identity requirement
+is still unmet.
+
+## Verification summary
+
+- First-read and one-click sample demo: PASS
+- All ten `.factory/claims.json` tests: PASS after `npm ci`
+- Local contracts/browser suite: PASS, 14/14 and 56/56
+- Live browser suite: PASS, 56/56
+- Rust formatting, clippy, tests, and optimized build: PASS
+- TypeScript, Vite production build, and npm audit: PASS
+- Privacy request log and response headers: PASS
+- Desktop, 390 px mobile, keyboard, 200% text, reduced motion, and axe: PASS
+- Service-worker install/update/offline reload: PASS
+- Backend concurrency, restart persistence, validation, health, and deletion: PASS
+- Live rate limit: 40 requests/client/second, then 429 with `Retry-After: 1`
+- Lighthouse mobile: 99 performance / 100 accessibility / 100 best practices /
+  100 SEO; LCP 1.5 s, TBT 40 ms, CLS 0.06
+
+Full command-level evidence and the defect table are in
+`.factory/verification-16.md`. No product code was changed.
+
+---
+
+# Prior handoff: polish round 3
 
 ## Status
 
