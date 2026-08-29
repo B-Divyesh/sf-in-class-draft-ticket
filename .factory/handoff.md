@@ -2,7 +2,7 @@
 
 ## Status
 
-The verifier's five release blockers are repaired locally. The final deployment identity and live checks are recorded below after rollout.
+The verifier's five release blockers are repaired and deployed. Production is healthy on two replicas backed by the shared PostgreSQL schema.
 
 ## Reproduction and root causes
 
@@ -52,6 +52,18 @@ The verifier's five release blockers are repaired locally. The final deployment 
 - Docker is unavailable in this worker. ACR performs the clean multi-stage container build during deployment.
 - The production PostgreSQL runtime credential started the app and passed `deployment/verify-live.mjs`; the post-check data count remained 72 sessions and 548 tickets.
 
+## Production verification — 29 August 2026 UTC
+
+- Repair application commit `8e6762b3c6fb86cf591b96f3325559faca3040af` built cleanly in ACR as image digest `sha256:ff3038fe6b766fb094e4d861424a40dc0c2046999f61ad86b02a4f4004a16ce5`.
+- Container Apps revision `sf-in-class-draft-ticket--0000019` became healthy with two ready replicas, scale range 2–3, a Key Vault-backed `DATABASE_URL`, and no volumes.
+- `/health` returned the exact deployed source identity. The deployment gate then passed the repeated cross-replica flow, CSV neutralization, delete consistency, and exactly 40 allowed plus five limited requests.
+- The entire 36-test browser suite passed against the live HTTPS origin with one worker, covering desktop and 390 px mobile, keyboard, accessibility, privacy, offline/update, response headers, and 200% reflow.
+- Browser fixtures now delete every teacher and demo session they create, including after failures and 429 retries. The first live run's 12 exact fixtures were removed under a guarded transaction; the captured production baseline returned to 72 sessions and 548 tickets.
+- Live `verify-url.sh` passed with zero console errors. Live axe found zero violations.
+- Mobile Lighthouse scored Performance 100, Accessibility 100, Best Practices 100, and SEO 100. LCP was 1.5 s and CLS was 0.029.
+- The migrated production count remained exactly 72 active sessions and 548 tickets after live verification.
+- Machine-readable topology, health, browser, axe, Lighthouse, and screenshot evidence is in `.factory/evidence/repair-5-live/`.
+
 ## Known gaps
 
-None in the repaired source. Deployment completion and final live evidence are added after the committed ACR build.
+None.

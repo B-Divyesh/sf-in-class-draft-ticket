@@ -1,0 +1,9 @@
+[
+  {
+    "active": true,
+    "health": "Healthy",
+    "image": "sociobotregistry.azurecr.io/sf-in-class-draft-ticket:8e6762b3c6fb",
+    "name": "sf-in-class-draft-ticket--0000019",
+    "replicas": 2
+  }
+]

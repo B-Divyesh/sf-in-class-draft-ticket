@@ -1,0 +1,38 @@
+{
+  "containers": [
+    {
+      "env": [
+        {
+          "name": "PORT",
+          "value": "8080"
+        },
+        {
+          "name": "DATABASE_URL",
+          "secretRef": "database-url"
+        }
+      ],
+      "image": "sociobotregistry.azurecr.io/sf-in-class-draft-ticket:8e6762b3c6fb",
+      "name": "app",
+      "resources": {
+        "cpu": 0.5,
+        "ephemeralStorage": "2Gi",
+        "memory": "1Gi"
+      }
+    }
+  ],
+  "scale": {
+    "cooldownPeriod": 300,
+    "maxReplicas": 3,
+    "minReplicas": 2,
+    "pollingInterval": 30,
+    "rules": null
+  },
+  "secrets": [
+    {
+      "identity": "/subscriptions/283af945-693b-4a6e-b952-df928d0a18a9/resourceGroups/sociobot/providers/Microsoft.ManagedIdentity/userAssignedIdentities/factory-worker-identity",
+      "keyVaultUrl": "https://sociobot-keyvault1.vault.azure.net/secrets/sociobot-db-runtime-url",
+      "name": "database-url"
+    }
+  ],
+  "volumes": []
+}

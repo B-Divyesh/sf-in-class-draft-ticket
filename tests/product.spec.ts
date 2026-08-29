@@ -1,15 +1,43 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+const sessionsForCleanup: Array<{session:{code:string};teacher_token:string}> = [];
+
 async function newSession(request:any, retention_days=7) {
   const response = await request.post('/api/sessions', {data:{title:'Period 3 workshop',prompt:'How does setting shape the narrator’s choice?',retention_days}});
   expect(response.status()).toBe(201);
-  return response.json();
+  const created = await response.json();
+  sessionsForCleanup.push(created);
+  return created;
 }
 
 async function freshRateWindow() {
   while (Date.now() % 1_000 > 100) await new Promise(resolve => setTimeout(resolve, 10));
 }
+
+test.afterEach(async ({request, page, context}) => {
+  await context.setOffline(false).catch(() => {});
+  try {
+    const demo = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace') || 'null'));
+    if (demo?.code && demo?.token) {
+      sessionsForCleanup.push({session:{code:demo.code}, teacher_token:demo.token});
+    }
+  } catch {}
+  for (const created of sessionsForCleanup.splice(0)) {
+    let response = await request.delete(`/api/teacher/${created.session.code}`, {
+      headers:{Authorization:`Bearer ${created.teacher_token}`}
+    });
+    if (response.status() === 429) {
+      await new Promise(resolve => setTimeout(resolve, 1_100));
+      response = await request.delete(`/api/teacher/${created.session.code}`, {
+        headers:{Authorization:`Bearer ${created.teacher_token}`}
+      });
+    }
+    // The teacher endpoint deliberately returns 401 after deletion so an
+    // attacker cannot distinguish a missing session from a wrong token.
+    expect([204, 401, 404]).toContain(response.status());
+  }
+});
 
 test('@claim:sample-demo demo is isolated and seeded', async ({page}) => {
   await page.goto('/demo');
