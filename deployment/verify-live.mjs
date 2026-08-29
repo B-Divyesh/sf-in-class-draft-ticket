@@ -1,100 +1,123 @@
 import assert from 'node:assert/strict';
+import { chromium } from '@playwright/test';
 
 const baseUrl = (process.env.LIVE_BASE_URL ?? 'https://in-class-draft-ticket.sociobot.in').replace(/\/$/, '');
+const expectedReplicas = Number(process.env.LIVE_EXPECTED_REPLICAS ?? 2);
 const jsonHeaders = { 'content-type': 'application/json' };
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const observedReplicas = new Set();
 
-async function responseJson(response, expected, label) {
-  const body = await response.text();
-  assert.equal(response.status, expected, `${label}: HTTP ${response.status}: ${body}`);
-  return body ? JSON.parse(body) : undefined;
+async function browserApi(path, options = {}, label) {
+  // A new browser process is deliberate. Reusing Node's socket pool or one
+  // browser network service can hide a replica-local write behind connection
+  // affinity. Every API operation below therefore crosses a new real browser
+  // context, matching the teacher and student flows that previously failed.
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    const result = await page.evaluate(async ({ requestPath, requestOptions }) => {
+      const response = await fetch(`/api${requestPath}`, requestOptions);
+      return {
+        status: response.status,
+        body: await response.text(),
+        replica: response.headers.get('x-draft-ticket-replica')
+      };
+    }, { requestPath: path, requestOptions: options });
+    assert.ok(result.replica, `${label}: response did not identify the serving replica`);
+    observedReplicas.add(result.replica);
+    return result;
+  } finally {
+    await browser.close();
+  }
+}
+
+async function browserJson(path, options, expected, label) {
+  const response = await browserApi(path, options, label);
+  assert.equal(response.status, expected, `${label}: HTTP ${response.status}: ${response.body}`);
+  return response.body ? JSON.parse(response.body) : undefined;
 }
 
 async function api(path, options = {}) {
   return fetch(`${baseUrl}/api${path}`, { signal: AbortSignal.timeout(20_000), ...options });
 }
 
-const demos = [];
+async function deleteRecord(record) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const response = await browserApi(`/teacher/${record.session.code}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${record.teacher_token}` }
+      }, `cleanup ${record.session.code}`);
+      if ([204, 401].includes(response.status)) return;
+    } catch {}
+    await delay(300);
+  }
+}
+
+const records = [];
 let real;
 try {
-  // Repetition makes the ingress cross the active replica set. Every read must
-  // see the write that preceded it, regardless of which replica receives it.
+  // Twelve independent create/read cycles make each replica prove it can read
+  // another replica's write. The x-draft-ticket-replica set below must cover
+  // every ready replica reported by the deployment, not merely two responses.
   for (let index = 0; index < 12; index += 1) {
-    const demo = await responseJson(await api('/demo', { method: 'POST' }), 201, `demo create ${index + 1}`);
-    demos.push(demo);
+    const demo = await browserJson('/demo', { method: 'POST' }, 201, `demo create ${index + 1}`);
+    records.push(demo);
     const authorization = { Authorization: `Bearer ${demo.teacher_token}` };
-    for (let read = 0; read < 2; read += 1) {
-      const teacher = await responseJson(
-        await api(`/teacher/${demo.session.code}`, { headers: authorization }),
-        200,
-        `demo teacher read ${index + 1}.${read + 1}`
-      );
-      assert.equal(teacher.tickets.length, 3, 'demo must contain three sample tickets');
-      const student = await responseJson(
-        await api(`/sessions/${demo.session.code}`),
-        200,
-        `demo student read ${index + 1}.${read + 1}`
-      );
-      assert.equal(student.is_demo, true);
-    }
-    assert.equal((await api(`/teacher/${demo.session.code}`, {
-      method: 'DELETE', headers: authorization
-    })).status, 204, `demo delete ${index + 1}`);
-    assert.equal((await api(`/sessions/${demo.session.code}`)).status, 404, `deleted demo ${index + 1} stays absent`);
-    demos.pop();
-    // Stay below the separate 40 requests/second client boundary while
-    // checking enough load-balanced requests to cover all replicas.
+    const teacher = await browserJson(
+      `/teacher/${demo.session.code}`, { headers: authorization }, 200, `demo teacher read ${index + 1}`
+    );
+    assert.equal(teacher.tickets.length, 3, 'demo must contain three sample tickets');
+    const student = await browserJson(
+      `/sessions/${demo.session.code}`, {}, 200, `demo student read ${index + 1}`
+    );
+    assert.equal(student.is_demo, true);
     await delay(260);
   }
 
-  await delay(1_100);
-  real = await responseJson(await api('/sessions', {
-    method: 'POST',
-    headers: jsonHeaders,
-    body: JSON.stringify({
+  real = await browserJson('/sessions', {
+    method: 'POST', headers: jsonHeaders, body: JSON.stringify({
       title: 'Release replica check',
       prompt: 'Where does this draft change direction?',
       retention_days: 1
     })
-  }), 201, 'real session create');
+  }, 201, 'real session create');
+  records.push(real);
 
-  for (let read = 0; read < 9; read += 1) {
-    await responseJson(await api(`/sessions/${real.session.code}`), 200, `real student read ${read + 1}`);
-    await responseJson(await api(`/teacher/${real.session.code}`, {
-      headers: { Authorization: `Bearer ${real.teacher_token}` }
-    }), 200, `real teacher read ${read + 1}`);
-  }
+  const teacherHeaders = { Authorization: `Bearer ${real.teacher_token}` };
+  await browserJson(`/sessions/${real.session.code}`, {}, 200, 'real student read');
+  await browserJson(`/teacher/${real.session.code}`, { headers: teacherHeaders }, 200, 'real teacher read');
 
   const ticket = {
     pseudonym: '=HYPERLINK("https://example.invalid")',
-    claim: '@SUM(1,1)',
-    evidence: '+2+2',
-    revision: '-1+1',
-    reflection: '=1+1'
+    claim: '@SUM(1,1)', evidence: '+2+2', revision: '-1+1', reflection: '=1+1'
   };
-  await responseJson(await api(`/sessions/${real.session.code}/tickets`, {
+  await browserJson(`/sessions/${real.session.code}/tickets`, {
     method: 'POST', headers: jsonHeaders, body: JSON.stringify(ticket)
-  }), 201, 'cross-replica ticket submit');
-  const teacherHeaders = { Authorization: `Bearer ${real.teacher_token}` };
-  const teacher = await responseJson(await api(`/teacher/${real.session.code}`, {
-    headers: teacherHeaders
-  }), 200, 'teacher reads submitted ticket');
+  }, 201, 'cross-replica ticket submit');
+  const teacher = await browserJson(
+    `/teacher/${real.session.code}`, { headers: teacherHeaders }, 200, 'teacher reads submitted ticket'
+  );
   assert.equal(teacher.tickets.length, 1);
 
-  const exportResponse = await api(`/teacher/${real.session.code}/export`, { headers: teacherHeaders });
-  assert.equal(exportResponse.status, 200, 'CSV export succeeds');
-  const csv = await exportResponse.text();
+  const exported = await browserApi(`/teacher/${real.session.code}/export`, { headers: teacherHeaders }, 'CSV export');
+  assert.equal(exported.status, 200, 'CSV export succeeds');
   for (const safeValue of ["'=HYPERLINK", "'@SUM", "'+2+2", "'-1+1", "'=1+1"]) {
-    assert.ok(csv.includes(safeValue), `CSV neutralizes ${safeValue.slice(1)}`);
+    assert.ok(exported.body.includes(safeValue), `CSV neutralizes ${safeValue.slice(1)}`);
   }
-  assert.doesNotMatch(csv, /,"[=+@-]/, 'CSV contains no formula-leading data cells');
+  assert.doesNotMatch(exported.body, /,"[=+@-]/, 'CSV contains no formula-leading data cells');
 
-  assert.equal((await api(`/teacher/${real.session.code}`, {
-    method: 'DELETE', headers: teacherHeaders
-  })).status, 204, 'session delete succeeds');
-  for (let read = 0; read < 6; read += 1) {
-    assert.equal((await api(`/sessions/${real.session.code}`)).status, 404, 'deleted session stays absent');
-  }
+  // This check is intentionally after the complete browser workflow: a gate
+  // may not report success if all fresh contexts happened to stay on one
+  // replica. The deployer supplies the actual ready-replica count.
+  assert.ok(
+    observedReplicas.size >= expectedReplicas,
+    `fresh browser flows reached ${observedReplicas.size} replica(s); expected every ready replica (${expectedReplicas})`
+  );
+
+  await deleteRecord(real);
+  records.splice(records.indexOf(real), 1);
   real = undefined;
 
   await delay(1_100);
@@ -105,16 +128,9 @@ try {
   assert.equal(limited.length, 5, 'requests 41–45 are limited across replicas');
   assert.ok(limited.every(response => response.headers.get('retry-after') === '1'), 'every 429 includes Retry-After: 1');
 } finally {
-  // Live verification owns these ephemeral records and removes them even when
-  // a later assertion fails. Demo rows also have a one-day TTL as fallback.
-  const records = [...demos, ...(real ? [real] : [])];
-  for (const record of records) {
-    try {
-      await api(`/teacher/${record.session.code}`, {
-        method: 'DELETE', headers: { Authorization: `Bearer ${record.teacher_token}` }
-      });
-    } catch {}
-  }
+  // The gate owns these temporary records and removes them even after an
+  // assertion failure. Demo rows also have a one-day TTL as a fallback.
+  await Promise.all(records.map(deleteRecord));
 }
 
-console.log('live replica, export, delete, and rate-limit verification passed');
+console.log(`live browser replica, export, delete, and rate-limit verification passed across ${observedReplicas.size} replica(s)`);

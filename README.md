@@ -45,7 +45,7 @@ The container runs as a non-root user and reads only `PORT`, which defaults to `
 
 The container needs no configuration beyond `PORT`: without `DATABASE_URL` it uses local SQLite under `/app/data`. Factory production supplies `DATABASE_URL` from Key Vault and runs two to three replicas against one dedicated schema in the existing managed PostgreSQL service. Sessions and per-client rate counters are therefore shared across every replica. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records the database secret reference and scale settings. `npm run test:contracts` also starts three local processes on one datastore and checks demo, teacher, student, export, delete, capacity, and rate-limit behavior across them.
 
-Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. That path builds in ACR, applies the shared-volume contract atomically, and refuses success until the live revision reports both the commit and the mount.
+Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. That path builds in ACR, binds the Key Vault PostgreSQL URL to the new revision, and refuses success until fresh browser flows have reached every ready replica.
 
 ## Privacy and limits
 

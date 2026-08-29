@@ -49,6 +49,13 @@ impl FileGate {
 }
 
 impl Database {
+    pub fn storage_backend(&self) -> &'static str {
+        match self {
+            Self::Sqlite { .. } => "sqlite",
+            Self::Postgres(_) => "postgres",
+        }
+    }
+
     pub async fn lock(&self) -> anyhow::Result<DatabaseGuard> {
         match self {
             Self::Sqlite { gate, .. } => gate.lock().await,

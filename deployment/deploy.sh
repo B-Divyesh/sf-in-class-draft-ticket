@@ -9,9 +9,8 @@ REGISTRY=sociobotregistry
 IMAGE="$REGISTRY.azurecr.io/$APP_NAME:${SOURCE_SHA:0:12}"
 SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID:-283af945-693b-4a6e-b952-df928d0a18a9}
 RESOURCE_URI="https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.App/containerApps/$APP_NAME?api-version=2024-03-01"
-PAYLOAD=$(mktemp)
 APPLIED=$(mktemp)
-trap 'rm -f "$PAYLOAD" "$APPLIED"' EXIT
+trap 'rm -f "$APPLIED"' EXIT
 
 az acr build \
   --registry "$REGISTRY" \
@@ -22,8 +21,25 @@ az acr build \
   --build-arg "SOURCE_COMMIT=$SOURCE_SHA" \
   "$REPO_DIR"
 
-node "$REPO_DIR/deployment/render-containerapp.mjs" "$IMAGE" > "$PAYLOAD"
-az rest --method patch --uri "$RESOURCE_URI" --body "@$PAYLOAD" --output none
+# Container Apps accepts Key Vault references through the dedicated secret
+# operation. A generic resource PATCH can return success while silently
+# retaining the old revision template, which leaves DATABASE_URL absent and
+# makes every replica fall back to its own SQLite file.
+DATABASE_SECRET_URL=$(node -e "console.log(require('${REPO_DIR}/deployment/containerapp-contract.json').database.keyVaultSecretUrl)")
+DATABASE_IDENTITY=$(node -e "console.log(require('${REPO_DIR}/deployment/containerapp-contract.json').database.identity)")
+az containerapp secret set \
+  --name "$APP_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
+  --secrets "database-url=keyvaultref:${DATABASE_SECRET_URL},identityref:${DATABASE_IDENTITY}" \
+  --output none
+az containerapp update \
+  --name "$APP_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
+  --image "$IMAGE" \
+  --replace-env-vars PORT=8080 DATABASE_URL=secretref:database-url \
+  --min-replicas 2 \
+  --max-replicas 3 \
+  --output none
 
 contract_is_applied() {
   az rest --method get --uri "$RESOURCE_URI" --output json > "$APPLIED"
@@ -48,7 +64,17 @@ for _ in $(seq 1 40); do
     | node -e "let data='';process.stdin.on('data',chunk=>data+=chunk).on('end',()=>console.log(JSON.parse(data).build_sha||''))" \
     2>/dev/null || true)
   if [ "$LIVE_SHA" = "$SOURCE_SHA" ] && contract_is_applied; then
-    node "$REPO_DIR/deployment/verify-live.mjs"
+    READY_REPLICAS=$(az containerapp replica list \
+      --name "$APP_NAME" \
+      --resource-group "$RESOURCE_GROUP" \
+      --revision "$(az containerapp revision list --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query '[?properties.active].name | [0]' -o tsv)" \
+      --query 'length([?properties.containers[0].ready == `true`])' \
+      --output tsv)
+    if [ "${READY_REPLICAS:-0}" -lt 2 ]; then
+      sleep 15
+      continue
+    fi
+    LIVE_EXPECTED_REPLICAS="$READY_REPLICAS" node "$REPO_DIR/deployment/verify-live.mjs"
     echo "deployed $SOURCE_SHA with verified shared storage and rate limiting"
     exit 0
   fi

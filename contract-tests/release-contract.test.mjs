@@ -79,7 +79,7 @@ test('production replicas share durable PostgreSQL', async () => {
   assert.deepEqual(deployment.runtime.optionalEnvironment, ['DATABASE_URL']);
 });
 
-test('deployment renderer applies the storage and scale contract atomically', () => {
+test('deployment contract describes the PostgreSQL secret and scale settings', () => {
   const image = 'sociobotregistry.azurecr.io/sf-in-class-draft-ticket:test-sha';
   const rendered = JSON.parse(execFileSync(
     process.execPath,
@@ -105,14 +105,30 @@ test('deployment renderer applies the storage and scale contract atomically', ()
   }]);
 });
 
-test('product deploy path uses the contract renderer instead of the generic three-replica deployer', async () => {
+test('product deploy path materializes the PostgreSQL secret and starts a two-replica revision', async () => {
   const deploy = await read('deployment/deploy.sh');
-  assert.match(deploy, /render-containerapp\.mjs/);
-  assert.match(deploy, /az rest --method patch/);
+  assert.match(deploy, /az containerapp secret set/);
+  assert.match(deploy, /keyvaultref:\$\{DATABASE_SECRET_URL\},identityref:\$\{DATABASE_IDENTITY\}/);
+  assert.match(deploy, /az containerapp update/);
+  assert.match(deploy, /--replace-env-vars PORT=8080 DATABASE_URL=secretref:database-url/);
+  assert.match(deploy, /--min-replicas 2/);
+  assert.match(deploy, /--max-replicas 3/);
   assert.match(deploy, /verify-live\.mjs/);
+  assert.match(deploy, /LIVE_EXPECTED_REPLICAS/);
   assert.match(deploy, /verified shared storage and rate limiting/);
-  assert.match(deploy, /DATABASE_URL/);
+  assert.doesNotMatch(deploy, /az rest --method patch/);
   assert.doesNotMatch(deploy, /deploy-container\.sh/);
+});
+
+test('live gate uses fresh browser processes and rejects affinity-only coverage', async () => {
+  const gate = await read('deployment/verify-live.mjs');
+  assert.match(gate, /from '@playwright\/test'/);
+  assert.match(gate, /chromium\.launch/);
+  assert.match(gate, /new browser process is deliberate/);
+  assert.match(gate, /x-draft-ticket-replica/);
+  assert.match(gate, /observedReplicas\.size >= expectedReplicas/);
+  assert.match(gate, /demo teacher read/);
+  assert.match(gate, /real teacher read/);
 });
 
 test('claim runner compiles before Playwright starts its server timer', async () => {
@@ -158,6 +174,12 @@ test('replicas share demo, teacher, student, export, delete, capacity, and rate 
     // Cold-start both replicas at once. This includes the shared schema lock
     // path that previously made one live replica crash-loop.
     await Promise.all(replicas.map(waitForHealth));
+    const health = await Promise.all(replicas.map(replica => fetch(`${replica.url}/health`)));
+    const identities = new Set(health.map(response => response.headers.get('x-draft-ticket-replica')));
+    assert.equal(identities.size, 3, 'every process exposes a distinct opaque replica identity');
+    assert.ok([...identities].every(Boolean));
+    const healthBodies = await Promise.all(health.map(response => response.json()));
+    assert.ok(healthBodies.every(body => body.storage_backend === 'sqlite'));
     const created = await Promise.all(replicas.concat(replicas).map(async (replica, index) => {
       const response = await fetch(`${replica.url}/api/demo`, { method: 'POST', headers });
       assert.equal(response.status, 201, `demo ${index} should be created`);

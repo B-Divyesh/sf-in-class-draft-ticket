@@ -31,6 +31,7 @@ mod db;
 struct AppState {
     db: db::Database,
     build_sha: &'static str,
+    replica_id: String,
     test_clock_enabled: bool,
 }
 
@@ -121,6 +122,10 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState {
         db,
         build_sha: env!("BUILD_SHA"),
+        // This is an opaque process identifier, not a host name. It lets the
+        // release gate prove that a write and its authenticated reads reached
+        // every ready replica rather than one sticky upstream connection.
+        replica_id: Uuid::new_v4().simple().to_string(),
         test_clock_enabled,
     };
     let cleanup_state = state.clone();
@@ -180,7 +185,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
-    info!(port, data_dir = %data_dir.display(), data_dir_source = if supplied_data_dir.is_some() { "supplied" } else { "defaulted" }, database = if state.db.postgres().is_some() { "postgres-supplied" } else { "sqlite-default" }, build_sha = state.build_sha, "configuration loaded; durable database and shared rate counters enabled");
+    info!(port, data_dir = %data_dir.display(), data_dir_source = if supplied_data_dir.is_some() { "supplied" } else { "defaulted" }, database = state.db.storage_backend(), build_sha = state.build_sha, "configuration loaded; durable database and shared rate counters enabled");
 
     let api = Router::new()
         .route("/sessions", post(create_session))
@@ -215,6 +220,7 @@ async fn main() -> anyhow::Result<()> {
         .layer(SetResponseHeaderLayer::if_not_present(header::X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff")))
         .layer(SetResponseHeaderLayer::if_not_present(header::REFERRER_POLICY, HeaderValue::from_static("strict-origin-when-cross-origin")))
         .layer(SetResponseHeaderLayer::if_not_present(header::CONTENT_SECURITY_POLICY, HeaderValue::from_static("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' https://api.sociobot.in; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://api.sociobot.in; frame-ancestors 'none'")))
+        .layer(middleware::from_fn_with_state(state.clone(), replica_identity))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await?;
@@ -240,7 +246,25 @@ async fn shutdown() {
 }
 
 async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
-    Json(serde_json::json!({"status":"ok", "build_sha": state.build_sha}))
+    Json(serde_json::json!({
+        "status":"ok",
+        "build_sha": state.build_sha,
+        "storage_backend": state.db.storage_backend(),
+        "replica_id": state.replica_id,
+    }))
+}
+
+async fn replica_identity(State(state): State<AppState>, req: Request, next: Next) -> Response {
+    let mut response = next.run(req).await;
+    // The random value has no routing or authentication meaning. It is a
+    // diagnostic response header used by the deployment gate to reject a
+    // false pass caused by connection affinity at the ingress.
+    if let Ok(value) = HeaderValue::from_str(&state.replica_id) {
+        response
+            .headers_mut()
+            .insert("x-draft-ticket-replica", value);
+    }
+    response
 }
 
 async fn spa_shell() -> Result<Html<String>, StatusCode> {
