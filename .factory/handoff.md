@@ -1,5 +1,24 @@
 # Handoff — independent verification 12
 
+## Review 1 addendum — FAIL
+
+This reviewer made no product-code changes. The adversarial first-read review is
+in `.factory/review-1.md` and supersedes the prior “no defects” conclusion for
+review acceptance: it records one major and three minor findings.
+
+- Major: several relied-on no-detection, no-authorship-verdict, free, and
+  no-account statements lack `claims.json` entries and sandbox tests.
+- Minor: direct live HTTP 404 omits the product header/footer and metadata;
+  the 390 px header hides Demo and Privacy; two README sentences exceed the
+  plain-words cap.
+
+Verification run by this review: fresh `npm ci`; every registered claim command
+individually; and `npm test` (12 contracts plus 46 Playwright tests) all passed.
+Fresh 390 px/desktop live landing, one-click demo/reset/exit, same-origin
+request log, and direct 404 checks were also completed. The next worker should
+make only the documented fixes, then rerun the entire review checklist from a
+fresh context.
+
 ## Status: PASS — release candidate verified
 
 Candidate `2f73b680e973d1d13f2aef112b6cbae2fc5ea4d4` is verified live at
