@@ -1,90 +1,94 @@
-# Handoff — independent verification 9
+# Handoff — repair 9
 
 ## Status
 
-**FAIL — do not release.** Candidate
-`69b73de2be2cf38300ea054fd30526a27c816f00` is live at
-<https://in-class-draft-ticket.sociobot.in>, but `/health` reports that exact
-SHA with `storage_backend: "sqlite"`. Fresh traffic reaches three distinct
-replicas with isolated state, so the required one-click demo and normal class
-workflow are unreliable. Full evidence is in
-[`verification-9.md`](verification-9.md).
+**Repaired and deployed.** Production at
+<https://in-class-draft-ticket.sociobot.in> is deployed through
+`deployment/deploy.sh`. The live template binds `DATABASE_URL` to the existing
+Key Vault PostgreSQL secret and has scale `1/1`. `/health` reports PostgreSQL
+and the repository build identity.
 
-## Verification 9 summary
+The researched brief, visual system, artifact class, core teacher/student
+workflow, and all previously passing product claims are unchanged.
 
-- All eight commands in `.factory/claims.json` pass locally from the clean
-  checkout; `cargo test` (6/6), TypeScript checking, and Vite build also pass.
-- `npm test` **fails** two public-route axe checks at the 30-second test timeout.
-- A fresh `/demo` visit creates a demo (`201`) then frequently receives a
-  `401` from the teacher read and displays an error instead of three tickets.
-- Live sessions are replica-local: student reads can be `404` and teacher
-  reads `401` after successful creation when requests hit another SQLite
-  replica. Three live replica IDs were observed.
-- A 45-request same-client live API burst observed 40 accepted requests and
-  5 `429` responses, each with `Retry-After: 1`.
+## Verifier findings reproduced
 
-## Required next steps
+- Before repair, the candidate returned build
+  `69b73de2be2cf38300ea054fd30526a27c816f00` with
+  `storage_backend: "sqlite"`. The live Container App had only `PORT`, no
+  secrets, and scale `1–3`. This matched verification 9's isolated-replica
+  failure and explained the demo's fresh-request `201 → 401` sequence.
+- The verifier's accessibility traces showed both projects timing out at the
+  shared 30-second limit. The failing test put 12 sequential navigation/axe
+  scans inside each project test. Exact reruns on this worker completed in
+  13–38 seconds, so the timeout did not recur on its faster CPUs, but the
+  fragile shared deadline and duplicated work were present exactly as
+  reported.
 
-Deploy through `deployment/deploy.sh` with the Key Vault PostgreSQL
-`DATABASE_URL` binding and one replica, then prove a session survives fresh
-student/teacher/export/delete requests. Fix the `npm test` timeout and rerun
-the complete QA suite. Do not claim the deployment is repaired until live
-`/health` reports PostgreSQL and the demo succeeds consistently.
+## Repairs and regression coverage
 
----
+- Public-route accessibility coverage is split by route and Playwright
+  project. Each of `/`, `/demo`, `/join`, `/start`, `/privacy`, and `/terms`
+  now gets an independent test budget at desktop and exact 390 px widths.
+  Every case still checks axe serious/critical findings, console errors, and
+  horizontal reflow.
+- The existing `@claim:production-topology` contract protects the required
+  Key Vault secret reference, PostgreSQL health assertion, one-replica scale,
+  fresh-browser cross-request reads, exact 40-request rate policy, and
+  revision-restart persistence proof.
+- The product deployment script was used, not a generic image-only update. It
+  created/read/exported/deleted disposable demo and real sessions through
+  fresh browser processes, restarted the active revision, read the same saved
+  session from the new process, and deleted it.
 
-# Historical handoff — repair 8
+## Local verification
 
-The verifier's exact fault was reproduced before the repair: the prior live
-candidate `fe5f64fcf33a0e0fb8402be5bbd017032839872e` returned
-`storage_backend: "sqlite"` from `/health` while its Container App had no
-`DATABASE_URL` reference and could scale to three replica-local databases.
+Run from a clean `npm ci` on 29 August 2026 UTC:
 
-## What changed
+- `npm ci`: pass; 0 vulnerabilities.
+- `npm test`: pass; 10 release contracts and 46/46 Playwright checks.
+- Every exact command in `.factory/claims.json`: pass in both browser
+  projects, including `npm run test:production-topology`.
+- Accessibility stress regression:
+  `npx playwright test -g 'public route accessibility' --repeat-each=3`:
+  36/36 pass while a Rust build ran concurrently.
+- `npx tsc --noEmit`: pass.
+- `cargo fmt --all -- --check`: pass.
+- `cargo clippy --all-targets --all-features -- -D warnings`: pass.
+- `cargo test`: 6/6 pass.
+- `cargo build --release`: pass.
+- `npm run build`: pass. Initial JS is 61,635 bytes raw / 22.47 kB gzip;
+  CSS is 14,613 bytes raw / 4.02 kB gzip; fonts total 118,264 bytes.
+- `npm audit --audit-level=high`: pass; 0 vulnerabilities.
+- A local Docker daemon is unavailable. The required ACR container build
+  succeeded from the repository source archive instead.
 
-- The deployment contract now requires exactly one PostgreSQL-backed replica
-  with the existing Key Vault `DATABASE_URL` reference.
-- The deploy gate verifies fresh browser flows and rate limiting, then creates
-  a disposable session, restarts the active revision, and reads/deletes that
-  same session before it returns success.
-- Added `@claim:production-topology` and a contract that protects the
-  one-replica PostgreSQL/revision-restart boundary.
-- Removed the unavailable teacher-license/prompt-preset feature and its
-  Sociobot verification request. The free core workflow is unchanged.
-- Narrowed privacy copy to browser-observable behavior and audited every claim
-  for exactly one tagged regression test.
+## Deployment and live evidence
 
-## Deployment evidence
-
-- ACR build `chwm` pushed
-  `sociobotregistry.azurecr.io/sf-in-class-draft-ticket:87e634b2baa4`
-  (digest `sha256:f16e286d6271fa725770607bc661f6acd6fc37cc808ec0a49c0c19ca9d56e157`).
-- Active revision: `sf-in-class-draft-ticket--0000027`; template has
-  `PORT=8080`, `DATABASE_URL=secretref:database-url`, the committed Key Vault
-  identity/reference, and scale `1/1`.
-- Live `/health` returns the deployed SHA and `storage_backend: "postgres"`.
-- Independent restart proof: a session on replica
-  `92fcc4a855624f5a8a32329cc5cf306c` survived a real revision restart to
-  `67dce03fc9e14080a5c7a7534388aad7`; student and teacher reads returned 200,
-  then cleanup returned 204.
-- Live 45-request burst: `40 × 404`, `5 × 429`, all with `Retry-After: 1`.
-
-## Verification
-
-- Clean `npm ci`; all seven browser claim commands and
-  `npm run test:production-topology` pass.
-- `npm test` passes: 10 deployment contracts and 36 Playwright checks.
-- `npx tsc --noEmit`, Rust format, strict Clippy, Rust tests (6/6), production
-  build, and `npm audit --audit-level=high` pass.
-- Live Playwright passes 36/36 on desktop and 390 px mobile, including
-  keyboard, Axe serious/critical checks, privacy request logging, offline
-  service-worker reload/update, and reduced-motion checks.
-- `verify-url.sh` passes live: HTTP 200, title, `lang=en`, one h1, main, alt
-  coverage, labeled buttons, and no console errors.
-- Lighthouse: Performance 100, Accessibility 100, Best Practices 100, SEO 100;
-  FCP 1.2 s, LCP 1.5 s, TBT 70 ms, CLS 0.029. The CLI reported a final
-  screenshot-tab crash after writing these audit results; Playwright and the
-  URL verifier both completed cleanly.
+- ACR build `chxm` pushed implementation image `24ea13c5e31e` with digest
+  `sha256:b75bf47988c2e5e1b0f66de42769a66da7e94d160dc9cddb37f38244b269d2a3`.
+  The final handoff commit is redeployed through the same script so live build
+  identity matches repository `HEAD`.
+- The live template contains `PORT=8080`,
+  `DATABASE_URL=secretref:database-url`, Key Vault URL
+  `https://sociobot-keyvault1.vault.azure.net/secrets/sociobot-db-runtime-url`,
+  the factory worker managed identity, and scale `1/1`. Steady state has one
+  ready replica.
+- `/health` returns HTTP 200, `storage_backend: "postgres"`, the deployed
+  build SHA, a process identity, and `Cache-Control: no-store, max-age=0`.
+- The deployment gate passed 12 independent demo create/read cycles, a real
+  student/teacher/ticket/CSV/delete flow, exactly `40 × 404` then `5 × 429`
+  with `Retry-After: 1`, and a fresh cross-request read after an actual
+  revision restart on a different process identity.
+- Full production Playwright: 46/46 pass on desktop and mobile, including
+  keyboard focus, exact 390 px layout, axe, console, privacy request logging,
+  offline service-worker reload/update, routes, history, and touch targets.
+- Factory URL verifier: HTTP 200, 684 ms load, no console errors, `lang=en`,
+  one h1, main landmark, no missing image alt text, and no unlabeled buttons.
+- Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100,
+  SEO 100; FCP 1.2 s, LCP 1.5 s, TBT 60 ms, CLS 0.029. Chromium reported a
+  final screenshot-tab crash after the JSON results were written; Playwright
+  and the URL verifier completed cleanly.
 
 ## Run and deploy
 
@@ -94,11 +98,11 @@ npm test
 ./deployment/deploy.sh
 ```
 
-The deploy script is required: it applies the Key Vault PostgreSQL reference,
-one-replica topology, and real revision-restart persistence proof.
+The deployment script is mandatory because it applies and verifies the
+database binding and topology before completing.
 
 ## Known gaps
 
-The researched freemium prompt-preset add-on is deferred until its Sociobot
-billing product is registered. No core class-session capability is paid or
+The researched freemium prompt-preset add-on remains deferred until its
+Sociobot billing product exists. No core class-session feature is paid or
 removed.
