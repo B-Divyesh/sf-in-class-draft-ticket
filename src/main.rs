@@ -1,9 +1,7 @@
 use std::{
-    collections::VecDeque,
     net::{IpAddr, SocketAddr},
     path::PathBuf,
-    sync::Arc,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use axum::{
@@ -16,10 +14,8 @@ use axum::{
     Json, Router,
 };
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
-use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
-use tokio::sync::Mutex;
 use tower_http::{
     compression::CompressionLayer,
     services::{ServeDir, ServeFile},
@@ -34,10 +30,7 @@ mod db;
 #[derive(Clone)]
 struct AppState {
     db: SqlitePool,
-    snapshot_path: Arc<PathBuf>,
-    writes: Arc<Mutex<()>>,
     build_sha: &'static str,
-    rates: Arc<DashMap<String, VecDeque<Instant>>>,
     test_clock_enabled: bool,
 }
 
@@ -120,17 +113,14 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or(8080);
     let supplied_data_dir = std::env::var("DATA_DIR").ok();
     let data_dir = PathBuf::from(supplied_data_dir.as_deref().unwrap_or("./data"));
-    let (db, snapshot_path) = db::connect(&data_dir).await?;
+    let db = db::connect(&data_dir).await?;
     // A short clock is available only in debug builds so the browser suite can
     // observe automatic expiry. Release binaries always use calendar days.
     let test_clock_enabled =
         cfg!(debug_assertions) && std::env::var("ALLOW_TEST_CLOCK").as_deref() == Ok("1");
     let state = AppState {
         db,
-        snapshot_path: Arc::new(snapshot_path),
-        writes: Arc::new(Mutex::new(())),
         build_sha: env!("BUILD_SHA"),
-        rates: Arc::new(DashMap::new()),
         test_clock_enabled,
     };
     let cleanup_state = state.clone();
@@ -138,31 +128,32 @@ async fn main() -> anyhow::Result<()> {
         let cleanup_period = if cleanup_state.test_clock_enabled {
             Duration::from_millis(100)
         } else {
-            Duration::from_secs(3600)
+            Duration::from_secs(30)
         };
         let mut interval = tokio::time::interval(cleanup_period);
         loop {
             interval.tick().await;
-            let _guard = cleanup_state.writes.lock().await;
             let result = sqlx::query("DELETE FROM sessions WHERE expires_at <= ?")
                 .bind(Utc::now())
                 .execute(&cleanup_state.db)
                 .await;
             match result {
                 Ok(done) if done.rows_affected() > 0 => {
-                    if let Err(error) =
-                        db::checkpoint(&cleanup_state.db, cleanup_state.snapshot_path.as_ref())
-                            .await
-                    {
-                        warn!(%error, "expired-session checkpoint failed");
-                    }
+                    info!(deleted = done.rows_affected(), "expired sessions deleted");
                 }
                 Ok(_) => {}
                 Err(error) => warn!(%error, "expired-session cleanup failed"),
             }
+            if let Err(error) = sqlx::query("DELETE FROM api_rate_limits WHERE window_start < ?")
+                .bind(Utc::now().timestamp() - 2)
+                .execute(&cleanup_state.db)
+                .await
+            {
+                warn!(%error, "stale rate-limit cleanup failed");
+            }
         }
     });
-    info!(port, data_dir = %data_dir.display(), data_dir_source = if supplied_data_dir.is_some() { "supplied" } else { "defaulted" }, build_sha = state.build_sha, "configuration loaded; durable checkpoints enabled, no secrets required");
+    info!(port, data_dir = %data_dir.display(), data_dir_source = if supplied_data_dir.is_some() { "supplied" } else { "defaulted" }, build_sha = state.build_sha, "configuration loaded; shared durable database and rate counters enabled, no secrets required");
 
     let api = Router::new()
         .route("/sessions", post(create_session))
@@ -237,16 +228,27 @@ async fn spa_shell() -> Result<Html<String>, StatusCode> {
 
 async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> Response {
     let ip = client_ip(&req);
-    let now = Instant::now();
-    let mut times = state.rates.entry(ip).or_default();
-    while times
-        .front()
-        .is_some_and(|t| now.duration_since(*t) > Duration::from_secs(1))
-    {
-        times.pop_front();
-    }
-    if times.len() >= 40 {
-        drop(times);
+    let window_start = Utc::now().timestamp();
+    // This counter lives beside sessions, not in a process-local map, so a
+    // client cannot bypass the safety boundary by being routed to another
+    // replica. The UPSERT is one SQLite write and remains atomic across them.
+    let count = sqlx::query_scalar::<_, i64>(
+        "INSERT INTO api_rate_limits(client_key, window_start, request_count) VALUES(?, ?, 1) \
+         ON CONFLICT(client_key) DO UPDATE SET \
+           request_count = CASE WHEN api_rate_limits.window_start = excluded.window_start \
+             THEN api_rate_limits.request_count + 1 ELSE 1 END, \
+           window_start = excluded.window_start \
+         RETURNING request_count",
+    )
+    .bind(ip)
+    .bind(window_start)
+    .fetch_one(&state.db)
+    .await;
+    let count = match count {
+        Ok(count) => count,
+        Err(error) => return internal(error).into_response(),
+    };
+    if count > 40 {
         let mut response = (
             StatusCode::TOO_MANY_REQUESTS,
             Json(ApiErrorBody {
@@ -259,21 +261,18 @@ async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> 
             .insert(header::RETRY_AFTER, HeaderValue::from_static("1"));
         return response;
     }
-    times.push_back(now);
-    drop(times);
     next.run(req).await
 }
 
 fn client_ip(req: &Request) -> String {
-    // Azure's ingress appends the address it observed to X-Forwarded-For.
-    // Earlier values are supplied by the client and therefore untrusted.
+    // The ingress supplies the client address as the first X-Forwarded-For
+    // hop. Use it consistently on every replica rather than socket peers.
     req.headers()
         .get("x-forwarded-for")
         .and_then(|value| value.to_str().ok())
         .and_then(|chain| {
             chain
                 .split(',')
-                .rev()
                 .find_map(|part| part.trim().parse::<IpAddr>().ok())
         })
         .map(|ip| ip.to_string())
@@ -358,7 +357,6 @@ async fn create_session(
             "Retention must be 1, 7, or 30 days.".into(),
         ));
     }
-    let _guard = state.writes.lock().await;
     let created = insert_session(
         &state,
         &title,
@@ -368,7 +366,6 @@ async fn create_session(
         false,
     )
     .await?;
-    persist(&state).await?;
     Ok((StatusCode::CREATED, Json(created)))
 }
 
@@ -413,7 +410,6 @@ async fn create_ticket(
     let evidence = clean(&body.evidence, "Evidence location", 3, 280)?;
     let revision = clean(&body.revision, "Revision choice", 3, 280)?;
     let reflection = clean(&body.reflection, "Exit reflection", 3, 500)?;
-    let _guard = state.writes.lock().await;
     let session = active_session(&state, &code).await?;
     let ticket = Ticket {
         id: Uuid::new_v4().to_string(),
@@ -437,7 +433,6 @@ async fn create_ticket(
             "This session has reached 40 tickets. Ask your teacher to open another session.".into(),
         ));
     }
-    persist(&state).await?;
     Ok((StatusCode::CREATED, Json(ticket)))
 }
 
@@ -526,21 +521,18 @@ async fn delete_session(
     Path(code): Path<String>,
     req: Request<Body>,
 ) -> Result<StatusCode, ApiError> {
-    let _guard = state.writes.lock().await;
     let session = authorized_session(&state, &code, bearer(&req)).await?;
     sqlx::query("DELETE FROM sessions WHERE code = ?")
         .bind(&session.code)
         .execute(&state.db)
         .await
         .map_err(internal)?;
-    persist(&state).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
 async fn create_demo(
     State(state): State<AppState>,
 ) -> Result<(StatusCode, Json<CreatedSession>), ApiError> {
-    let _guard = state.writes.lock().await;
     let created = insert_session(
         &state,
         "Room 204 · Beloved seminar",
@@ -577,20 +569,7 @@ async fn create_demo(
         sqlx::query("INSERT INTO tickets(id,session_code,pseudonym,claim,evidence,revision,reflection,created_at) VALUES(?,?,?,?,?,?,?,?)")
             .bind(Uuid::new_v4().to_string()).bind(&created.session.code).bind(p).bind(c).bind(e).bind(r).bind(x).bind(Utc::now()).execute(&state.db).await.map_err(internal)?;
     }
-    persist(&state).await?;
     Ok((StatusCode::CREATED, Json(created)))
-}
-
-async fn persist(state: &AppState) -> Result<(), ApiError> {
-    db::checkpoint(&state.db, state.snapshot_path.as_ref())
-        .await
-        .map_err(|error| {
-            warn!(%error, "durable database checkpoint failed");
-            ApiError(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "The session could not be saved. Wait a moment, then try again.".into(),
-            )
-        })
 }
 
 fn csv_cell(value: &str) -> String {
@@ -623,7 +602,7 @@ mod tests {
     }
 
     #[test]
-    fn forwarded_client_uses_ingress_appended_address() {
+    fn forwarded_client_uses_first_ingress_address() {
         let request = Request::builder()
             .header(
                 "x-forwarded-for",
@@ -631,13 +610,13 @@ mod tests {
             )
             .body(Body::empty())
             .unwrap();
-        assert_eq!(client_ip(&request), "203.0.113.9");
+        assert_eq!(client_ip(&request), "198.51.100.44");
     }
 
     #[tokio::test]
-    async fn durable_checkpoint_restores_after_restart() {
+    async fn durable_database_restores_after_restart() {
         let data_dir = std::env::temp_dir().join(format!("draft-ticket-test-{}", Uuid::new_v4()));
-        let (pool, snapshot_path) = db::connect(&data_dir).await.unwrap();
+        let pool = db::connect(&data_dir).await.unwrap();
         sqlx::query("INSERT INTO sessions(code,title,prompt,teacher_token,created_at,expires_at,is_demo) VALUES(?,?,?,?,?,?,?)")
             .bind("ABC234")
             .bind("Restart test")
@@ -649,10 +628,9 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        db::checkpoint(&pool, &snapshot_path).await.unwrap();
         pool.close().await;
 
-        let (restored, _) = db::connect(&data_dir).await.unwrap();
+        let restored = db::connect(&data_dir).await.unwrap();
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sessions WHERE code = ?")
             .bind("ABC234")
             .fetch_one(&restored)

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "cargo run --release",
-    "pretest": "npm run test:contracts && npm run build && cargo build",
+    "pretest": "cargo build && npm run test:contracts && npm run build",
+    "pretest:contracts": "cargo build",
     "test": "playwright test",
     "test:contracts": "node --test contract-tests/release-contract.test.mjs"
   },

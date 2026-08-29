@@ -13,8 +13,8 @@
     "accessMode": "ReadWrite"
   },
   "scale": {
-    "minReplicas": 1,
-    "maxReplicas": 1
+    "minReplicas": 2,
+    "maxReplicas": 3
   },
   "runtime": {
     "port": 8080,

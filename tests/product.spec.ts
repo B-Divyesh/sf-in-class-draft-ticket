@@ -7,6 +7,10 @@ async function newSession(request:any, retention_days=7) {
   return response.json();
 }
 
+async function freshRateWindow() {
+  while (Date.now() % 1_000 > 100) await new Promise(resolve => setTimeout(resolve, 10));
+}
+
 test('@claim:sample-demo demo is isolated and seeded', async ({page}) => {
   await page.goto('/demo');
   await expect(page.getByText('Demo — sample data, nothing is saved to your classes')).toBeVisible();
@@ -142,21 +146,21 @@ test('@claim:teacher-control private token protects read, export, and delete', a
 });
 
 test('API rate limit returns Retry-After', async ({request}) => {
-  const results = [];
-  for (let i=0;i<45;i++) results.push(await request.get('/api/sessions/ABCDEF',{headers:{'X-Forwarded-For':'203.0.113.10'}}));
+  await freshRateWindow();
+  const results = await Promise.all(Array.from({length:45}, () => request.get(
+    '/api/sessions/ABCDEF', {headers:{'X-Forwarded-For':'203.0.113.10'}}
+  )));
   expect(results.some(r => r.status() === 429)).toBe(true);
   expect(results.find(r => r.status() === 429)?.headers()['retry-after']).toBe('1');
   await new Promise(resolve => setTimeout(resolve, 1_100));
 });
 
-test('API rate limit ignores spoofed forwarding prefixes', async ({request}, testInfo) => {
+test('API rate limit uses the first forwarded client address', async ({request}, testInfo) => {
   const trustedAddress = testInfo.project.name === 'chromium' ? '203.0.113.77' : '203.0.113.78';
-  const results = [];
-  for (let i=0;i<45;i++) {
-    results.push(await request.get('/api/sessions/ABCDEF', {
-      headers:{'X-Forwarded-For':`198.51.100.${i + 1}, ${trustedAddress}`}
-    }));
-  }
+  await freshRateWindow();
+  const results = await Promise.all(Array.from({length:45}, (_, i) => request.get('/api/sessions/ABCDEF', {
+      headers:{'X-Forwarded-For':`${trustedAddress}, 198.51.100.${i + 1}`}
+  })));
   const ordinary = results.filter(response => response.status() !== 429);
   const limited = results.filter(response => response.status() === 429);
   if (process.env.PLAYWRIGHT_BASE_URL) {

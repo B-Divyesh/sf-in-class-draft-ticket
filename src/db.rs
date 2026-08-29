@@ -1,78 +1,34 @@
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr,
-    time::Duration,
-};
+use std::{path::Path, time::Duration};
 
 use sqlx::{
-    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     SqlitePool,
 };
-use tokio::io::AsyncWriteExt;
 
 pub async fn migrate(pool: &SqlitePool) -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(pool).await?;
     Ok(())
 }
 
-pub async fn connect(data_dir: &Path) -> anyhow::Result<(SqlitePool, PathBuf)> {
+pub async fn connect(data_dir: &Path) -> anyhow::Result<SqlitePool> {
     tokio::fs::create_dir_all(data_dir).await?;
-    let snapshot_path = data_dir.join("tickets.db");
-    let runtime_dir =
-        std::env::temp_dir().join(format!("in-class-draft-ticket-{}", std::process::id()));
-    tokio::fs::create_dir_all(&runtime_dir).await?;
-    let runtime_path = runtime_dir.join("tickets.db");
-
-    if tokio::fs::metadata(&snapshot_path)
-        .await
-        .is_ok_and(|metadata| metadata.len() > 0)
-    {
-        tokio::fs::copy(&snapshot_path, &runtime_path).await?;
-    }
-
-    let options =
-        SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", runtime_path.display()))?
-            .foreign_keys(true)
-            .busy_timeout(Duration::from_secs(5));
+    let database_path = data_dir.join("tickets.db");
+    // Every replica opens the *same* durable database on the mounted share.
+    // Keeping per-process copies made a successful POST invisible to another
+    // replica until it happened to restart. DELETE journaling keeps all state in
+    // the single database file (rather than a replica-local WAL sidecar) and
+    // SQLite's file locks serialize writers across the mounted share.
+    let options = SqliteConnectOptions::new()
+        .filename(&database_path)
+        .create_if_missing(true)
+        .foreign_keys(true)
+        .journal_mode(SqliteJournalMode::Delete)
+        .synchronous(SqliteSynchronous::Full)
+        .busy_timeout(Duration::from_secs(15));
     let pool = SqlitePoolOptions::new()
-        .max_connections(1)
+        .max_connections(5)
         .connect_with(options)
         .await?;
     migrate(&pool).await?;
-    checkpoint(&pool, &snapshot_path).await?;
-    Ok((pool, snapshot_path))
-}
-
-pub async fn checkpoint(pool: &SqlitePool, snapshot_path: &Path) -> anyhow::Result<()> {
-    // SQLite's byte-range locks are not portable to every network filesystem.
-    // Build a consistent snapshot locally, then copy only raw bytes to the
-    // durable mount and atomically replace the previous checkpoint there.
-    let local_path = std::env::temp_dir().join(format!(
-        "in-class-draft-ticket-checkpoint-{}.db",
-        std::process::id()
-    ));
-    let durable_path = snapshot_path.with_extension(format!("db.{}.tmp", std::process::id()));
-    if tokio::fs::try_exists(&local_path).await? {
-        tokio::fs::remove_file(&local_path).await?;
-    }
-    if tokio::fs::try_exists(&durable_path).await? {
-        tokio::fs::remove_file(&durable_path).await?;
-    }
-    sqlx::query("VACUUM INTO ?")
-        .bind(local_path.to_string_lossy().as_ref())
-        .execute(pool)
-        .await?;
-    let local_file = tokio::fs::File::open(&local_path).await?;
-    local_file.sync_all().await?;
-    // `tokio::fs::copy` may use copy_file_range(2), which Azure Files rejects.
-    // A buffered stream is portable across the SMB-backed production mount.
-    let mut local_file = tokio::fs::File::open(&local_path).await?;
-    let mut durable_file = tokio::fs::File::create(&durable_path).await?;
-    tokio::io::copy(&mut local_file, &mut durable_file).await?;
-    durable_file.flush().await?;
-    durable_file.sync_all().await?;
-    drop(durable_file);
-    tokio::fs::rename(&durable_path, snapshot_path).await?;
-    tokio::fs::remove_file(local_path).await?;
-    Ok(())
+    Ok(pool)
 }
