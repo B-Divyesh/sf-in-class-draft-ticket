@@ -43,21 +43,7 @@ az containerapp update \
 
 contract_is_applied() {
   az rest --method get --uri "$RESOURCE_URI" --output json > "$APPLIED"
-  node - "$APPLIED" <<'NODE'
-const config = JSON.parse(require('node:fs').readFileSync(process.argv[2], 'utf8'));
-const template = config.properties.template;
-const container = template.containers.find(item => item.name === 'app');
-const expectedSecretUrl = 'https://sociobot-keyvault1.vault.azure.net/secrets/sociobot-db-runtime-url';
-const expectedIdentity = '/subscriptions/283af945-693b-4a6e-b952-df928d0a18a9/resourceGroups/sociobot/providers/Microsoft.ManagedIdentity/userAssignedIdentities/factory-worker-identity';
-const databaseEnv = container?.env?.some(item =>
-  item.name === 'DATABASE_URL' && item.secretRef === 'database-url');
-const databaseSecret = config.properties.configuration?.secrets?.some(item =>
-  item.name === 'database-url' && item.keyVaultUrl === expectedSecretUrl && item.identity === expectedIdentity);
-const detachedFileShare = (container?.volumeMounts?.length ?? 0) === 0 &&
-  (template.volumes?.length ?? 0) === 0;
-const scaled = template.scale?.minReplicas === 1 && template.scale?.maxReplicas === 1;
-if (!databaseEnv || !databaseSecret || !detachedFileShare || !scaled) process.exit(1);
-NODE
+  node "$REPO_DIR/deployment/assert-containerapp.mjs" "$APPLIED"
 }
 
 for _ in $(seq 1 40); do

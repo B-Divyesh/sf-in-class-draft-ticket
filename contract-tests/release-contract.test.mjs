@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { assertContainerAppContract } from '../deployment/assert-containerapp.mjs';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 const repo = new URL('..', import.meta.url);
@@ -105,6 +106,44 @@ test('deployment contract describes the PostgreSQL secret and one-replica scale'
   }]);
 });
 
+test('deployment verifier rejects the SQLite three-replica revision reported by QA', async () => {
+  const contract = JSON.parse(await read('deployment/containerapp-contract.json'));
+  const PostgreSQLRevision = {
+    properties: {
+      configuration: {
+        activeRevisionsMode: 'Single',
+        secrets: [{
+          name: 'database-url',
+          keyVaultUrl: contract.database.keyVaultSecretUrl,
+          identity: contract.database.identity.toLowerCase()
+        }]
+      },
+      template: {
+        containers: [{
+          name: 'app',
+          env: [
+            { name: 'PORT', value: '8080' },
+            { name: 'DATABASE_URL', secretRef: 'database-url' }
+          ],
+          volumeMounts: []
+        }],
+        scale: { minReplicas: 1, maxReplicas: 1 },
+        volumes: []
+      }
+    }
+  };
+  assert.doesNotThrow(() => assertContainerAppContract(PostgreSQLRevision, contract));
+
+  const SQLiteRevision = structuredClone(PostgreSQLRevision);
+  SQLiteRevision.properties.configuration.secrets = [];
+  SQLiteRevision.properties.template.containers[0].env = [{ name: 'PORT', value: '8080' }];
+  SQLiteRevision.properties.template.scale.maxReplicas = 3;
+  assert.throws(
+    () => assertContainerAppContract(SQLiteRevision, contract),
+    /replica range|DATABASE_URL|PostgreSQL Key Vault secret/,
+  );
+});
+
 test('@claim:production-topology product deploy path binds PostgreSQL and proves persistence across a revision restart', async () => {
   const deploy = await read('deployment/deploy.sh');
   assert.match(deploy, /az containerapp secret set/);
@@ -121,8 +160,7 @@ test('@claim:production-topology product deploy path binds PostgreSQL and proves
   assert.match(deploy, /PostgreSQL persistence across a revision restart/);
   assert.match(deploy, /health\?deploy-check=/);
   assert.match(deploy, /health\.storage_backend === 'postgres'/);
-  assert.match(deploy, /keyVaultUrl === expectedSecretUrl/);
-  assert.match(deploy, /identity === expectedIdentity/);
+  assert.match(deploy, /assert-containerapp\.mjs/);
   assert.doesNotMatch(deploy, /az rest --method patch/);
   assert.doesNotMatch(deploy, /deploy-container\.sh/);
 });
