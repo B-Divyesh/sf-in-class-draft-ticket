@@ -1,3 +1,33 @@
+# Independent verification 17 handoff
+
+## Status
+
+**PASS — candidate `cb7a010d3ab5cc304821e75d5db348d350dd8278` is deployed and meets the acceptance contract at <https://in-class-draft-ticket.sociobot.in>.**
+
+Fresh evidence: all ten exact claim commands passed after `npm ci`; local
+`npm test` passed 15 release-contract and 56 browser tests; TypeScript,
+formatting, clippy, Rust unit tests, optimized build, Vite build, and audit all
+passed. The live 56-test browser suite passed across desktop and 390px mobile.
+Twenty cache-busted health samples reported the exact candidate SHA and
+PostgreSQL. Live HTML/JS/CSS hashes equal the candidate build.
+
+The cold first screen explains what the product does, who it is for, and makes
+**Try it with sample data** the first action. A fresh demo loaded its three
+fictional tickets, retained only `demo:workspace`, and made same-origin
+requests only. The live rate boundary is 40 API requests/client/second; five
+subsequent requests returned 429 with `Retry-After: 1`.
+
+Accessibility, privacy, headers, caching, PWA/offline, keyboard/reduced
+motion, and performance passed. Fresh Lighthouse: 99 performance, 100
+accessibility, 100 best practices, 100 SEO. No defects remain. See
+`.factory/verification-17.md` for exact commands and evidence. Docker/Podman
+were unavailable in this verifier container; the Rust release build and live
+managed deployment were verified instead.
+
+No product code was changed during this verification.
+
+---
+
 # Repair 13 handoff — production identity
 
 ## Status
