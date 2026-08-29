@@ -62,4 +62,4 @@ Hand-authored SVG geometry is used for the wordmark, favicon, and tiny interface
 
 ## Page composition
 
-The landing first screen is left-heavy: a practical statement and action sit beside the generated paper constellation. A ruled live-preview strip cuts into the next section. How-it-works follows a diagonal three-stop plotted line rather than a feature-card grid. The privacy section resembles the reverse of a paper ticket. Pricing is a single clipped placard because only one paid tier exists. The 404 page shows one disconnected plot point and a line home.
+The landing first screen is left-heavy: a practical statement and action sit beside the generated paper constellation. A ruled live-preview strip cuts into the next section. How-it-works follows a diagonal three-stop plotted line rather than a feature-card grid. The privacy section resembles the reverse of a paper ticket. No pricing placard appears while there is no paid plan. The 404 page shows one disconnected plot point and a line home inside the shared site shell.

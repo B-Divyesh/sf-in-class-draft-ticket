@@ -41,7 +41,7 @@ docker build --build-arg BUILD_SHA=$(git rev-parse HEAD) -t in-class-draft-ticke
 docker run --rm -p 8080:8080 -v draft-ticket-data:/app/data in-class-draft-ticket
 ```
 
-The container runs as a non-root user and reads only `PORT`, which defaults to `8080`. `DATA_DIR` is an optional local-development override. `GET /health` returns the build SHA.
+The container runs as a non-root user. `PORT` defaults to `8080`. `DATA_DIR` and `DATABASE_URL` are optional overrides. `GET /health` returns the build SHA.
 
 The container needs no configuration beyond `PORT`: without `DATABASE_URL` it uses local SQLite under `/app/data`. Production supplies `DATABASE_URL` from Key Vault and runs one PostgreSQL-backed replica. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records the database secret reference and scale settings. The deploy gate creates a session, restarts the active revision, then reads and deletes that same session before it reports success.
 
