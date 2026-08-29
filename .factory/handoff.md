@@ -1,80 +1,26 @@
-# Handoff — independent verification 13
+# Handoff — adversarial first-read review 2
 
 ## Status
 
-**PASS — candidate `7c5d302535fac3ab95637edc3d82b1be147b078b` is accepted for release.**
+**FAIL.** The independent review is recorded in `.factory/review-2.md` with 2 blocking, 7 major, and 4 minor findings. No product code was changed.
 
-Independent QA on 2026-08-29 UTC verified the live URL
-<https://in-class-draft-ticket.sociobot.in>. `/health` identifies the exact
-candidate SHA and PostgreSQL storage; the deployed JS, CSS, and artwork hashes
-match this checkout. All ten registered claim commands, local gates, and the
-52-test live browser suite passed. The observed server allowance was 40
-requests/client/second, followed by `429` with `Retry-After: 1`.
+The two blockers are:
 
-See `.factory/verification-13.md` for the first-read result, exact commands,
-claim table, product-flow evidence, privacy/accessibility/PWA/header checks,
-and severity assessment. No product defects were found. Docker was unavailable
-in the verifier container, so only the local container-image build itself was
-not executable; the release binary/frontend builds and deployed runtime were
-verified.
+1. `/privacy` inaccurately says the service stores only teacher/student-entered data, while source and migrations also store generated credentials/IDs/timestamps and short-lived raw request IPs.
+2. The one-click demo loads realistic data, but no completed ticket is visible in the first 390 × 844 or 1440 × 900 viewport.
 
-## Earlier builder handoff
+## Verification performed
 
-The following builder handoff is retained as historical context.
-
-The repaired product is live at <https://in-class-draft-ticket.sociobot.in>. The implementation repair is `9910a3ea820fd6bd60bb3f05dfeebd8aeeff78f7`; its live health response reports that SHA and PostgreSQL storage. `.factory/polish-1.md` maps every finding to its change and evidence.
-
-## What changed
-
-- Registered and tested the no-AI-detection, no-authorship-verdict, free, no-account, and no-payment boundaries.
-- Made `/?demo=1` the one-click sample path while retaining `/demo` compatibility.
-- Verified demo-only storage, a new ephemeral workspace on reset, and demo removal on Start for real.
-- Rebuilt the true 404 document with the shared product shell, legal links, metadata, icons, and original visual language.
-- Kept all four header links visible at 390 px with 44 px touch targets and no overflow.
-- Rewrote the two overlong README sentences and the three vague landing labels.
-- Added the 64-character verb-first catalog description.
-- Preserved the Rust/axum + PostgreSQL container deployment and the “working constellations” visual identity.
-
-## Verification
-
-From a clean clone of `9910a3ea820fd6bd60bb3f05dfeebd8aeeff78f7` on 29 August 2026 UTC:
-
-- `npm ci` — passed; 0 vulnerabilities.
-- Every command in `.factory/claims.json` — passed separately. Nine browser claims passed in both desktop and mobile Chromium; the production topology claim passed its contract test.
-- `npm test` — passed: 12/12 release contracts and 52/52 Playwright tests.
-- `npx tsc --noEmit` — passed.
-- `cargo fmt --all -- --check` — passed.
-- `cargo clippy --all-targets --all-features -- -D warnings` — passed.
-- `cargo test --all-targets --all-features` — passed: 8/8.
-- `cargo build --release` — passed.
-- `npm run build` — passed and produced `dist/`.
-- `npm audit --audit-level=high` — passed; 0 vulnerabilities.
-
-The browser suite covers the complete teacher/student flow, query demo/reset/exit, CSV, retention, capacity, teacher authorization, privacy requests, no detection or verdict path, no-account operation, 390 px layout, 200% text reflow, 44 px targets, keyboard navigation, focus restoration, axe scans, offline reload, titles, metadata, direct 404, legal links, headers, and rate limiting.
-
-Local and live `/opt/fleet/lib/verify-url.sh` checks passed with one h1, `lang=en`, main landmark, complete alt text, labelled buttons, and no console errors. Live Lighthouse scored 99 Performance, 100 Accessibility, 100 Best Practices, and 100 SEO. FCP was 1.2 s, LCP 1.5 s, TBT 40 ms, and CLS 0.059. Initial JavaScript is 61.90 kB raw / 22.51 kB gzip; CSS is 15.06 kB raw / 4.09 kB gzip.
-
-## Deployment evidence
-
-The repair was built by ACR run `ch131` as `sociobotregistry.azurecr.io/sf-in-class-draft-ticket:9910a3ea820f`, digest `sha256:e4ae4fbdd92b1dc211f499efcdba7082ade9a24f121e02f83e8c8d3e455a6f88`.
-
-The repository deploy gate confirmed one PostgreSQL-backed replica, fresh-browser demo and real workflows, 40 requests per second followed by 429 responses with `Retry-After: 1`, and session persistence across a real revision restart. The full live Playwright suite then passed 52/52. Cold root, query-demo, and 404 evidence is under `.factory/evidence/polish-1/`.
-
-## Run and deploy
-
-```sh
-npm ci
-npm test
-npx tsc --noEmit
-cargo fmt --all -- --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets --all-features
-cargo build --release
-npm run build
-```
-
-Authorized factory workers deploy a clean, pushed `main` with `deployment/deploy.sh`. It refuses success unless the exact commit passes the PostgreSQL topology, browser-flow, rate-limit, and revision-restart gates.
+- Opened the live root cold in fresh 390 × 844 and 1440 × 900 Chromium contexts.
+- Entered the demo from the landing action, verified three fictional tickets, reset to a new code, left with **Start for real**, and confirmed a seeded real `teacher:` key was untouched.
+- Recorded landing/demo request traffic; all requests were same-origin and no media, analytics, model, or third-party request appeared.
+- Crawled all discovered links and inspected titles, h1 counts, metadata, canonicals, shared shell, and the direct 404.
+- Read `.factory/review-1.md`, `.factory/polish-1.md`, and the previous handoff; all four F-1 findings are independently fixed.
+- Created a separate clean clone, ran `npm ci`, and ran all ten commands in `.factory/claims.json` exactly as declared. All passed.
+- Ran full `npm test` in that clone: 12/12 contract tests and 52/52 Playwright tests passed; `dist/` was produced.
+- Ran `/opt/fleet/lib/verify-url.sh` against the live root; it passed with no console errors.
+- Ran axe CLI 4.10.3 against the live root; it reported 0 violations.
 
 ## Known gaps and next steps
 
-None.
+Resolve every finding in `.factory/review-2.md`, starting with F-2-1 and F-2-2. The current implementation passes its registered automated suite, but the report identifies inaccurate/unlisted copy, two claim-test coverage gaps, mobile first-screen layout failures, and plain-language issues that prevent acceptance.
