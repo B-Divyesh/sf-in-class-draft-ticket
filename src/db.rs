@@ -1,9 +1,61 @@
-use std::{path::Path, time::Duration};
+use std::{
+    fs::{File, OpenOptions},
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+};
 
+use fs2::FileExt;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
     SqlitePool,
 };
+
+#[derive(Clone)]
+pub struct Database {
+    pool: SqlitePool,
+    gate: Arc<FileGate>,
+}
+
+struct FileGate {
+    path: PathBuf,
+}
+
+pub struct DatabaseGuard {
+    _file: File,
+}
+
+impl FileGate {
+    async fn lock(&self) -> anyhow::Result<DatabaseGuard> {
+        let path = self.path.clone();
+        tokio::task::spawn_blocking(move || {
+            let file = OpenOptions::new()
+                .create(true)
+                .read(true)
+                .write(true)
+                .truncate(false)
+                .open(path)?;
+            FileExt::lock_exclusive(&file)?;
+            Ok(DatabaseGuard { _file: file })
+        })
+        .await?
+    }
+}
+
+impl Database {
+    pub async fn lock(&self) -> anyhow::Result<DatabaseGuard> {
+        self.gate.lock().await
+    }
+
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
+    }
+
+    #[cfg(test)]
+    pub async fn close(&self) {
+        self.pool.close().await;
+    }
+}
 
 pub async fn migrate(pool: &SqlitePool) -> anyhow::Result<()> {
     for attempt in 0..60 {
@@ -29,9 +81,17 @@ fn retryable_migration_error(message: &str) -> bool {
         || message.contains("UNIQUE constraint failed: _sqlx_migrations.version")
 }
 
-pub async fn connect(data_dir: &Path) -> anyhow::Result<SqlitePool> {
+pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
     tokio::fs::create_dir_all(data_dir).await?;
     let database_path = data_dir.join("tickets.db");
+    let gate = Arc::new(FileGate {
+        path: data_dir.join("tickets.db.app-lock"),
+    });
+    // SQLite's own journal locks can deadlock when two containers recover the
+    // same file over SMB at once. One crash-safe byte-range lock around all DB
+    // work ensures only one replica enters SQLite. The OS releases it if a
+    // container exits, unlike a sentinel file.
+    let _guard = gate.lock().await?;
     // Every replica opens the *same* durable database on the mounted share.
     // Keeping per-process copies made a successful POST invisible to another
     // replica until it happened to restart. DELETE journaling keeps all state in
@@ -64,7 +124,7 @@ pub async fn connect(data_dir: &Path) -> anyhow::Result<SqlitePool> {
         connected.expect("the bounded database connection retry always returns")
     };
     migrate(&pool).await?;
-    Ok(pool)
+    Ok(Database { pool, gate })
 }
 
 #[cfg(test)]

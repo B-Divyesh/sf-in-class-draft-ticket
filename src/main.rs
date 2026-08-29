@@ -15,7 +15,7 @@ use axum::{
 };
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, SqlitePool};
+use sqlx::FromRow;
 use tower_http::{
     compression::CompressionLayer,
     services::{ServeDir, ServeFile},
@@ -29,7 +29,7 @@ mod db;
 
 #[derive(Clone)]
 struct AppState {
-    db: SqlitePool,
+    db: db::Database,
     build_sha: &'static str,
     test_clock_enabled: bool,
 }
@@ -133,9 +133,16 @@ async fn main() -> anyhow::Result<()> {
         let mut interval = tokio::time::interval(cleanup_period);
         loop {
             interval.tick().await;
+            let _guard = match cleanup_state.db.lock().await {
+                Ok(guard) => guard,
+                Err(error) => {
+                    warn!(%error, "shared database lock failed during cleanup");
+                    continue;
+                }
+            };
             let result = sqlx::query("DELETE FROM sessions WHERE expires_at <= ?")
                 .bind(Utc::now())
-                .execute(&cleanup_state.db)
+                .execute(cleanup_state.db.pool())
                 .await;
             match result {
                 Ok(done) if done.rows_affected() > 0 => {
@@ -146,7 +153,7 @@ async fn main() -> anyhow::Result<()> {
             }
             if let Err(error) = sqlx::query("DELETE FROM api_rate_limits WHERE window_start < ?")
                 .bind(Utc::now().timestamp() - 2)
-                .execute(&cleanup_state.db)
+                .execute(cleanup_state.db.pool())
                 .await
             {
                 warn!(%error, "stale rate-limit cleanup failed");
@@ -232,6 +239,10 @@ async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> 
     // This counter lives beside sessions, not in a process-local map, so a
     // client cannot bypass the safety boundary by being routed to another
     // replica. The UPSERT is one SQLite write and remains atomic across them.
+    let _guard = match state.db.lock().await {
+        Ok(guard) => guard,
+        Err(error) => return storage_error(error).into_response(),
+    };
     let count = sqlx::query_scalar::<_, i64>(
         "INSERT INTO api_rate_limits(client_key, window_start, request_count) VALUES(?, ?, 1) \
          ON CONFLICT(client_key) DO UPDATE SET \
@@ -242,12 +253,13 @@ async fn rate_limit(State(state): State<AppState>, req: Request, next: Next) -> 
     )
     .bind(ip)
     .bind(window_start)
-    .fetch_one(&state.db)
+    .fetch_one(state.db.pool())
     .await;
     let count = match count {
         Ok(count) => count,
         Err(error) => return internal(error).into_response(),
     };
+    drop(_guard);
     if count > 40 {
         let mut response = (
             StatusCode::TOO_MANY_REQUESTS,
@@ -330,8 +342,9 @@ async fn insert_session(
         .map(ChronoDuration::seconds)
         .unwrap_or_else(|| ChronoDuration::days(days));
     let expires_at = created_at + retention;
+    let _guard = state.db.lock().await.map_err(storage_error)?;
     sqlx::query("INSERT INTO sessions(code,title,prompt,teacher_token,created_at,expires_at,is_demo) VALUES(?,?,?,?,?,?,?)")
-        .bind(&code).bind(title).bind(prompt).bind(&teacher_token).bind(created_at).bind(expires_at).bind(demo).execute(&state.db).await
+        .bind(&code).bind(title).bind(prompt).bind(&teacher_token).bind(created_at).bind(expires_at).bind(demo).execute(state.db.pool()).await
         .map_err(internal)?;
     Ok(CreatedSession {
         session: Session {
@@ -373,11 +386,12 @@ async fn create_session(
 
 async fn active_session(state: &AppState, code: &str) -> Result<Session, ApiError> {
     let code = code.trim().to_uppercase();
+    let _guard = state.db.lock().await.map_err(storage_error)?;
     let row = sqlx::query_as::<_, Session>(
         "SELECT code,title,prompt,created_at,expires_at,is_demo FROM sessions WHERE code = ?",
     )
     .bind(&code)
-    .fetch_optional(&state.db)
+    .fetch_optional(state.db.pool())
     .await
     .map_err(internal)?
     .ok_or_else(|| {
@@ -425,10 +439,11 @@ async fn create_ticket(
     };
     // Capacity and insertion are deliberately one SQLite write statement. SQLite
     // serializes writers, so concurrent requests cannot share a stale ticket count.
+    let _guard = state.db.lock().await.map_err(storage_error)?;
     let inserted = sqlx::query("INSERT INTO tickets(id,session_code,pseudonym,claim,evidence,revision,reflection,created_at) SELECT ?,?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM sessions WHERE code = ?) AND ((SELECT is_demo FROM sessions WHERE code = ?) = 1 OR (SELECT COUNT(*) FROM tickets WHERE session_code = ?) < 40)")
         .bind(&ticket.id).bind(&ticket.session_code).bind(&ticket.pseudonym).bind(&ticket.claim).bind(&ticket.evidence).bind(&ticket.revision).bind(&ticket.reflection).bind(ticket.created_at)
         .bind(&ticket.session_code).bind(&ticket.session_code).bind(&ticket.session_code)
-        .execute(&state.db).await.map_err(internal)?;
+        .execute(state.db.pool()).await.map_err(internal)?;
     if inserted.rows_affected() == 0 && !session.is_demo {
         return Err(ApiError(
             StatusCode::CONFLICT,
@@ -458,8 +473,9 @@ async fn authorized_session(
         )
     })?;
     let code = code.trim().to_uppercase();
+    let _guard = state.db.lock().await.map_err(storage_error)?;
     sqlx::query_as::<_, Session>("SELECT code,title,prompt,created_at,expires_at,is_demo FROM sessions WHERE code = ? AND teacher_token = ?")
-        .bind(&code).bind(token).fetch_optional(&state.db).await.map_err(internal)?
+        .bind(&code).bind(token).fetch_optional(state.db.pool()).await.map_err(internal)?
         .ok_or_else(|| ApiError(StatusCode::UNAUTHORIZED, "This teacher link is not valid. Use the link saved when the session was created.".into()))
 }
 
@@ -469,8 +485,9 @@ async fn get_teacher_session(
     req: Request<Body>,
 ) -> Result<Json<TeacherSession>, ApiError> {
     let session = authorized_session(&state, &code, bearer(&req)).await?;
+    let _guard = state.db.lock().await.map_err(storage_error)?;
     let tickets = sqlx::query_as::<_, Ticket>("SELECT id,session_code,pseudonym,claim,evidence,revision,reflection,created_at FROM tickets WHERE session_code = ? ORDER BY created_at")
-        .bind(&session.code).fetch_all(&state.db).await.map_err(internal)?;
+        .bind(&session.code).fetch_all(state.db.pool()).await.map_err(internal)?;
     Ok(Json(TeacherSession { session, tickets }))
 }
 
@@ -480,8 +497,9 @@ async fn export_csv(
     req: Request<Body>,
 ) -> Result<Response, ApiError> {
     let session = authorized_session(&state, &code, bearer(&req)).await?;
+    let _guard = state.db.lock().await.map_err(storage_error)?;
     let tickets = sqlx::query_as::<_, Ticket>("SELECT id,session_code,pseudonym,claim,evidence,revision,reflection,created_at FROM tickets WHERE session_code = ? ORDER BY created_at")
-        .bind(&session.code).fetch_all(&state.db).await.map_err(internal)?;
+        .bind(&session.code).fetch_all(state.db.pool()).await.map_err(internal)?;
     let mut out = String::from(
         "class_nickname,claim,evidence_location,revision_choice,exit_reflection,submitted_at\n",
     );
@@ -524,9 +542,10 @@ async fn delete_session(
     req: Request<Body>,
 ) -> Result<StatusCode, ApiError> {
     let session = authorized_session(&state, &code, bearer(&req)).await?;
+    let _guard = state.db.lock().await.map_err(storage_error)?;
     sqlx::query("DELETE FROM sessions WHERE code = ?")
         .bind(&session.code)
-        .execute(&state.db)
+        .execute(state.db.pool())
         .await
         .map_err(internal)?;
     Ok(StatusCode::NO_CONTENT)
@@ -567,9 +586,10 @@ async fn create_demo(
             "My claim is clearer, but I need to explain why the contrast matters.",
         ),
     ];
+    let _guard = state.db.lock().await.map_err(storage_error)?;
     for (p, c, e, r, x) in samples {
         sqlx::query("INSERT INTO tickets(id,session_code,pseudonym,claim,evidence,revision,reflection,created_at) VALUES(?,?,?,?,?,?,?,?)")
-            .bind(Uuid::new_v4().to_string()).bind(&created.session.code).bind(p).bind(c).bind(e).bind(r).bind(x).bind(Utc::now()).execute(&state.db).await.map_err(internal)?;
+            .bind(Uuid::new_v4().to_string()).bind(&created.session.code).bind(p).bind(c).bind(e).bind(r).bind(x).bind(Utc::now()).execute(state.db.pool()).await.map_err(internal)?;
     }
     Ok((StatusCode::CREATED, Json(created)))
 }
@@ -587,6 +607,14 @@ fn csv_cell(value: &str) -> String {
 }
 fn internal(err: sqlx::Error) -> ApiError {
     warn!(error = %err, "database request failed");
+    ApiError(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "The session could not be saved. Wait a moment, then try again.".into(),
+    )
+}
+
+fn storage_error(err: anyhow::Error) -> ApiError {
+    warn!(error = %err, "shared database lock failed");
     ApiError(
         StatusCode::INTERNAL_SERVER_ERROR,
         "The session could not be saved. Wait a moment, then try again.".into(),
@@ -634,7 +662,8 @@ mod tests {
     #[tokio::test]
     async fn durable_database_restores_after_restart() {
         let data_dir = std::env::temp_dir().join(format!("draft-ticket-test-{}", Uuid::new_v4()));
-        let pool = db::connect(&data_dir).await.unwrap();
+        let database = db::connect(&data_dir).await.unwrap();
+        let guard = database.lock().await.unwrap();
         sqlx::query("INSERT INTO sessions(code,title,prompt,teacher_token,created_at,expires_at,is_demo) VALUES(?,?,?,?,?,?,?)")
             .bind("ABC234")
             .bind("Restart test")
@@ -643,18 +672,21 @@ mod tests {
             .bind(Utc::now())
             .bind(Utc::now() + ChronoDuration::days(1))
             .bind(false)
-            .execute(&pool)
+            .execute(database.pool())
             .await
             .unwrap();
-        pool.close().await;
+        drop(guard);
+        database.close().await;
 
         let restored = db::connect(&data_dir).await.unwrap();
+        let guard = restored.lock().await.unwrap();
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sessions WHERE code = ?")
             .bind("ABC234")
-            .fetch_one(&restored)
+            .fetch_one(restored.pool())
             .await
             .unwrap();
         assert_eq!(count, 1);
+        drop(guard);
         restored.close().await;
         tokio::fs::remove_dir_all(data_dir).await.unwrap();
     }

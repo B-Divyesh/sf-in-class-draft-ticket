@@ -65,6 +65,7 @@ test('container build tracks stable Rust instead of a minor release', async () =
 
 test('production replicas share the durable data mount', async () => {
   const deployment = JSON.parse(await read('deployment/containerapp-contract.json'));
+  const database = await read('src/db.rs');
   assert.deepEqual(deployment.scale, { minReplicas: 2, maxReplicas: 3 });
   assert.deepEqual(deployment.storage, {
     type: 'AzureFile',
@@ -76,6 +77,8 @@ test('production replicas share the durable data mount', async () => {
     accessMode: 'ReadWrite'
   });
   assert.deepEqual(deployment.runtime.requiredEnvironment, ['PORT']);
+  assert.match(database, /tickets\.db\.app-lock/);
+  assert.match(database, /lock_exclusive/);
 });
 
 test('deployment renderer applies the storage and scale contract atomically', () => {

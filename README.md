@@ -43,7 +43,7 @@ docker run --rm -p 8080:8080 -v draft-ticket-data:/app/data in-class-draft-ticke
 
 The container runs as a non-root user and reads only `PORT`, which defaults to `8080`. `DATA_DIR` is an optional local-development override. `GET /health` returns the build SHA.
 
-The factory deployment runs two to three replicas against one dedicated Azure Files share mounted at `/app/data`. Every replica opens the same durable SQLite database directly. SQLite serializes writes, and the database also holds the shared per-client rate counters. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records the required mount and scale settings. `npm run test:contracts` starts three processes on one datastore and checks demo, teacher, student, export, delete, capacity, and rate-limit behavior across them.
+The factory deployment runs two to three replicas against one dedicated Azure Files share mounted at `/app/data`. Every replica opens the same durable SQLite database directly. A crash-safe byte-range gate on that share serializes database work across replicas, and the database also holds the shared per-client rate counters. [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json) records the required mount and scale settings. `npm run test:contracts` starts three processes on one datastore and checks demo, teacher, student, export, delete, capacity, and rate-limit behavior across them.
 
 Authorized factory workers deploy the committed revision with `deployment/deploy.sh`. That path builds in ACR, applies the shared-volume contract atomically, and refuses success until the live revision reports both the commit and the mount.
 
