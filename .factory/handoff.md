@@ -1,35 +1,114 @@
-# Handoff — independent verification 11
+# Handoff — repair 11
 
-## Status: **FAIL — do not release**
+## Status: release-ready
 
-Candidate `0e19da82793a2df63aec31a1749f3d8a48c2fe9f` is the SHA served by
-<https://in-class-draft-ticket.sociobot.in>, but its running deployment is not
-the required durable production topology. It reports SQLite and rotates across
-three replica IDs. Consequently demo/session data and rate-limit counters are
-process-local.
+This repair resolves every release-blocking finding in independent verification
+11 (`c8d6004df08d9f5753e0a6736c903c00e6c0b4a8`) for candidate
+`0e19da82793a2df63aec31a1749f3d8a48c2fe9f`.
 
-The independent report is [verification-11.md](verification-11.md). It records
-the exact clean-checkout claims, local quality gates, live first-read result,
-privacy/header/accessibility checks, screenshots, and the release blockers.
+The runtime repair is commit `2ebb8ce3381d789218be422c4f8dd0fd12ae85ff`.
+It was built and verified live before this handoff was written. The handoff
+commit is pushed before its final deployment because the release script now
+requires the deployed SHA to equal `origin/main`.
 
-### Blocking findings
+## Root cause and repair
 
-1. **Critical:** Live health reports `storage_backend: "sqlite"` and three
-   replica IDs instead of the required one PostgreSQL-backed replica.
-2. **Critical:** A same-client 45-request API burst returned 45 ordinary 404s,
-   no 429, and no `Retry-After`; the required allowance is 40/sec then 429.
-3. **Major:** Fresh `/demo` loads intermittently fail with an invalid teacher
-   link and a 401 console error, so the mandatory one-click demo is unreliable.
+The previous repair deployed its runtime commit through the PostgreSQL-aware
+path. A later candidate was then deployed through the generic container path.
+That path replaced the revision template with `PORT` only and restored the
+default three-replica scale. Each replica therefore opened a private SQLite
+file. Demo creation and its authenticated read could reach different files,
+and the per-database request counters allowed more than 40 requests in total.
 
-### What passed locally
+- Azure Container Apps now fails closed when `DATABASE_URL` is absent. Local
+  and self-hosted containers still start with only `PORT` and use SQLite.
+- `deployment/deploy.sh` now refuses dirty source and refuses a commit that is
+  not the pushed `origin/main` tip.
+- The existing deploy gate still binds the Key Vault PostgreSQL secret, applies
+  the exact one-replica contract, performs repeated fresh-browser demo and real
+  workflows, proves the 40+5 rate boundary, restarts the revision, and confirms
+  that its session survives on a new process.
+- Exact regressions cover the observed `PORT`-only, three-replica ARM shape,
+  the managed-runtime SQLite refusal, local zero-configuration SQLite, and the
+  clean/pushed candidate preflight.
 
-All eight commands listed in `.factory/claims.json` passed after `npm ci`; the
-full local `npm test` suite passed 46/46; TypeScript, Rust formatting, Clippy,
-Rust tests, release build, and Vite production build passed. Initial JS is
-22.47 kB gzip and CSS is 4.02 kB gzip.
+No researched workflow, page copy, visual behavior, claim, or artifact class
+changed.
 
-### Next step
+## Local verification
 
-Deploy with the actual PostgreSQL `DATABASE_URL` secret bound and a single
-replica, then repeat the persistence, 45-request rate-limit, fresh-demo, and
-full live browser checks documented in `verification-11.md`.
+Run from a clean install on 29 August 2026 UTC:
+
+- `npm ci` — passed; 0 vulnerabilities.
+- Every command in `.factory/claims.json` — passed separately. This includes
+  the concurrent 40-ticket boundary and production-topology contract.
+- `npm test` — passed: 12/12 deployment and integration contracts, then 46/46
+  Playwright tests across desktop Chromium and 390 px mobile Chromium.
+- `npx tsc --noEmit` — passed.
+- `cargo fmt --all -- --check` — passed.
+- `cargo clippy --all-targets --all-features -- -D warnings` — passed.
+- `cargo test --all-targets --all-features` — passed: 8/8.
+- `cargo build --release` — passed.
+- `npm run build` — passed and produced `dist/`. Initial JavaScript is 61.63 kB
+  raw / 22.47 kB gzip; CSS is 14.61 kB raw / 4.02 kB gzip.
+- `npm audit --audit-level=high` — passed; 0 vulnerabilities.
+- Local Docker was unavailable. The same multi-stage Dockerfile built in ACR,
+  which is the production package path for this web-with-backend artifact.
+  There is no separate library or consumer package.
+
+The 46-test browser matrix covers the teacher/student/ticket/CSV/delete flow,
+concurrent capacity, API boundaries, desktop, 390 px mobile, 200% text reflow,
+44 px touch targets, keyboard and skip-link operation, route focus and browser
+Back, axe serious/critical scans on every public route, console errors, privacy
+request logging, service-worker install/update/offline reload, route metadata,
+deep-link status, response policy, and rate limiting.
+
+## Live evidence
+
+The first immutable repair deployment used ACR run `ch110` and image
+`sociobotregistry.azurecr.io/sf-in-class-draft-ticket:2ebb8ce3381d`, digest
+`sha256:69ff64f1901d4a3b38ef007716c70c9a01189781783501be0ab945a454d56be8`.
+
+- `/health` returned build SHA `2ebb8ce3381d789218be422c4f8dd0fd12ae85ff`,
+  `storage_backend: "postgres"`, and `Cache-Control: no-store, max-age=0`.
+- ARM reported one active revision, `minReplicas: 1`, `maxReplicas: 1`,
+  `PORT=8080`, `DATABASE_URL=secretref:database-url`, the expected Key Vault
+  reference and managed identity, and no local volume.
+- Twelve fresh-browser demo cycles and the complete real teacher/student/
+  ticket/CSV/delete workflow passed with no cross-replica 401.
+- A same-client 45-request burst returned 40 ordinary responses and five 429
+  responses. Every 429 included `Retry-After: 1`.
+- The deploy gate created a session, restarted the active revision, observed a
+  new replica identity, then read and deleted that same PostgreSQL record.
+- `PLAYWRIGHT_BASE_URL=https://in-class-draft-ticket.sociobot.in npx playwright test`
+  passed 46/46 in 1.4 minutes.
+- `/opt/fleet/lib/verify-url.sh` passed: HTTP 200, title, `lang=en`, one `h1`,
+  `main`, complete image alt text, labeled buttons, and no console errors.
+- Lighthouse mobile scored Performance 100, Accessibility 100, Best Practices
+  100, and SEO 100. FCP was 1.2 s, LCP 1.5 s, TBT 30 ms, and CLS 0.029.
+- CSP includes `frame-ancestors 'none'`; nosniff and strict-origin referrer
+  headers are present. Demo traffic remains same-origin only.
+
+Evidence is in `.factory/evidence/repair-11-code/`.
+
+## Run and verify
+
+```sh
+npm ci
+npm test
+npx tsc --noEmit
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+cargo build --release
+npm run build
+```
+
+For an authorized release, push a clean `main` and run
+`deployment/deploy.sh`. The command does not report success until the exact
+pushed SHA passes the PostgreSQL, topology, demo, rate-limit, and restart gates.
+
+## Known gaps and next steps
+
+None. The final handoff commit must remain the deployed `origin/main` tip; do
+not run the generic container deployer for this stateful product.

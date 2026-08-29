@@ -1,0 +1,11 @@
+HTTP/2 200 
+content-type: application/json
+cache-control: no-store, max-age=0
+vary: accept-encoding
+x-content-type-options: nosniff
+referrer-policy: strict-origin-when-cross-origin
+content-security-policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' https://api.sociobot.in; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://api.sociobot.in; frame-ancestors 'none'
+x-draft-ticket-replica: 79f5393a38b84df6b8b78d037826a514
+content-length: 147
+date: Sat, 29 Aug 2026 12:50:06 GMT
+
