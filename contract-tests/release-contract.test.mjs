@@ -66,6 +66,7 @@ test('container build tracks stable Rust instead of a minor release', async () =
   const buildScript = await read('build.rs');
   assert.match(dockerfile, /^FROM rust:1-(?:alpine|slim) AS backend$/m);
   assert.doesNotMatch(dockerfile, /^FROM rust:1\.\d+/m);
+  assert.match(dockerfile, /mkdir -p \/app \/data/);
   assert.match(buildScript, /cargo:rerun-if-env-changed=BUILD_SHA/);
 });
 
@@ -88,6 +89,7 @@ test('production uses one durable PostgreSQL-backed replica', async () => {
     identity: '/subscriptions/283af945-693b-4a6e-b952-df928d0a18a9/resourceGroups/sociobot/providers/Microsoft.ManagedIdentity/userAssignedIdentities/factory-worker-identity',
     schema: 'in_class_draft_ticket'
   });
+  assert.deepEqual(deployment.deploy, { data_dir: '/data' });
   assert.deepEqual(deployment.runtime.requiredEnvironment, ['PORT']);
   assert.deepEqual(deployment.runtime.optionalEnvironment, ['DATABASE_URL']);
 });
@@ -156,13 +158,13 @@ test('deployment verifier rejects the SQLite three-replica revision reported by 
   );
 });
 
-test('deployment verifier rejects the exact unhealthy candidate state from verification 18', async () => {
+test('@claim:release-contract deployment verifier rejects the exact unhealthy candidate state from verification 19', async () => {
   const contract = JSON.parse(await read('deployment/containerapp-contract.json'));
-  const expectedImage = 'sociobotregistry.azurecr.io/sf-in-class-draft-ticket:32d8eefd699a';
+  const expectedImage = 'sociobotregistry.azurecr.io/sf-in-class-draft-ticket:b0ce723b11f0';
   const failedCandidate = {
     properties: {
-      latestRevisionName: 'sf-in-class-draft-ticket--0000052',
-      latestReadyRevisionName: 'sf-in-class-draft-ticket--0000051',
+      latestRevisionName: 'sf-in-class-draft-ticket--0000055',
+      latestReadyRevisionName: 'sf-in-class-draft-ticket--0000054',
       configuration: { activeRevisionsMode: 'Single', secrets: [] },
       template: {
         containers: [{
@@ -179,7 +181,7 @@ test('deployment verifier rejects the exact unhealthy candidate state from verif
 
   assert.throws(
     () => assertContainerAppContract(failedCandidate, contract, expectedImage),
-    /requested revision sf-in-class-draft-ticket--0000052 is not ready; traffic remains on sf-in-class-draft-ticket--0000051/,
+    /requested revision sf-in-class-draft-ticket--0000055 is not ready; traffic remains on sf-in-class-draft-ticket--0000054/,
   );
 });
 
@@ -302,7 +304,8 @@ test('every listed product claim has exactly one tagged regression test', async 
   const testSources = await Promise.all([
     read('tests/product.spec.ts'),
     read('contract-tests/release-contract.test.mjs'),
-    read('src/main.rs')
+    read('src/main.rs'),
+    read('src/db.rs')
   ]);
   for (const { id } of claims) {
     const matches = testSources.join('\n').match(new RegExp(`@claim:${id}\\b`, 'g')) ?? [];
@@ -312,11 +315,36 @@ test('every listed product claim has exactly one tagged regression test', async 
 
 test('every product claim runs in a clean local sandbox', async () => {
   const claims = JSON.parse(await read('.factory/claims.json'));
-  assert.equal(claims.length, 10, 'the registry must contain the ten user-facing product claims');
+  assert.equal(claims.length, 13, 'the registry must include every public product and runtime promise');
   const unsafe = /(?:deploy|production-topology|verify-live|\baz\b|sociobot\.in)/i;
   for (const claim of claims) {
     assert.doesNotMatch(claim.test, unsafe, `${claim.id} must not deploy or call the live service`);
     assert.doesNotMatch(claim.sandbox, unsafe, `${claim.id} must describe a disposable local sandbox`);
+  }
+});
+
+test('README behavioral promises are all registered claims', async () => {
+  const [readme, claims] = await Promise.all([
+    read('README.md'),
+    read('.factory/claims.json').then(JSON.parse)
+  ]);
+  const promiseCoverage = [
+    ['six-character code', 'pseudonymous-flow'],
+    ['exports the full session as CSV', 'csv-export'],
+    ['expires after 24 hours', 'sample-demo'],
+    ['one, seven, or thirty days', 'session-retention'],
+    ['up to 40 draft tickets', 'free-capacity'],
+    ['does not detect AI', 'no-ai-detection-or-authorship-verdict'],
+    ['without an account', 'free-no-account-core-flow'],
+    ['local SQLite uses `/data`', 'runtime-defaults'],
+    ['health` returns the build SHA', 'health-build-identity'],
+    ['release gate rejects a revision', 'release-contract']
+  ];
+  for (const [text, claimId] of promiseCoverage) {
+    assert.match(readme, new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    const claim = claims.find(item => item.id === claimId);
+    assert.ok(claim, `${claimId} must be listed for README promise: ${text}`);
+    assert.match(claim.where, /README/);
   }
 });
 

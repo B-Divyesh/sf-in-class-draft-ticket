@@ -15,7 +15,7 @@
   },
   {
     "id": "pseudonymous-flow",
-    "claim": "Students use a class nickname and record four drafting checkpoints.",
+    "claim": "Teachers share a six-character session code; students use a class nickname and record four drafting checkpoints.",
     "where": "landing facts, student form, README",
     "test": "npm test -- --grep @claim:pseudonymous-flow",
     "sandbox": "fresh class; create a session, submit all four fields, and verify them in the teacher view"
@@ -43,7 +43,7 @@
   },
   {
     "id": "data-storage-minimization",
-    "claim": "The database stores only class content, random record IDs, hashed teacher credentials, timestamps, demo markers, rate-limit hash material, and short-lived rate counters; expired sessions delete their tickets.",
+    "claim": "The database stores only class content, random record IDs, hashed teacher credentials, timestamps, demo markers, rate-limit hash material, and rate counters deleted within four seconds; expired sessions delete their tickets.",
     "where": "privacy page",
     "test": "cargo test claim_data_storage_minimization -- --nocapture",
     "sandbox": "fresh SQLite database; inspect every table and column, migrate a legacy credential, assert hashed values and 24-hour demo expiry, then run cleanup and assert cascade deletion"
@@ -68,5 +68,26 @@
     "where": "teacher view, setup, privacy, README",
     "test": "npm test -- --grep @claim:teacher-control",
     "sandbox": "fresh API session; reject unauthenticated read, CSV export, and deletion, then accept all three with the private token"
+  },
+  {
+    "id": "runtime-defaults",
+    "claim": "PORT defaults to 8080; local SQLite uses mounted /data or ./data, and DATA_DIR and DATABASE_URL are optional overrides.",
+    "where": "README Container",
+    "test": "cargo test claim_runtime_defaults -- --nocapture",
+    "sandbox": "local Rust unit test with a temporary durable directory and no external service; assert port, path, SQLite default, and PostgreSQL override selection"
+  },
+  {
+    "id": "health-build-identity",
+    "claim": "GET /health returns the build SHA and selected storage backend without cache reuse.",
+    "where": "README Container",
+    "test": "npm test -- --grep @claim:health-build-identity",
+    "sandbox": "fresh local browser project; request health with a nonce and assert its build identity, storage backend, and no-store cache policy"
+  },
+  {
+    "id": "release-contract",
+    "claim": "The release gate rejects a latest revision that is not ready, lacks the PostgreSQL secret, or permits more than one replica.",
+    "where": "README Release",
+    "test": "cargo build && node --test --test-name-pattern='@claim:release-contract' contract-tests/release-contract.test.mjs",
+    "sandbox": "local contract fixture for the exact unhealthy Azure revision reported by verification 19; no cloud service or release action is contacted"
   }
 ]

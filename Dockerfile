@@ -19,7 +19,7 @@ COPY migrations-postgres ./migrations-postgres
 RUN cargo build --release
 
 FROM alpine:3.22
-RUN addgroup -S app && adduser -S -G app -u 10001 app && mkdir -p /app/data && chown -R app:app /app
+RUN addgroup -S app && adduser -S -G app -u 10001 app && mkdir -p /app /data && chown -R app:app /app /data
 WORKDIR /app
 COPY --from=backend /app/target/release/in-class-draft-ticket /app/server
 COPY --from=frontend /app/dist /app/dist

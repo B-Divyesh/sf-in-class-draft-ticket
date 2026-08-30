@@ -1,6 +1,6 @@
 use std::{
     net::{IpAddr, SocketAddr},
-    path::PathBuf,
+    path::{Path as FsPath, PathBuf},
     time::Duration,
 };
 
@@ -112,12 +112,15 @@ async fn main() -> anyhow::Result<()> {
                 .add_directive("in_class_draft_ticket=info".parse()?),
         )
         .init();
-    let port: u16 = std::env::var("PORT")
+    let port = configured_port(std::env::var("PORT").ok().as_deref());
+    let supplied_data_dir = std::env::var("DATA_DIR")
         .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(8080);
-    let supplied_data_dir = std::env::var("DATA_DIR").ok();
-    let data_dir = PathBuf::from(supplied_data_dir.as_deref().unwrap_or("./data"));
+        .filter(|value| !value.trim().is_empty());
+    // The fleet mounts its durable local-data share at /data. A normal local
+    // checkout does not have that path, so it remains zero-config and writes
+    // beside the binary instead. PostgreSQL-backed deployments still keep
+    // their authoritative records in PostgreSQL.
+    let data_dir = configured_data_dir(supplied_data_dir.as_deref(), FsPath::new("/data"));
     let db = db::connect(&data_dir).await?;
     let (rate_limit_secret, security_material_source) = initialize_security_material(&db).await?;
     // A short clock is available only in debug builds so the browser suite can
@@ -151,7 +154,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
-    info!(port, data_dir = %data_dir.display(), data_dir_source = if supplied_data_dir.is_some() { "supplied" } else { "defaulted" }, security_material_source, database = state.db.storage_backend(), build_sha = state.build_sha, "configuration loaded; durable database and privacy-preserving rate counters enabled");
+    info!(port, data_dir = %data_dir.display(), data_dir_source = if supplied_data_dir.is_some() { "supplied" } else if data_dir == FsPath::new("/data") { "durable_mount" } else { "working_directory" }, security_material_source, database = state.db.storage_backend(), build_sha = state.build_sha, "configuration loaded; durable database and privacy-preserving rate counters enabled");
 
     let api = Router::new()
         .route("/sessions", post(create_session))
@@ -194,6 +197,20 @@ async fn main() -> anyhow::Result<()> {
         .with_graceful_shutdown(shutdown())
         .await?;
     Ok(())
+}
+
+fn configured_port(value: Option<&str>) -> u16 {
+    value.and_then(|value| value.parse().ok()).unwrap_or(8080)
+}
+
+fn configured_data_dir(supplied: Option<&str>, durable_data_dir: &FsPath) -> PathBuf {
+    if let Some(supplied) = supplied.map(str::trim).filter(|value| !value.is_empty()) {
+        return PathBuf::from(supplied);
+    }
+    if durable_data_dir.is_dir() {
+        return durable_data_dir.to_path_buf();
+    }
+    PathBuf::from("./data")
 }
 
 async fn shutdown() {
@@ -839,6 +856,34 @@ mod tests {
         assert!(code
             .chars()
             .all(|c| "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".contains(c)));
+    }
+
+    // @claim:runtime-defaults
+    #[test]
+    fn claim_runtime_defaults_prefer_the_durable_mount_and_remain_zero_config_locally() {
+        let durable_dir =
+            std::env::temp_dir().join(format!("draft-ticket-data-dir-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&durable_dir).unwrap();
+
+        assert_eq!(configured_port(None), 8080);
+        assert_eq!(configured_port(Some("not-a-port")), 8080);
+        assert_eq!(configured_port(Some("18080")), 18080);
+        assert_eq!(configured_data_dir(None, &durable_dir), durable_dir);
+        assert_eq!(
+            configured_data_dir(Some(" /tmp/draft-ticket-override "), &durable_dir),
+            PathBuf::from("/tmp/draft-ticket-override")
+        );
+        assert_eq!(
+            configured_data_dir(None, FsPath::new("/a-path-that-does-not-exist")),
+            PathBuf::from("./data")
+        );
+        assert_eq!(db::storage_configuration(None, false).unwrap(), None);
+        assert_eq!(
+            db::storage_configuration(Some("postgres://shared"), false).unwrap(),
+            Some("postgres://shared".to_owned())
+        );
+
+        std::fs::remove_dir_all(durable_dir).unwrap();
     }
 
     #[test]

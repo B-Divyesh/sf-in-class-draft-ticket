@@ -22,9 +22,9 @@ npm run build
 cargo run
 ```
 
-Open <http://localhost:8080>. The server creates `./data/tickets.db` when no configuration is supplied.
+Open <http://localhost:8080>.
 
-For frontend development, run `cargo run` and `npm run dev` in separate terminals. Vite proxies `/api` to port 8080.
+For frontend development, run `cargo run` and `npm run dev` in separate terminals.
 
 ## Test
 
@@ -32,34 +32,20 @@ For frontend development, run `cargo run` and `npm run dev` in separate terminal
 npm test
 ```
 
-The command checks release contracts, builds `dist/` and the Rust service, then runs the Playwright suite. Building the service before Playwright's startup timer keeps the first claim command reliable on a clean checkout. Claim tests are listed in `.factory/claims.json` and use only fresh sessions or `/demo` sample data.
-
 ## Container
 
 ```sh
 docker build --build-arg BUILD_SHA=$(git rev-parse HEAD) -t in-class-draft-ticket .
-docker run --rm -p 8080:8080 -v draft-ticket-data:/app/data in-class-draft-ticket
+docker run --rm -p 8080:8080 -v draft-ticket-data:/data in-class-draft-ticket
 ```
 
-The container runs as a non-root user. `PORT` defaults to `8080`. `DATA_DIR` and `DATABASE_URL` are optional overrides. `GET /health` returns the build SHA.
+`PORT` defaults to `8080`. With no `DATABASE_URL`, local SQLite uses `/data` when it is mounted and `./data` otherwise. `DATA_DIR` chooses another local path.
 
-The container needs no configuration beyond `PORT`. Without `DATABASE_URL`, it uses local SQLite under `/app/data`.
-
-Local and self-hosted containers keep the zero-configuration SQLite default.
+`GET /health` returns the build SHA and selected storage backend.
 
 ## Release
 
-Authorized factory workers deploy the committed revision with `npm run deploy:release`. This command changes the live service, so it is not a claim test.
-
-The release command rejects dirty or unpushed code. It samples the uncached live build identity 20 times before and after a restart. It also checks browser flows, rate limiting, and record persistence.
-
-To check a deployed candidate without changing production, run:
-
-```sh
-LIVE_EXPECTED_SHA=$(git rev-parse HEAD) npm run verify:live-identity
-```
-
-The latest SHA-bound deployment evidence is recorded in [`.factory/polish-3.md`](.factory/polish-3.md). The deployment contract remains in [`deployment/containerapp-contract.json`](deployment/containerapp-contract.json).
+Factory workers deploy a clean, pushed `main` commit with `npm run deploy:release`. The release gate rejects a revision that lacks the PostgreSQL secret, has more than one replica, or is not ready.
 
 ## Privacy and limits
 

@@ -16,6 +16,9 @@
     "minReplicas": 1,
     "maxReplicas": 1
   },
+  "deploy": {
+    "data_dir": "/data"
+  },
   "runtime": {
     "port": 8080,
     "requiredEnvironment": [

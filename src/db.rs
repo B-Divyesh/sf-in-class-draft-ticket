@@ -202,7 +202,7 @@ pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
     }
 }
 
-fn storage_configuration(
+pub(crate) fn storage_configuration(
     database_url: Option<&str>,
     managed_container_app: bool,
 ) -> anyhow::Result<Option<String>> {
