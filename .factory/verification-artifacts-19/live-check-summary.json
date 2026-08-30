@@ -1,0 +1,40 @@
+{
+  "candidate_sha": "b0ce723b11f00169f5ca2cab5c00776d5ad22569",
+  "health_identity_samples": 20,
+  "health_build_sha": "b0ce723b11f00169f5ca2cab5c00776d5ad22569",
+  "health_storage_backend": "postgres",
+  "declared_claims_passed": 10,
+  "declared_claims_total": 10,
+  "local_playwright_passed": 58,
+  "live_playwright_passed": 58,
+  "axe_serious_or_critical": 0,
+  "rate_limit": {
+    "window_seconds": 1,
+    "allowance": 40,
+    "burst_requests": 50,
+    "ordinary_responses": 40,
+    "limited_responses": 10,
+    "retry_after": "1"
+  },
+  "concurrent_ticket_writes": {
+    "attempted": 40,
+    "created": 40,
+    "persisted": 40
+  },
+  "requests": {
+    "external_origins": [],
+    "console_errors": 0,
+    "page_errors": 0
+  },
+  "lighthouse_mobile": {
+    "performance": 97,
+    "accessibility": 100,
+    "best_practices": 100,
+    "seo": 100,
+    "fcp_seconds": 1.2,
+    "lcp_seconds": 1.5,
+    "tbt_milliseconds": 160,
+    "cls": 0.06,
+    "total_transfer_kib": 139
+  }
+}
