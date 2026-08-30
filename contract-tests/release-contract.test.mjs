@@ -260,9 +260,12 @@ test('live identity gate rejects stale builds and expects SQLite', async () => {
 
 test('health remains no-store while reporting the SQLite identity', async () => {
   const server = await read('src/main.rs');
+  const database = await read('src/db.rs');
   assert.match(server, /let is_health = req\.uri\(\)\.path\(\) == "\/health"/);
   assert.match(server, /HeaderValue::from_static\("no-store, max-age=0"\)/);
   assert.match(server, /"storage_backend": state\.db\.storage_backend\(\)/);
+  assert.match(database, /\.vfs\("unix-dotfile"\)/, 'mounted SQLite must not use SMB byte-range locks');
+  assert.match(database, /SqliteJournalMode::Delete/, 'mounted SQLite must use a rollback journal');
 });
 
 test('a mounted SQLite file persists an API record across a process restart', {

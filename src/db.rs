@@ -119,7 +119,12 @@ pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
         .filename(&database_path)
         .create_if_missing(true)
         .foreign_keys(true)
-        // A rollback journal is supported on the mounted Azure Files share.
+        // Azure Files is mounted over SMB, where SQLite's default POSIX byte
+        // locks remain permanently busy after a container handoff. Dotfile
+        // locking uses atomic directory creation on the shared filesystem.
+        // Every database operation also holds FileGate, so readers and writers
+        // remain serialized across a rolling one-replica deployment.
+        .vfs("unix-dotfile")
         // WAL assumes local shared memory and is not safe on a network mount.
         .journal_mode(SqliteJournalMode::Delete)
         .busy_timeout(SQLITE_BUSY_TIMEOUT);
@@ -173,6 +178,7 @@ mod tests {
         let blocker_options = SqliteConnectOptions::new()
             .filename(data_dir.join("tickets.db"))
             .foreign_keys(true)
+            .vfs("unix-dotfile")
             .busy_timeout(SQLITE_BUSY_TIMEOUT);
         let blocker = SqlitePoolOptions::new()
             .max_connections(1)
