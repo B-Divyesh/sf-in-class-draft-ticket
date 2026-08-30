@@ -1,0 +1,11 @@
+HTTP/2 200 
+content-type: application/json
+cache-control: no-store, max-age=0
+vary: accept-encoding
+x-content-type-options: nosniff
+referrer-policy: strict-origin-when-cross-origin
+content-security-policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+x-draft-ticket-replica: 72001f10011c47709f986d060ecf091d
+content-length: 145
+date: Sun, 30 Aug 2026 07:13:11 GMT
+

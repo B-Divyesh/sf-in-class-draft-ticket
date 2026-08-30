@@ -1,65 +1,61 @@
-# Verification 20 handoff — In-Class Draft Ticket
+# Repair 17 handoff — In-Class Draft Ticket
 
-## Status: FAIL
+## Status: PASS
 
-Candidate `0207da79fb9bdc69d63b379bd26b05cf32eab640` passes all local claims and quality gates, but is not releasable. Its selected revision `sf-in-class-draft-ticket--0000056` is unhealthy and crash-loops with SQLite `(code: 5) database is locked`. The public URL still serves build `b0ce723b11f00169f5ca2cab5c00776d5ad22569` with `storage_backend: postgres`.
+Release candidate `f6ac9925defdf5d41442543c7f3e9ede176458c8` is live at <https://in-class-draft-ticket.sociobot.in>. `/health` reports that full SHA and `storage_backend: "sqlite"`. Container App revision `sf-in-class-draft-ticket--0000058` is the sole active revision, is healthy, and has one ready replica.
 
-Full independent evidence and defects: [verification-20.md](verification-20.md).
+Immutable image: `sociobotregistry.azurecr.io/sf-in-class-draft-ticket:f6ac9925defd`
+Image digest: `sha256:506bfb35a8e05d047643c4eb4a2e3678eece3b134ea6fc1a67522564996cccfa`
 
-## What changed
+## Failure reproduced and root cause
 
-- Reproduced the captured unsafe revision fixture before changing code. The fixture described a non-ready latest revision with a missing durable mount and an invalid replica range.
-- Migrated runtime storage to the sole SQLite database at `/data/tickets.db` (with `./data/tickets.db` only as the documented local fallback). SQLite schema setup, rate counters, teacher-token hashes, and session data now use the same file.
-- Removed external-database dependencies, connection branches, migrations, deployment secrets, and stale verifier artifacts. The rendered container contract has exactly one replica, only `PORT`, and one durable volume mounted at `/data`.
-- Replaced the old sequential ticket-cap check with 45 concurrent, separately identified submissions. It asserts exactly 40 created tickets, five conflicts, and 40 persisted records.
-- Added regression gates that reject forbidden service identifiers, non-`PORT` environment entries, runtime secrets, absent `/data` mounts, non-ready revisions, and more than one replica. A process-level test proves an API record remains after restart using the same mounted data directory.
-- Tightened the CSP to same-origin connections and forms; the product has no runtime external calls.
+Before editing, a disposable SQLite fixture held `BEGIN EXCLUSIVE` beyond the configured three-second busy timeout. Candidate `0207da79fb9bdc69d63b379bd26b05cf32eab640` exited during migration with the same verifier error: `(code: 5) database is locked`.
 
-## Verification
+The first repair candidate extended retry coverage from pool connection through migration. Local contention recovered, but scoped revision logs from `sf-in-class-draft-ticket` showed every retry still received code 5 on Azure Files. No second SQLite revision was active. The mounted SMB share was retaining SQLite's default POSIX byte-range lock, so waiting alone could not repair startup.
 
-All commands below passed on 30 August 2026 UTC:
+The final repair selects bundled SQLite's `unix-dotfile` VFS, which uses atomic lock-directory creation on the mounted filesystem. It keeps rollback-journal mode, a single connection, the existing cross-process application file gate, bounded busy retries, and the one-replica contract. The same database remains `/data/tickets.db`; no database was inspected, replaced, or removed.
+
+## Code and regression coverage
+
+- `src/db.rs` retries connection and migration lock failures together, recognizes SQLite busy/locked codes, logs retry attempts, selects `unix-dotfile`, and explicitly rejects WAL on the mounted share.
+- `startup_waits_for_mounted_database_lock_instead_of_exiting` holds the mount-safe SQLite lock beyond the old timeout, proves startup remains alive, releases the lock, and verifies the schema opens successfully.
+- The release contract requires the mount-safe VFS and rollback journal.
+- The source scan now excludes `.factory` verification evidence, which necessarily quotes historical backend failures, while continuing to scan all source and packaging inputs.
+- The free-capacity claim now stays below the separately tested ingress rate window, then races 15 concurrent requests for the final 10 slots. Local parallel projects and live ingress both prove exactly 40 created tickets and five capacity conflicts.
+
+## Local verification
+
+Run on 30 August 2026 UTC from a clean `npm ci`:
 
 ```sh
-npm ci
-npm test                         # 14 contract tests; 58 Playwright tests
-npx tsc --noEmit
-npm run build                    # dist/ produced
-cargo fmt --all -- --check
+npm test                                      # 14 contracts; 58 Playwright tests
+cargo test --all-targets --all-features       # 9 passed
 cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets --all-features  # 8 tests
+cargo fmt --all -- --check
+npx tsc --noEmit
+npm run build                                 # dist/ produced
 cargo build --release
-npm audit --omit=dev --audit-level=high  # 0 vulnerabilities
+npm audit --omit=dev --audit-level=high       # 0 vulnerabilities
 bash -n deployment/deploy.sh
 ```
 
-Each of the 13 commands listed in `.factory/claims.json` also passed separately from the clean install. The browser claim commands ran in both desktop and mobile Chromium projects.
+Every command in `.factory/claims.json` passed independently. The lock regression also passed in isolation. `/opt/fleet/lib/verify-url.sh` passed the demo at desktop and 390px with no console errors, one h1, `lang=en`, a main landmark, complete alt text, and labelled controls. Evidence is under `.factory/evidence-repair-17/local-url/`.
 
-`/opt/fleet/lib/verify-url.sh` passed against a fresh local server: HTTP 200, title, `lang=en`, one h1, main landmark, complete image alt text, labelled controls, and no console errors. Its desktop and 390px screenshots plus JSON report were written to `/tmp/draft-ticket-verify-evidence.0231HA`. The Playwright suite also passed axe scans on every public route at desktop and 390px, keyboard skip-link/focus checks, 200% reflow, reduced motion, route metadata, direct-link documents, service-worker update, and offline reload.
+The 58-test browser suite covers desktop and mobile Chromium, keyboard focus, touch targets, all public routes, axe serious/critical checks, 200% text reflow, reduced motion, request privacy, demo isolation/reset, API errors, service-worker update, and offline reload.
 
-Local response evidence: `/health` returned `storage_backend: "sqlite"`, `Cache-Control: no-store, max-age=0`, CSP with `connect-src 'self'`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+## Packaging and live verification
 
-## Deployment
+- Built from a clean Git archive with the full SHA supplied as `BUILD_SHA`; no `.git` directory or secret entered the image.
+- Deployment changed only `sf-in-class-draft-ticket` through `deployment/deploy.sh`.
+- Applied template: active revision mode `Single`, min/max replicas `1/1`, only `PORT=8080`, no runtime secrets, and product storage `sf-in-class-draft-ticket-data` mounted at `/data`.
+- Twenty uncached health samples before and after restart returned candidate SHA `f6ac9925defdf5d41442543c7f3e9ede176458c8` and `storage_backend: sqlite`.
+- Live E2E passed demo provisioning, three seeded tickets, teacher/student reads, CSV formula neutralization, authorization, deletion, and the 40 req/s boundary with `429` plus `Retry-After: 1`.
+- A real session was created before `az containerapp revision restart`. The gate rejected responses from the old process, then observed a new process and read the same session through both student and authenticated teacher routes before deleting the fixture.
+- The complete live Playwright suite passed: 58/58 across desktop and mobile, including all registered browser claims and 390px 200% reflow.
+- Live `verify-url.sh` passed with no console errors. Evidence, health headers, topology, replica status, and screenshots are under `.factory/evidence-repair-17/live-url/`.
+- Live mobile Lighthouse: performance **99**, accessibility **100**, LCP **1.5 s**, CLS **0.06**, TBT **80 ms**, speed index **1.2 s**. Report: `.factory/evidence-repair-17/lighthouse-mobile.json`.
+- Bundle sizes remain within budget: JS 63.06 kB raw / 22.87 kB gzip; CSS 16.12 kB raw / 4.30 kB gzip; fonts 118,264 bytes; hero WebP 46,170 bytes.
 
-Run after the factory packaging step supplies an immutable image:
+## Known gaps and next steps
 
-```sh
-DEPLOY_IMAGE=<immutable-image> npm run deploy:release
-```
-
-The command validates a clean, pushed source commit; patches only the product Container App; requires the latest revision to be ready; checks one mounted `/data` volume and one ready replica; then verifies health identity and SQLite persistence across a revision restart.
-
-No cloud deployment was performed in this repair container because the final precondition check found no `DEPLOY_IMAGE`, and the safety scope forbids building through or inspecting shared infrastructure. No shared service or secret store was contacted.
-
-## Independent verification result
-
-- Every exact command in `.factory/claims.json` passed locally before broader QA.
-- Fresh clean-checkout gates passed: 58/58 Playwright, 14/14 contract, 8/8 Rust, TypeScript, Clippy, formatting, production frontend/backend builds, shell syntax, and audit.
-- The live candidate comparison failed: stale SHA and frontend hashes, PostgreSQL health identity, candidate activation failure, and 5 live Playwright failures.
-- The desired app template is clean and scoped: only `PORT`, no secret/Key Vault metadata, one `/data` volume, min/max replicas 1. No forbidden or unrelated cloud resource was inspected.
-- Local default `/data` SQLite persistence passed across graceful process restart. Production persistence cannot pass because the candidate never becomes ready.
-- Live rate limit allowance observed: 40 requests per one-second window; excess returned 429 with `Retry-After: 1`.
-- Mobile Lighthouse: local candidate 99 performance / 100 accessibility; live stale build 99 / 100.
-
-## Required next step
-
-Repair SQLite startup locking on the mounted `/data` share, package and deploy a new immutable candidate only to `sf-in-class-draft-ticket`, and rerun the release gate through a controlled revision restart. Do not release while the public health endpoint reports PostgreSQL or a non-candidate SHA.
+No release-blocking gap remains. Independent verification should use candidate `f6ac9925defdf5d41442543c7f3e9ede176458c8` and the live evidence above.

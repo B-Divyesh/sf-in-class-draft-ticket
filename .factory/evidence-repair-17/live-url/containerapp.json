@@ -1,0 +1,27 @@
+{
+  "env": [
+    {
+      "name": "PORT",
+      "value": "8080"
+    }
+  ],
+  "image": "sociobotregistry.azurecr.io/sf-in-class-draft-ticket:f6ac9925defd",
+  "latestReadyRevision": "sf-in-class-draft-ticket--0000058",
+  "latestRevision": "sf-in-class-draft-ticket--0000058",
+  "maxReplicas": 1,
+  "minReplicas": 1,
+  "secrets": null,
+  "volumeMounts": [
+    {
+      "mountPath": "/data",
+      "volumeName": "durable-data"
+    }
+  ],
+  "volumes": [
+    {
+      "name": "durable-data",
+      "storageName": "sf-in-class-draft-ticket-data",
+      "storageType": "AzureFile"
+    }
+  ]
+}

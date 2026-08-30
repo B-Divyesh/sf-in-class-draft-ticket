@@ -152,18 +152,24 @@ test('@claim:session-retention supports every retention choice and deletes an ex
   }
 });
 
-test('@claim:free-capacity concurrent requests store exactly 40 free-session tickets', async ({request}) => {
+test('@claim:free-capacity concurrent requests store exactly 40 free-session tickets', async ({request}, testInfo) => {
   const created = await newSession(request);
   const body = {pseudonym:'Blue Finch',claim:'A focused working claim.',evidence:'Page 4, paragraph 2.',revision:'I moved the quotation earlier.',reflection:'I will explain the image next.'};
-  const responses = await Promise.all(Array.from({length:45}, (_, i) => request.post(
-    `/api/sessions/${created.session.code}/tickets`,
-    {
-      data:{...body,pseudonym:`Blue Finch ${i}`},
-      // Distinct trusted client addresses isolate the ticket-cap boundary from
-      // the separately tested per-client request-rate boundary.
-      headers:{'X-Forwarded-For':`198.51.100.${i + 1}`}
-    }
-  )));
+  const submit = (i:number) => request.post(`/api/sessions/${created.session.code}/tickets`, {
+    data:{...body,pseudonym:`Blue Finch ${i}`},
+    // Local desktop/mobile projects run in parallel. Live ingress appends the
+    // observed address, so this fixture value cannot bypass the public limit.
+    headers:{'X-Forwarded-For':testInfo.project.name === 'mobile-chromium' ? '198.51.100.202' : '198.51.100.201'}
+  });
+  // Public requests share the ingress address, which callers cannot spoof.
+  // Stay below the separately tested 40 req/s limit, then race 15 requests for
+  // the final 10 capacity slots to prove the database boundary is atomic.
+  await new Promise(resolve => setTimeout(resolve, 1_100));
+  const setup = await Promise.all(Array.from({length:30}, (_, i) => submit(i)));
+  expect(setup.filter(response => response.status() === 201)).toHaveLength(30);
+  await new Promise(resolve => setTimeout(resolve, 1_100));
+  const boundary = await Promise.all(Array.from({length:15}, (_, i) => submit(i + 30)));
+  const responses = [...setup, ...boundary];
   expect(responses.filter(response => response.status() === 201)).toHaveLength(40);
   expect(responses.filter(response => response.status() === 409)).toHaveLength(5);
   const overflowBodies = await Promise.all(responses.filter(response => response.status() === 409).map(response => response.json()));
