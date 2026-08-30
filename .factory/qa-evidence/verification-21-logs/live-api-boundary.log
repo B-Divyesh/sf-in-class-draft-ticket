@@ -1,0 +1,90 @@
+{
+  "invalid_short_session": {
+    "status": 400,
+    "body": {
+      "error": "Class name must be 2–80 characters."
+    }
+  },
+  "invalid_retention": {
+    "status": 400,
+    "body": {
+      "error": "Retention must be 1, 7, or 30 days."
+    }
+  },
+  "create_minimum": {
+    "status": 201,
+    "session": {
+      "code": "DC2UY6",
+      "title": "AB",
+      "prompt": "abcd",
+      "created_at": "2026-08-30T07:50:44.809282158Z",
+      "expires_at": "2026-08-31T07:50:44.809282158Z",
+      "is_demo": false
+    },
+    "teacher_token": "[redacted]"
+  },
+  "public_read": {
+    "status": 200,
+    "body": {
+      "code": "DC2UY6",
+      "title": "AB",
+      "prompt": "abcd",
+      "created_at": "2026-08-30T07:50:44.809282158Z",
+      "expires_at": "2026-08-31T07:50:44.809282158Z",
+      "is_demo": false
+    }
+  },
+  "unauthorized_teacher": {
+    "status": 401,
+    "body": {
+      "error": "Teacher access is missing. Open the private teacher link from this device."
+    }
+  },
+  "invalid_ticket": {
+    "status": 400,
+    "body": {
+      "error": "Class nickname must be 2–40 characters."
+    }
+  },
+  "create_maximum_ticket": {
+    "status": 201,
+    "body": {
+      "id": "0f3075df-39ce-476c-9d05-9a7bf36b0f18",
+      "session_code": "DC2UY6",
+      "pseudonym": "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP",
+      "claim": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "evidence": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+      "revision": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR",
+      "reflection": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "created_at": "2026-08-30T07:50:45.628929897Z"
+    }
+  },
+  "authorized_teacher": {
+    "status": 200,
+    "ticket_count": 1,
+    "field_lengths": {
+      "pseudonym": 40,
+      "claim": 280,
+      "evidence": 280,
+      "revision": 280,
+      "reflection": 500
+    }
+  },
+  "csv": {
+    "status": 200,
+    "contentType": "text/csv; charset=utf-8",
+    "contentDisposition": "attachment; filename=\"draft-tickets-DC2UY6.csv\"",
+    "lineCount": 2,
+    "header": "class_nickname,claim,evidence_location,revision_choice,exit_reflection,submitted_at"
+  },
+  "delete": {
+    "status": 204,
+    "body": ""
+  },
+  "read_after_delete": {
+    "status": 404,
+    "body": {
+      "error": "That session code was not found. Check the six characters and try again."
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "titleTabs": 7,
+  "createdCodePattern": true,
+  "buttonFocus": {
+    "outline": "rgb(49, 94, 168) solid 3px",
+    "outlineColor": "rgb(49, 94, 168)",
+    "outlineWidth": "3px"
+  },
+  "motion": {
+    "reduced": true,
+    "animations": []
+  },
+  "ticketRecorded": true,
+  "touchTargetsBelow44": [],
+  "serviceWorker": {
+    "scope": "https://in-class-draft-ticket.sociobot.in/",
+    "controller": true,
+    "caches": [
+      "draft-ticket-v3"
+    ]
+  },
+  "offlineReloadHeading": "Review this drafting session",
+  "consoleAndPageErrors": [
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+  ]
+}

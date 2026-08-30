@@ -1,0 +1,26 @@
+{
+  "startedMod": 0,
+  "elapsed": 7488,
+  "counts": {
+    "404": 40,
+    "429": 10
+  },
+  "retry429": [
+    "1"
+  ],
+  "replicas": [
+    "452d89a7b8f742ef822a0fc0dac04b8a"
+  ],
+  "first429": {
+    "i": 3,
+    "status": 429,
+    "retry": "1",
+    "replica": "452d89a7b8f742ef822a0fc0dac04b8a",
+    "ended": 5981,
+    "body": "{\"error\":\"Too many requests. Wait one second, then try again.\"}"
+  },
+  "responseCompletionMs": {
+    "min": 1353,
+    "max": 7487
+  }
+}

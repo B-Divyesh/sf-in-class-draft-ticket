@@ -1,0 +1,1477 @@
+
+===== CLAIM sample-demo =====
+COMMAND: npm test -- --grep @claim:sample-demo
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 7.141707
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 0.888489
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 2.512267
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 57.674551
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 8.596888
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 543.298439
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 1.325183
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 189.768834
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 6.758812
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 357.482054
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 1.254184
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 4.784837
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 1.470381
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.436381
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1331.89179
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:36:08 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 593ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:sample-demo
+
+
+Running 2 tests using 2 workers
+(node:4403) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4402) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4403) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4402) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (8.6s)
+RESULT: sample-demo exit=0
+
+===== CLAIM csv-export =====
+COMMAND: npm test -- --grep @claim:csv-export
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 6.18142
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 1.248884
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 2.247871
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 70.77938
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 8.070895
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 496.044053
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 1.128485
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 195.812455
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 47.585882
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 307.498603
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 0.974087
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 3.966448
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 1.052987
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.219484
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1278.625983
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:36:22 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 754ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:csv-export
+
+
+Running 2 tests using 2 workers
+(node:4677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4678) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4678) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (7.1s)
+RESULT: csv-export exit=0
+
+===== CLAIM pseudonymous-flow =====
+COMMAND: npm test -- --grep @claim:pseudonymous-flow
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 6.845411
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 1.047287
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 4.960735
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 46.140301
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 13.564124
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 519.827744
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 1.54088
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 181.646239
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 7.302205
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 342.303151
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 1.183985
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 4.058147
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 1.133586
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.132085
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1290.444429
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:36:34 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 694ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:pseudonymous-flow
+
+
+Running 2 tests using 2 workers
+(node:4955) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4956) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4955) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4956) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (8.9s)
+RESULT: pseudonymous-flow exit=0
+
+===== CLAIM session-retention =====
+COMMAND: npm test -- --grep @claim:session-retention
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 7.6954
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 1.072186
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 3.07756
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 62.395589
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 5.669726
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 508.046697
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 1.445482
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 178.164984
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 31.650889
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 310.661262
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 1.52478
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 4.125946
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 1.225184
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.403882
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1286.773576
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:36:48 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 645ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:session-retention
+
+
+Running 2 tests using 2 workers
+(node:5229) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5228) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5229) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5228) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (7.7s)
+RESULT: session-retention exit=0
+
+===== CLAIM free-capacity =====
+COMMAND: npm test -- --grep @claim:free-capacity
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.13s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 6.188919
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 1.074586
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 2.243871
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 47.283886
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 6.96951
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 500.327397
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 1.142685
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 164.237166
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 51.336933
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 326.367558
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 1.364283
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 7.182006
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 1.376482
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.495781
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1271.043381
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:37:00 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 763ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:free-capacity
+
+
+Running 2 tests using 2 workers
+(node:5517) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5518) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5518) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5517) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (10.1s)
+RESULT: free-capacity exit=0
+
+===== CLAIM privacy-minimal =====
+COMMAND: npm test -- --grep @claim:privacy-minimal
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.19s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 7.656066
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 1.187457
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 3.044246
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 62.913706
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 6.724821
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 518.474069
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 4.687924
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 209.367002
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 13.017122
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 336.785089
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 1.522572
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 4.1978
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 1.089652
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.060751
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1379.061882
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:37:16 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 651ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:privacy-minimal
+
+
+Running 2 tests using 2 workers
+(node:5841) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5841) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (8.5s)
+RESULT: privacy-minimal exit=0
+
+===== CLAIM data-storage-minimization =====
+COMMAND: cargo test claim_data_storage_minimization -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+     Running unittests src/main.rs (target/debug/deps/in_class_draft_ticket-dab4fa5172bbfc42)
+
+running 1 test
+test tests::claim_data_storage_minimization_inventory_hashes_and_deletion ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.23s
+
+RESULT: data-storage-minimization exit=0
+
+===== CLAIM no-ai-detection-or-authorship-verdict =====
+COMMAND: npm test -- --grep @claim:no-ai-detection-or-authorship-verdict
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 6.670019
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 1.848789
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 3.76718
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 61.190624
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 6.235098
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 511.092317
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 1.24656
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 203.021199
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 7.159842
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 346.022631
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 1.167556
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 4.676024
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 1.176057
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.331664
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1316.01357
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:37:30 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 695ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:no-ai-detection-or-authorship-verdict
+
+
+Running 2 tests using 2 workers
+(node:6154) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6155) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6155) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6154) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (7.5s)
+RESULT: no-ai-detection-or-authorship-verdict exit=0
+
+===== CLAIM free-no-account-core-flow =====
+COMMAND: npm test -- --grep @claim:free-no-account-core-flow
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 6.139293
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 0.910444
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 2.252508
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 56.465197
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 5.765175
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 508.23918
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 1.181856
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 176.092612
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 9.262943
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 281.896367
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 1.203258
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 7.174843
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 2.397615
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.434268
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1210.457627
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:37:42 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 652ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:free-no-account-core-flow
+
+
+Running 2 tests using 2 workers
+(node:6436) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6437) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6437) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6436) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (10.9s)
+RESULT: free-no-account-core-flow exit=0
+
+===== CLAIM teacher-control =====
+COMMAND: npm test -- --grep @claim:teacher-control
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.11s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 7.437877
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 1.031897
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 1.928594
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 64.364407
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 5.699783
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 494.305218
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 1.681995
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 200.3338
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 46.222462
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 280.556559
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 1.193396
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 4.253687
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 1.044597
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.171996
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1249.325853
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:37:58 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 628ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:teacher-control
+
+
+Running 2 tests using 2 workers
+(node:6722) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6721) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6722) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6721) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (5.7s)
+RESULT: teacher-control exit=0
+
+===== CLAIM runtime-defaults =====
+COMMAND: cargo test claim_runtime_defaults -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running unittests src/main.rs (target/debug/deps/in_class_draft_ticket-dab4fa5172bbfc42)
+
+running 1 test
+test tests::claim_runtime_defaults_prefer_the_durable_mount_and_remain_zero_config_locally ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+RESULT: runtime-defaults exit=0
+
+===== CLAIM health-build-identity =====
+COMMAND: npm test -- --grep @claim:health-build-identity
+
+> in-class-draft-ticket@1.0.0 pretest
+> cargo build && npm run test:contracts && npm run build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 pretest:contracts
+> cargo build
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+
+> in-class-draft-ticket@1.0.0 test:contracts
+> node --test contract-tests/release-contract.test.mjs
+
+TAP version 13
+# Subtest: container build tracks stable Rust and includes only SQLite inputs
+ok 1 - container build tracks stable Rust and includes only SQLite inputs
+  ---
+  duration_ms: 21.977435
+  type: 'test'
+  ...
+# Subtest: raw social metadata uses factual product copy
+ok 2 - raw social metadata uses factual product copy
+  ---
+  duration_ms: 2.821492
+  type: 'test'
+  ...
+# Subtest: production uses one mounted SQLite replica and no optional runtime environment
+ok 3 - production uses one mounted SQLite replica and no optional runtime environment
+  ---
+  duration_ms: 2.688092
+  type: 'test'
+  ...
+# Subtest: deployment renderer mounts /data and configures only PORT
+ok 4 - deployment renderer mounts /data and configures only PORT
+  ---
+  duration_ms: 46.88816
+  type: 'test'
+  ...
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 5 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 6.369681
+  type: 'test'
+  ...
+# Subtest: repository, deployment files, and dependency lock contain no forbidden storage references
+ok 6 - repository, deployment files, and dependency lock contain no forbidden storage references
+  ---
+  duration_ms: 495.636313
+  type: 'test'
+  ...
+# Subtest: deployment script only mutates this app and verifies mounted SQLite persistence
+ok 7 - deployment script only mutates this app and verifies mounted SQLite persistence
+  ---
+  duration_ms: 1.300096
+  type: 'test'
+  ...
+# Subtest: live identity gate rejects stale builds and expects SQLite
+ok 8 - live identity gate rejects stale builds and expects SQLite
+  ---
+  duration_ms: 195.326914
+  type: 'test'
+  ...
+# Subtest: health remains no-store while reporting the SQLite identity
+ok 9 - health remains no-store while reporting the SQLite identity
+  ---
+  duration_ms: 49.97875
+  type: 'test'
+  ...
+# Subtest: a mounted SQLite file persists an API record across a process restart
+ok 10 - a mounted SQLite file persists an API record across a process restart
+  ---
+  duration_ms: 260.572418
+  type: 'test'
+  ...
+# Subtest: claim runner compiles before Playwright starts its server timer
+ok 11 - claim runner compiles before Playwright starts its server timer
+  ---
+  duration_ms: 1.618095
+  type: 'test'
+  ...
+# Subtest: every listed product claim has exactly one tagged regression test
+ok 12 - every listed product claim has exactly one tagged regression test
+  ---
+  duration_ms: 4.109188
+  type: 'test'
+  ...
+# Subtest: every product claim runs in a clean local sandbox
+ok 13 - every product claim runs in a clean local sandbox
+  ---
+  duration_ms: 1.532996
+  type: 'test'
+  ...
+# Subtest: README behavioral promises are all registered claims
+ok 14 - README behavioral promises are all registered claims
+  ---
+  duration_ms: 1.291296
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1226.047524
+
+> in-class-draft-ticket@1.0.0 build
+> vite build
+
+7:38:08 AM [vite-plugin-svelte] no Svelte config found at /work/repo - using default configuration.
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 112 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  1.63 kB │ gzip:  0.59 kB
+dist/assets/index-DwHUVCmD.css  16.12 kB │ gzip:  4.30 kB
+dist/assets/index-JoVE5poV.js   63.06 kB │ gzip: 22.87 kB │ map: 499.09 kB
+
+✓ built in 630ms
+
+> in-class-draft-ticket@1.0.0 test
+> playwright test --grep @claim:health-build-identity
+
+
+Running 2 tests using 2 workers
+(node:7026) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7026) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+··
+  2 passed (5.5s)
+RESULT: health-build-identity exit=0
+
+===== CLAIM release-contract =====
+COMMAND: cargo build && node --test --test-name-pattern='@claim:release-contract' contract-tests/release-contract.test.mjs
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+TAP version 13
+# Subtest: @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+ok 1 - @claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting
+  ---
+  duration_ms: 9.448085
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 160.627039
+RESULT: release-contract exit=0
+
+CLAIMS_OVERALL_EXIT=0
