@@ -4,6 +4,8 @@
 
 The repository repair is complete and buildable. Deployment is intentionally pending factory image packaging: the checked-in deploy command accepts an immutable `DEPLOY_IMAGE` and mutates only `sf-in-class-draft-ticket`.
 
+Repair commit: `d70b0a99c65d42d3cb7845d41be6f48cd1e395ba` (pushed to `main`).
+
 ## What changed
 
 - Reproduced the captured unsafe revision fixture before changing code. The fixture described a non-ready latest revision with a missing durable mount and an invalid replica range.
@@ -46,7 +48,7 @@ DEPLOY_IMAGE=<immutable-image> npm run deploy:release
 
 The command validates a clean, pushed source commit; patches only the product Container App; requires the latest revision to be ready; checks one mounted `/data` volume and one ready replica; then verifies health identity and SQLite persistence across a revision restart.
 
-No cloud deployment was performed in this repair container because no immutable product image was supplied and the safety scope forbids building through or inspecting shared infrastructure. No shared service or secret store was contacted.
+No cloud deployment was performed in this repair container because the final precondition check found no `DEPLOY_IMAGE`, and the safety scope forbids building through or inspecting shared infrastructure. No shared service or secret store was contacted.
 
 ## Known gap
 
