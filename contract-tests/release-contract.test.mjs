@@ -183,7 +183,9 @@ test('repository, deployment files, and dependency lock contain no forbidden sto
     'post' + 'gres',
     'DATABASE' + '_URL'
   ];
-  const skip = new Set(['.git', 'node_modules', 'target', 'dist', 'graphify-out']);
+  // Verifier reports are historical evidence and quote the failed backend.
+  // Scan only source and packaging inputs that can enter the release image.
+  const skip = new Set(['.factory', '.git', 'node_modules', 'target', 'dist', 'graphify-out']);
   async function filesAt(path) {
     const files = [];
     for (const entry of await readdir(path, { withFileTypes: true })) {

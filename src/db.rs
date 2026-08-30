@@ -7,7 +7,12 @@ use std::{
 
 use fs2::FileExt;
 use sqlx_core::{query::query, query_scalar::query_scalar};
-use sqlx_sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
+use sqlx_sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions};
+use tracing::warn;
+
+const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(3);
+const STARTUP_ATTEMPTS: u32 = 30;
+const STARTUP_RETRY_DELAY: Duration = Duration::from_millis(250);
 
 #[derive(Clone)]
 pub struct Database {
@@ -63,7 +68,7 @@ impl Drop for DatabaseGuard {
     }
 }
 
-pub async fn migrate(pool: &SqlitePool) -> anyhow::Result<()> {
+pub async fn migrate(pool: &SqlitePool) -> Result<(), sqlx_core::Error> {
     for statement in [
         "CREATE TABLE IF NOT EXISTS sessions (code TEXT PRIMARY KEY, title TEXT NOT NULL, prompt TEXT NOT NULL, teacher_token TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 0)",
         "CREATE TABLE IF NOT EXISTS tickets (id TEXT PRIMARY KEY, session_code TEXT NOT NULL REFERENCES sessions(code) ON DELETE CASCADE, pseudonym TEXT NOT NULL, claim TEXT NOT NULL, evidence TEXT NOT NULL, revision TEXT NOT NULL, reflection TEXT NOT NULL, created_at TEXT NOT NULL)",
@@ -85,11 +90,19 @@ pub async fn migrate(pool: &SqlitePool) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(test)]
-fn retryable_migration_error(message: &str) -> bool {
-    message.contains("database is locked")
+fn retryable_startup_error(error: &sqlx_core::Error) -> bool {
+    match error {
+        sqlx_core::Error::Database(database) => {
+            retryable_lock_values(database.code().as_deref(), database.message())
+        }
+        _ => false,
+    }
+}
+
+fn retryable_lock_values(code: Option<&str>, message: &str) -> bool {
+    matches!(code, Some("5") | Some("6"))
+        || message.contains("database is locked")
         || message.contains("database is busy")
-        || message.contains("UNIQUE constraint failed: _sqlx_migrations.version")
 }
 
 pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
@@ -106,41 +119,94 @@ pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
         .filename(&database_path)
         .create_if_missing(true)
         .foreign_keys(true)
-        .busy_timeout(Duration::from_secs(3));
-    let pool = {
-        let mut connected = None;
-        for attempt in 0..30 {
-            match SqlitePoolOptions::new()
-                .max_connections(1)
-                .connect_with(options.clone())
-                .await
-            {
-                Ok(pool) => {
-                    connected = Some(pool);
-                    break;
-                }
-                Err(error) if error.to_string().contains("database is locked") && attempt < 29 => {
-                    tokio::time::sleep(Duration::from_millis(250)).await;
+        // A rollback journal is supported on the mounted Azure Files share.
+        // WAL assumes local shared memory and is not safe on a network mount.
+        .journal_mode(SqliteJournalMode::Delete)
+        .busy_timeout(SQLITE_BUSY_TIMEOUT);
+    for attempt in 1..=STARTUP_ATTEMPTS {
+        match SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(options.clone())
+            .await
+        {
+            Ok(pool) => match migrate(&pool).await {
+                Ok(()) => return Ok(Database { pool, gate }),
+                Err(error) if retryable_startup_error(&error) && attempt < STARTUP_ATTEMPTS => {
+                    pool.close().await;
+                    warn!(attempt, error = %error, "SQLite startup lock is busy; retrying");
                 }
                 Err(error) => return Err(error.into()),
+            },
+            Err(error) if retryable_startup_error(&error) && attempt < STARTUP_ATTEMPTS => {
+                warn!(attempt, error = %error, "SQLite connection lock is busy; retrying");
             }
+            Err(error) => return Err(error.into()),
         }
-        connected.expect("the bounded database connection retry always returns")
-    };
-    migrate(&pool).await?;
-    Ok(Database { pool, gate })
+        tokio::time::sleep(STARTUP_RETRY_DELAY).await;
+    }
+    unreachable!("the final SQLite startup attempt always returns")
 }
 
 #[cfg(test)]
 mod tests {
-    use super::retryable_migration_error;
+    use super::*;
+    use uuid::Uuid;
 
     #[test]
-    fn concurrent_migration_conflicts_are_retryable() {
-        assert!(retryable_migration_error(
-            "(code: 1555) UNIQUE constraint failed: _sqlx_migrations.version"
+    fn only_sqlite_lock_codes_are_retryable() {
+        assert!(retryable_lock_values(Some("5"), "database is locked"));
+        assert!(retryable_lock_values(Some("6"), "database table is locked"));
+        assert!(retryable_lock_values(None, "database is busy"));
+        assert!(!retryable_lock_values(
+            Some("1555"),
+            "unique constraint failed"
         ));
-        assert!(retryable_migration_error("database is locked"));
-        assert!(!retryable_migration_error("migration checksum changed"));
+    }
+
+    #[tokio::test]
+    async fn startup_waits_for_mounted_database_lock_instead_of_exiting() {
+        let data_dir =
+            std::env::temp_dir().join(format!("draft-ticket-startup-lock-{}", Uuid::new_v4()));
+        let seeded = connect(&data_dir).await.unwrap();
+        seeded.close().await;
+
+        let blocker_options = SqliteConnectOptions::new()
+            .filename(data_dir.join("tickets.db"))
+            .foreign_keys(true)
+            .busy_timeout(SQLITE_BUSY_TIMEOUT);
+        let blocker = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(blocker_options)
+            .await
+            .unwrap();
+        query("BEGIN EXCLUSIVE").execute(&blocker).await.unwrap();
+
+        let retry_dir = data_dir.clone();
+        let startup = tokio::spawn(async move { connect(&retry_dir).await });
+        // The candidate exited after this busy timeout. A repaired startup is
+        // still waiting for the mounted database to become writable.
+        tokio::time::sleep(SQLITE_BUSY_TIMEOUT + Duration::from_millis(300)).await;
+        assert!(
+            !startup.is_finished(),
+            "startup exited on transient SQLITE_BUSY"
+        );
+
+        query("ROLLBACK").execute(&blocker).await.unwrap();
+        blocker.close().await;
+        let database = tokio::time::timeout(Duration::from_secs(10), startup)
+            .await
+            .expect("startup did not recover after the mounted lock cleared")
+            .expect("startup task panicked")
+            .expect("startup returned a database error after the lock cleared");
+        let table_count: i64 = query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'sessions'",
+        )
+        .fetch_one(database.pool())
+        .await
+        .unwrap();
+        assert_eq!(table_count, 1);
+
+        database.close().await;
+        tokio::fs::remove_dir_all(data_dir).await.unwrap();
     }
 }
