@@ -1,10 +1,10 @@
-# Repair handoff — In-Class Draft Ticket
+# Verification 20 handoff — In-Class Draft Ticket
 
-## Status
+## Status: FAIL
 
-The repository repair is complete and buildable. Deployment is intentionally pending factory image packaging: the checked-in deploy command accepts an immutable `DEPLOY_IMAGE` and mutates only `sf-in-class-draft-ticket`.
+Candidate `0207da79fb9bdc69d63b379bd26b05cf32eab640` passes all local claims and quality gates, but is not releasable. Its selected revision `sf-in-class-draft-ticket--0000056` is unhealthy and crash-loops with SQLite `(code: 5) database is locked`. The public URL still serves build `b0ce723b11f00169f5ca2cab5c00776d5ad22569` with `storage_backend: postgres`.
 
-Repair commit: `d70b0a99c65d42d3cb7845d41be6f48cd1e395ba` (pushed to `main`).
+Full independent evidence and defects: [verification-20.md](verification-20.md).
 
 ## What changed
 
@@ -50,6 +50,16 @@ The command validates a clean, pushed source commit; patches only the product Co
 
 No cloud deployment was performed in this repair container because the final precondition check found no `DEPLOY_IMAGE`, and the safety scope forbids building through or inspecting shared infrastructure. No shared service or secret store was contacted.
 
-## Known gap
+## Independent verification result
 
-The final factory image packaging and product-app deployment remain to be run with the command above. The repository has the required configuration and local regression coverage for that handoff.
+- Every exact command in `.factory/claims.json` passed locally before broader QA.
+- Fresh clean-checkout gates passed: 58/58 Playwright, 14/14 contract, 8/8 Rust, TypeScript, Clippy, formatting, production frontend/backend builds, shell syntax, and audit.
+- The live candidate comparison failed: stale SHA and frontend hashes, PostgreSQL health identity, candidate activation failure, and 5 live Playwright failures.
+- The desired app template is clean and scoped: only `PORT`, no secret/Key Vault metadata, one `/data` volume, min/max replicas 1. No forbidden or unrelated cloud resource was inspected.
+- Local default `/data` SQLite persistence passed across graceful process restart. Production persistence cannot pass because the candidate never becomes ready.
+- Live rate limit allowance observed: 40 requests per one-second window; excess returned 429 with `Retry-After: 1`.
+- Mobile Lighthouse: local candidate 99 performance / 100 accessibility; live stale build 99 / 100.
+
+## Required next step
+
+Repair SQLite startup locking on the mounted `/data` share, package and deploy a new immutable candidate only to `sf-in-class-draft-ticket`, and rerun the release gate through a controlled revision restart. Do not release while the public health endpoint reports PostgreSQL or a non-candidate SHA.
