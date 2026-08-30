@@ -379,7 +379,7 @@ test('first screens show all three facts and one completed sample ticket', async
   for (const fact of [
     'Students use class nicknames.',
     'Sessions expire automatically.',
-    'Free for classes up to 40.'
+    'Free sessions accept up to 40 draft tickets.'
   ]) {
     const box = await page.getByText(fact, {exact:true}).boundingBox();
     expect(box, fact).not.toBeNull();
@@ -395,6 +395,20 @@ test('first screens show all three facts and one completed sample ticket', async
   expect(box).not.toBeNull();
   expect(box!.y).toBeGreaterThanOrEqual(0);
   expect(box!.y + box!.height, `completed ticket must be inside ${viewport.height}px`).toBeLessThanOrEqual(viewport.height);
+});
+
+test('landing uses the same fourth checkpoint name and capacity unit as the student ticket', async ({page}) => {
+  await page.goto('/');
+  await expect(page.getByText('Each ticket records a claim, evidence location, revision, and exit reflection.')).toBeVisible();
+  await expect(page.getByText('Students name one claim, one evidence location, one revision, and one exit reflection.')).toBeVisible();
+  await expect(page.getByText('Free sessions accept up to 40 draft tickets.')).toBeVisible();
+  await expect(page.getByText('next step', {exact:false})).toHaveCount(0);
+
+  const created = await newSession(page.request);
+  await page.goto(`/session/${created.session.code}`);
+  await expect(page.getByLabel('Exit reflection')).toBeVisible();
+  await page.goto('/terms');
+  await expect(page.getByText('Free sessions accept up to 40 draft tickets.')).toBeVisible();
 });
 
 test('390px layout reflows without horizontal scrolling at 200% text size', async ({page}) => {

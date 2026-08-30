@@ -1,6 +1,6 @@
 # Copy audit
 
-Checked 29 August 2026 for polish round 3. Counts treat hyphenated terms, URLs, and numbers as one word. No audited sentence exceeds 22 words or contains a banned marketing word.
+Checked 30 August 2026 for polish round 4. Counts treat hyphenated terms, URLs, and numbers as one word. No audited sentence exceeds 22 words or contains a banned marketing word.
 
 ## Landing page sentences
 
@@ -11,9 +11,9 @@ Checked 29 August 2026 for polish round 3. Counts treat hyphenated terms, URLs, 
 | See three completed tickets. | 4 | `sample-demo` |
 | Students use class nicknames. | 4 | `pseudonymous-flow` |
 | Sessions expire automatically. | 3 | `session-retention` |
-| Free for classes up to 40. | 6 | `free-capacity`, `free-no-account-core-flow` |
-| Each ticket records a claim, evidence location, revision, and next step. | 11 | `pseudonymous-flow` |
-| Students name one claim, one evidence location, one revision, and one next step. | 13 | `pseudonymous-flow` |
+| Free sessions accept up to 40 draft tickets. | 8 | `free-capacity` |
+| Each ticket records a claim, evidence location, revision, and exit reflection. | 11 | `pseudonymous-flow` |
+| Students name one claim, one evidence location, one revision, and one exit reflection. | 13 | `pseudonymous-flow` |
 | Memory acts like a second setting. | 6 | Fictional sample content |
 | I moved the scene before my explanation. | 7 | Fictional sample content |
 | Add the class name, prompt, and deletion date. | 8 | Instruction |
@@ -71,6 +71,15 @@ The headings name their sections: “Classroom drafting record,” “Four draft
 
 The production-mutating operation is no longer listed in `.factory/claims.json`. The new `every product claim runs in a clean local sandbox` contract rejects deploy, Azure, live-verifier, and live-domain commands.
 
+## Polish round 4 terminology repair
+
+| Copy | Words | Claim or status |
+| --- | ---: | --- |
+| Free sessions accept up to 40 draft tickets. | 8 | `free-capacity`; landing, terms, and README use the same unit. |
+| Each ticket records a claim, evidence location, revision, and exit reflection. | 11 | `pseudonymous-flow`; matches the student field. |
+| Students name one claim, one evidence location, one revision, and one exit reflection. | 13 | `pseudonymous-flow`; matches the student field. |
+| What will you revisit after class? | 6 | Helper text for the exit reflection field. |
+
 ## First-screen read-aloud check
 
 “Record in-class drafting without surveillance. For writing teachers recording student choices during class. Try it with sample data.”
@@ -86,6 +95,7 @@ The job, user, and first action fit one breath. The three privacy, retention, an
 | Student identifier | class nickname |
 | Secret recovery URL | private teacher link |
 | Sample environment | demo |
+| Fourth drafting checkpoint | exit reflection |
 | Downloaded session sheet | CSV export |
 
-Catalog description: “Record four in-class drafting choices without surveillance.” (59 characters).
+Catalog description: “Record up to 40 in-class draft tickets without surveillance.” (60 characters).

@@ -63,7 +63,7 @@ The latest SHA-bound deployment evidence is recorded in [`.factory/polish-3.md`]
 
 ## Privacy and limits
 
-Sessions expire after the teacher's chosen one, seven, or thirty days. Free sessions accept up to 40 tickets. Teachers can delete a session early. See `/privacy` and `/terms` for the full plain-language policies.
+Sessions expire after the teacher's chosen one, seven, or thirty days. Free sessions accept up to 40 draft tickets. Teachers can delete a session early. See `/privacy` and `/terms` for the full plain-language policies.
 
 There is no paid plan. Teachers and students can use the core workflow for free and without an account.
 

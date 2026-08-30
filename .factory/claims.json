@@ -29,8 +29,8 @@
   },
   {
     "id": "free-capacity",
-    "claim": "Free sessions accept up to 40 tickets.",
-    "where": "landing facts and terms",
+    "claim": "Free sessions accept up to 40 draft tickets.",
+    "where": "landing fact, terms, and README",
     "test": "npm test -- --grep @claim:free-capacity",
     "sandbox": "fresh API session; create 40 tickets and assert ticket 41 is rejected"
   },

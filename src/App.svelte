@@ -237,18 +237,18 @@
         <ul class="plain-facts">
           <li>Students use class nicknames.</li>
           <li>Sessions expire automatically.</li>
-          <li>Free for classes up to 40.</li>
+          <li>Free sessions accept up to 40 draft tickets.</li>
         </ul>
       </div>
       <figure class="hero-art">
         <img src="/assets/draft-constellation.webp" width="1200" height="800" fetchpriority="high" alt="Four blank paper tickets joined by fine plotted lines." />
-        <figcaption>Each ticket records a claim, evidence location, revision, and next step.</figcaption>
+        <figcaption>Each ticket records a claim, evidence location, revision, and exit reflection.</figcaption>
       </figure>
     </section>
 
     <section class="preview-band" aria-labelledby="preview-heading">
       <div class="section-shell preview-grid">
-        <div><p class="eyebrow">Live preview</p><h2 id="preview-heading">Four drafting prompts</h2><p>Students name one claim, one evidence location, one revision, and one next step.</p></div>
+        <div><p class="eyebrow">Live preview</p><h2 id="preview-heading">Four drafting prompts</h2><p>Students name one claim, one evidence location, one revision, and one exit reflection.</p></div>
         <div class="mini-ticket" aria-label="Example draft ticket">
           <span class="ticket-number">03 / Quiet Maple</span>
           <p><strong>Claim</strong> Memory acts like a second setting.</p>
@@ -301,7 +301,7 @@
             <label for="claim">Your working claim <span>What are you arguing now?</span></label><textarea id="claim" name="claim" required minlength="3" maxlength="280" rows="3"></textarea>
             <label for="evidence">Evidence location <span>Name a page, paragraph, scene, or source.</span></label><textarea id="evidence" name="evidence" required minlength="3" maxlength="280" rows="3"></textarea>
             <label for="revision">One revision choice <span>What did you add, cut, move, or clarify?</span></label><textarea id="revision" name="revision" required minlength="3" maxlength="280" rows="3"></textarea>
-            <label for="reflection">Exit reflection <span>What needs work next?</span></label><textarea id="reflection" name="reflection" required minlength="3" maxlength="500" rows="3"></textarea>
+            <label for="reflection">Exit reflection <span>What will you revisit after class?</span></label><textarea id="reflection" name="reflection" required minlength="3" maxlength="500" rows="3"></textarea>
             {#if error}<p class="form-error" role="alert">{error}</p>{/if}<button class="button primary" type="submit" disabled={ticketBusy}>{ticketBusy ? 'Recording ticket…' : 'Record my draft ticket'}</button>
           </form>
         {/if}
@@ -343,7 +343,7 @@
   {:else if path === '/privacy'}
     <article class="legal section-shell narrow"><p class="eyebrow">Effective 29 August 2026</p><h1 tabindex="-1">Privacy in plain words</h1><p>In-Class Draft Ticket stores class content and the service data needed to protect and delete each session.</p><h2>What we store</h2><p>We store class names, prompts, class nicknames, ticket answers, and creation and deletion timestamps.</p><p>Random IDs connect records without using student names. A demo marker keeps sample sessions separate.</p><p>Teacher links contain a random credential. The database stores only its one-way hash.</p><p>A random server key turns each request IP into a rotating, one-way rate-limit key before storage.</p><p>Rate-limit counters and keys are deleted within four seconds. We do not ask for student names, email addresses, or accounts.</p><h2>Why we store it</h2><p>The teacher uses this data to read and export in-class drafting choices. The ticket does not judge authorship.</p><h2>When we delete it</h2><p>The teacher chooses one, seven, or thirty days. The teacher can also delete a session at any time. Demo sessions expire after 24 hours.</p><h2>Who receives it</h2><p>Session data stays on this service. We do not run analytics or third-party tracking.</p><h2>Your choices</h2><p>Teachers can export or delete a session from the private teacher view. Contact <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a> for a data request.</p></article>
   {:else if path === '/terms'}
-    <article class="legal section-shell narrow"><p class="eyebrow">Effective 29 August 2026</p><h1 tabindex="-1">Terms of use</h1><p>Use this service to record drafting choices during a class. Do not use it to collect sensitive student data.</p><h2>Teacher responsibility</h2><p>Teachers choose prompts, class nicknames, and retention periods. Teachers must follow their school rules and applicable privacy law.</p><h2>What the ticket means</h2><p>A draft ticket is a teaching aid. It does not prove authorship, detect AI use, or replace a teacher's judgment.</p><h2>Service limits</h2><p>Free sessions accept up to 40 tickets. The service may be unavailable during maintenance. Export important sessions before their deletion date.</p><h2>Warranty</h2><p>The service is provided as available without warranties. We are not liable for lost class work or indirect damages.</p></article>
+    <article class="legal section-shell narrow"><p class="eyebrow">Effective 29 August 2026</p><h1 tabindex="-1">Terms of use</h1><p>Use this service to record drafting choices during a class. Do not use it to collect sensitive student data.</p><h2>Teacher responsibility</h2><p>Teachers choose prompts, class nicknames, and retention periods. Teachers must follow their school rules and applicable privacy law.</p><h2>What the ticket means</h2><p>A draft ticket is a teaching aid. It does not prove authorship, detect AI use, or replace a teacher's judgment.</p><h2>Service limits</h2><p>Free sessions accept up to 40 draft tickets. The service may be unavailable during maintenance. Export important sessions before their deletion date.</p><h2>Warranty</h2><p>The service is provided as available without warranties. We are not liable for lost class work or indirect damages.</p></article>
   {:else}
     <section class="not-found section-shell narrow"><div class="lost-plot" aria-hidden="true">● · · · ○</div><p class="eyebrow">404 · Missing page</p><h1 tabindex="-1">Page not found</h1><p>This point is not connected to a draft session or page.</p><a class="button primary" href="/" on:click={clickLink}>Return home</a></section>
   {/if}
