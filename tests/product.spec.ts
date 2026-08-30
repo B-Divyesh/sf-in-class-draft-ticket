@@ -468,6 +468,7 @@ test('direct 404 keeps the shared navigation, legal links, and complete metadata
   await expect(page.locator('meta[name="twitter:description"]')).toHaveCount(1);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/404.html');
   await expect(page.getByRole('heading', {name:'Page not found'})).toBeVisible();
+  expect(await page.locator('.wordmark').evaluate(element => getComputedStyle(element).color)).toBe('rgb(23, 34, 30)');
   await expect(page.getByRole('link', {name:'Privacy'}).first()).toHaveAttribute('href', '/privacy');
   await expect(page.getByRole('link', {name:'Terms'})).toHaveAttribute('href', '/terms');
   expect((await request.get('/privacy')).status()).toBe(200);
