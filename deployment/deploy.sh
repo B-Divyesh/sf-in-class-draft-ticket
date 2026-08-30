@@ -57,7 +57,7 @@ az containerapp update \
 
 contract_is_applied() {
   az rest --method get --uri "$RESOURCE_URI" --output json > "$APPLIED"
-  node "$REPO_DIR/deployment/assert-containerapp.mjs" "$APPLIED"
+  node "$REPO_DIR/deployment/assert-containerapp.mjs" "$APPLIED" "$IMAGE"
 }
 
 for _ in $(seq 1 40); do
@@ -68,10 +68,15 @@ for _ in $(seq 1 40); do
     "https://in-class-draft-ticket.sociobot.in/health?deploy-check=${SOURCE_SHA}-${RANDOM}" \
     2>/dev/null || true)
   if printf '%s' "$LIVE_HEALTH" | node -e "let data='';process.stdin.on('data',chunk=>data+=chunk).on('end',()=>{try { const health=JSON.parse(data); process.exit(health.build_sha === process.argv[1] && health.storage_backend === 'postgres' ? 0 : 1); } catch { process.exit(1); }})" "$SOURCE_SHA" && contract_is_applied; then
+    READY_REVISION=$(az containerapp show \
+      --name "$APP_NAME" \
+      --resource-group "$RESOURCE_GROUP" \
+      --query properties.latestReadyRevisionName \
+      --output tsv)
     READY_REPLICAS=$(az containerapp replica list \
       --name "$APP_NAME" \
       --resource-group "$RESOURCE_GROUP" \
-      --revision "$(az containerapp revision list --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query '[?properties.active].name | [0]' -o tsv)" \
+      --revision "$READY_REVISION" \
       --query 'length([?properties.containers[0].ready == `true`])' \
       --output tsv)
     if [ "${READY_REPLICAS:-0}" -ne 1 ]; then
@@ -82,8 +87,7 @@ for _ in $(seq 1 40); do
     PERSISTENCE_RECORD=$(mktemp)
     trap 'rm -f "$APPLIED" "$PERSISTENCE_RECORD"' EXIT
     LIVE_EXPECTED_REPLICAS=1 LIVE_PERSISTENCE_RECORD="$PERSISTENCE_RECORD" node "$REPO_DIR/deployment/verify-live.mjs"
-    ACTIVE_REVISION=$(az containerapp revision list --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query '[?properties.active].name | [0]' -o tsv)
-    az containerapp revision restart --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision "$ACTIVE_REVISION" --output none
+    az containerapp revision restart --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision "$READY_REVISION" --output none
     for _ in $(seq 1 40); do
       LIVE_HEALTH=$(curl --fail --silent --max-time 15 \
         "https://in-class-draft-ticket.sociobot.in/health?restart-check=${SOURCE_SHA}-${RANDOM}" \

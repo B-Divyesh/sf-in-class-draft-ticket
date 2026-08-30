@@ -63,8 +63,10 @@ async function inFreshRateWindow() {
 
 test('container build tracks stable Rust instead of a minor release', async () => {
   const dockerfile = await read('Dockerfile');
+  const buildScript = await read('build.rs');
   assert.match(dockerfile, /^FROM rust:1-(?:alpine|slim) AS backend$/m);
   assert.doesNotMatch(dockerfile, /^FROM rust:1\.\d+/m);
+  assert.match(buildScript, /cargo:rerun-if-env-changed=BUILD_SHA/);
 });
 
 test('raw social metadata uses factual product copy', async () => {
@@ -154,6 +156,33 @@ test('deployment verifier rejects the SQLite three-replica revision reported by 
   );
 });
 
+test('deployment verifier rejects the exact unhealthy candidate state from verification 18', async () => {
+  const contract = JSON.parse(await read('deployment/containerapp-contract.json'));
+  const expectedImage = 'sociobotregistry.azurecr.io/sf-in-class-draft-ticket:32d8eefd699a';
+  const failedCandidate = {
+    properties: {
+      latestRevisionName: 'sf-in-class-draft-ticket--0000052',
+      latestReadyRevisionName: 'sf-in-class-draft-ticket--0000051',
+      configuration: { activeRevisionsMode: 'Single', secrets: [] },
+      template: {
+        containers: [{
+          name: 'app',
+          image: expectedImage,
+          env: [{ name: 'PORT', value: '8080' }],
+          volumeMounts: []
+        }],
+        scale: { minReplicas: 1, maxReplicas: 3 },
+        volumes: []
+      }
+    }
+  };
+
+  assert.throws(
+    () => assertContainerAppContract(failedCandidate, contract, expectedImage),
+    /requested revision sf-in-class-draft-ticket--0000052 is not ready; traffic remains on sf-in-class-draft-ticket--0000051/,
+  );
+});
+
 test('deployment script binds PostgreSQL and includes the live revision-restart gate', async () => {
   const deploy = await read('deployment/deploy.sh');
   assert.match(deploy, /status --porcelain --untracked-files=normal/);
@@ -168,6 +197,8 @@ test('deployment script binds PostgreSQL and includes the live revision-restart 
   assert.match(deploy, /verify-live\.mjs/);
   assert.match(deploy, /LIVE_EXPECTED_REPLICAS/);
   assert.match(deploy, /LIVE_PERSISTENCE_RECORD/);
+  assert.match(deploy, /properties\.latestReadyRevisionName/);
+  assert.match(deploy, /--revision "\$READY_REVISION"/);
   assert.match(deploy, /az containerapp revision restart/);
   assert.match(deploy, /--assert-persistence-record/);
   assert.match(deploy, /PostgreSQL persistence across a revision restart/);
@@ -176,13 +207,15 @@ test('deployment script binds PostgreSQL and includes the live revision-restart 
   assert.equal((deploy.match(/verify-live-identity\.mjs/g) ?? []).length, 2);
   assert.equal((deploy.match(/LIVE_EXPECTED_SHA="\$SOURCE_SHA"/g) ?? []).length, 2);
   assert.match(deploy, /assert-containerapp\.mjs/);
+  assert.match(deploy, /"\$APPLIED" "\$IMAGE"/);
+  assert.doesNotMatch(deploy, /\[\?properties\.active\]\.name/);
   assert.doesNotMatch(deploy, /az rest --method patch/);
   assert.doesNotMatch(deploy, /deploy-container\.sh/);
 });
 
-test('live identity gate rejects the exact stale candidate mismatch from verification 16', async () => {
-  const expectedSha = '9f669994fc14775c69e2daf3a400e5cd5b4de2a0';
-  const staleSha = '8f17bd2d94dfb72a9be7e819d324d63df30114d2';
+test('live identity gate rejects the exact stale candidate mismatch from verification 18', async () => {
+  const expectedSha = '32d8eefd699a611d5b39ef7ea77f827df1009555';
+  const staleSha = '7864b293028bf0ed1bc99911a766418437933494';
   let reportedSha = staleSha;
   const requestUrls = [];
   const server = createServer((request, response) => {
