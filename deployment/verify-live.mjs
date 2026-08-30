@@ -72,7 +72,7 @@ if (process.argv.includes('--assert-persistence-record')) {
   }, 'post-restart teacher read');
   assert.equal(teacher.status, 200, `post-restart teacher read: HTTP ${teacher.status}: ${teacher.body}`);
   await deleteRecord(record);
-  console.log('live PostgreSQL record survived an actual revision restart');
+  console.log('live SQLite record survived an actual revision restart');
   process.exit(0);
 }
 
@@ -150,8 +150,8 @@ try {
   if (persistenceRecordPath) {
     // Keep one disposable real session through the deployment's actual
     // revision restart. This is intentionally not a process restart or a
-    // local filesystem check: it proves the active managed PostgreSQL schema
-    // still contains the record after Container Apps replaces the process.
+    // local filesystem check: it proves the durable mounted SQLite file still
+    // contains the record after Container Apps replaces the process.
     await delay(1_100);
     const response = await browserApi('/sessions', {
       method: 'POST', headers: jsonHeaders, body: JSON.stringify({

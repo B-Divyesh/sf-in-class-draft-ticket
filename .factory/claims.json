@@ -71,10 +71,10 @@
   },
   {
     "id": "runtime-defaults",
-    "claim": "PORT defaults to 8080; local SQLite uses mounted /data or ./data, and DATA_DIR and DATABASE_URL are optional overrides.",
+    "claim": "PORT defaults to 8080; SQLite stores runtime state in mounted /data or ./data, and DATA_DIR can choose another local path.",
     "where": "README Container",
     "test": "cargo test claim_runtime_defaults -- --nocapture",
-    "sandbox": "local Rust unit test with a temporary durable directory and no external service; assert port, path, SQLite default, and PostgreSQL override selection"
+    "sandbox": "local Rust unit test with a temporary durable directory and no external service; assert port and SQLite path selection"
   },
   {
     "id": "health-build-identity",
@@ -85,9 +85,9 @@
   },
   {
     "id": "release-contract",
-    "claim": "The release gate rejects a latest revision that is not ready, lacks the PostgreSQL secret, or permits more than one replica.",
+    "claim": "The release gate rejects a latest revision that is not ready, lacks mounted /data, configures runtime secrets, or permits more than one replica.",
     "where": "README Release",
     "test": "cargo build && node --test --test-name-pattern='@claim:release-contract' contract-tests/release-contract.test.mjs",
-    "sandbox": "local contract fixture for the exact unhealthy Azure revision reported by verification 19; no cloud service or release action is contacted"
+    "sandbox": "local Container App contract fixtures for unsafe revision states; no cloud service or release action is contacted"
   }
 ]

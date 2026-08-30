@@ -1,35 +1,25 @@
 use std::{
     fs::{File, OpenOptions},
     path::{Path, PathBuf},
-    str::FromStr,
     sync::Arc,
     time::Duration,
 };
 
 use fs2::FileExt;
-use sqlx::{
-    postgres::{PgConnectOptions, PgPoolOptions},
-    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
-    PgPool, SqlitePool,
-};
+use sqlx_core::{query::query, query_scalar::query_scalar};
+use sqlx_sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 
 #[derive(Clone)]
-pub enum Database {
-    Sqlite {
-        pool: SqlitePool,
-        gate: Arc<FileGate>,
-    },
-    Postgres(PgPool),
+pub struct Database {
+    pool: SqlitePool,
+    gate: Arc<FileGate>,
 }
 
 pub(crate) struct FileGate {
     path: PathBuf,
 }
 
-pub enum DatabaseGuard {
-    Sqlite(File),
-    Postgres,
-}
+pub struct DatabaseGuard(File);
 
 impl FileGate {
     async fn lock(&self) -> anyhow::Result<DatabaseGuard> {
@@ -42,7 +32,7 @@ impl FileGate {
                 .truncate(false)
                 .open(path)?;
             FileExt::lock_exclusive(&file)?;
-            Ok(DatabaseGuard::Sqlite(file))
+            Ok(DatabaseGuard(file))
         })
         .await?
     }
@@ -50,114 +40,68 @@ impl FileGate {
 
 impl Database {
     pub fn storage_backend(&self) -> &'static str {
-        match self {
-            Self::Sqlite { .. } => "sqlite",
-            Self::Postgres(_) => "postgres",
-        }
+        "sqlite"
     }
 
     pub async fn lock(&self) -> anyhow::Result<DatabaseGuard> {
-        match self {
-            Self::Sqlite { gate, .. } => gate.lock().await,
-            Self::Postgres(_) => Ok(DatabaseGuard::Postgres),
-        }
+        self.gate.lock().await
     }
 
-    pub fn sqlite(&self) -> Option<&SqlitePool> {
-        match self {
-            Self::Sqlite { pool, .. } => Some(pool),
-            Self::Postgres(_) => None,
-        }
-    }
-
-    pub fn postgres(&self) -> Option<&PgPool> {
-        match self {
-            Self::Postgres(pool) => Some(pool),
-            Self::Sqlite { .. } => None,
-        }
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
     }
 
     #[cfg(test)]
     pub async fn close(&self) {
-        match self {
-            Self::Sqlite { pool, .. } => pool.close().await,
-            Self::Postgres(pool) => pool.close().await,
-        }
+        self.pool.close().await;
     }
 }
 
 impl Drop for DatabaseGuard {
     fn drop(&mut self) {
-        if let Self::Sqlite(file) = self {
-            let _ = FileExt::unlock(file);
-        }
+        let _ = FileExt::unlock(&self.0);
     }
 }
 
 pub async fn migrate(pool: &SqlitePool) -> anyhow::Result<()> {
-    for attempt in 0..60 {
-        match sqlx::migrate!("./migrations").run(pool).await {
-            Ok(()) => return Ok(()),
-            Err(error) if retryable_migration_error(&error.to_string()) && attempt < 59 => {
-                // Container App starts a revision's replicas together. Two
-                // migrators can both observe a pending migration before one
-                // records it in `_sqlx_migrations`; the loser then sees either
-                // SQLite's lock or the history-table uniqueness constraint.
-                // Rerunning is safe because sqlx migrations are transactional.
-                tokio::time::sleep(Duration::from_millis(100)).await;
-            }
-            Err(error) => return Err(error.into()),
-        }
+    for statement in [
+        "CREATE TABLE IF NOT EXISTS sessions (code TEXT PRIMARY KEY, title TEXT NOT NULL, prompt TEXT NOT NULL, teacher_token TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS tickets (id TEXT PRIMARY KEY, session_code TEXT NOT NULL REFERENCES sessions(code) ON DELETE CASCADE, pseudonym TEXT NOT NULL, claim TEXT NOT NULL, evidence TEXT NOT NULL, revision TEXT NOT NULL, reflection TEXT NOT NULL, created_at TEXT NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS tickets_session_idx ON tickets(session_code, created_at)",
+        "CREATE TABLE IF NOT EXISTS api_rate_limits (client_key TEXT PRIMARY KEY, window_start INTEGER NOT NULL, request_count INTEGER NOT NULL)",
+        "CREATE INDEX IF NOT EXISTS api_rate_limits_window_idx ON api_rate_limits(window_start)",
+        "CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+    ] {
+        query(statement).execute(pool).await?;
     }
-    unreachable!("the bounded migration retry always returns")
+    let columns = query_scalar::<_, String>("SELECT name FROM pragma_table_info('sessions')")
+        .fetch_all(pool)
+        .await?;
+    if !columns.iter().any(|column| column == "teacher_token_hash") {
+        query("ALTER TABLE sessions ADD COLUMN teacher_token_hash TEXT NOT NULL DEFAULT ''")
+            .execute(pool)
+            .await?;
+    }
+    Ok(())
 }
 
+#[cfg(test)]
 fn retryable_migration_error(message: &str) -> bool {
     message.contains("database is locked")
         || message.contains("database is busy")
         || message.contains("UNIQUE constraint failed: _sqlx_migrations.version")
 }
 
-async fn connect_postgres(database_url: &str) -> anyhow::Result<Database> {
-    let options = PgConnectOptions::from_str(database_url)?
-        .options([("application_name", "in-class-draft-ticket")]);
-    let pool = PgPoolOptions::new()
-        .max_connections(10)
-        .acquire_timeout(Duration::from_secs(10))
-        .connect_with(options)
-        .await?;
-    let mut transaction = pool.begin().await?;
-    // Serialize idempotent schema setup when a revision starts all replicas
-    // together. A transaction-scoped advisory lock cannot leak if setup fails.
-    // raw_sql avoids sqlx's shared public migration-history table, which the
-    // least-privilege runtime role must not be able to alter.
-    sqlx::query("SELECT pg_advisory_xact_lock(2026082901)")
-        .execute(&mut *transaction)
-        .await?;
-    sqlx::raw_sql(include_str!("../migrations-postgres/202608290001_init.sql"))
-        .execute(&mut *transaction)
-        .await?;
-    transaction.commit().await?;
-    Ok(Database::Postgres(pool))
-}
-
-async fn connect_sqlite(data_dir: &Path) -> anyhow::Result<Database> {
+pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
     tokio::fs::create_dir_all(data_dir).await?;
     let database_path = data_dir.join("tickets.db");
     let gate = Arc::new(FileGate {
         path: data_dir.join("tickets.db.app-lock"),
     });
-    // SQLite's own journal locks can deadlock when two containers recover the
-    // same file over SMB at once. One crash-safe byte-range lock around all DB
-    // work ensures only one replica enters SQLite. The OS releases it if a
-    // container exits, unlike a sentinel file.
+    // A single durable mount and one deployed replica are the production
+    // contract. The lock also keeps development restarts and test processes
+    // from racing SQLite migration history.
     let _guard = gate.lock().await?;
-    // Every replica opens the *same* durable database on the mounted share.
-    // Keeping per-process copies made a successful POST invisible to another
-    // replica until it happened to restart. DELETE journaling keeps all state in
-    // the single database file. Keep one connection per replica and SQLite's
-    // default rollback journal: configuring journal pragmas concurrently over
-    // SMB can itself require an exclusive lock before the service is ready.
     let options = SqliteConnectOptions::new()
         .filename(&database_path)
         .create_if_missing(true)
@@ -184,42 +128,12 @@ async fn connect_sqlite(data_dir: &Path) -> anyhow::Result<Database> {
         connected.expect("the bounded database connection retry always returns")
     };
     migrate(&pool).await?;
-    Ok(Database::Sqlite { pool, gate })
-}
-
-pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
-    let database_url = std::env::var("DATABASE_URL").ok();
-    // Build workers can expose a replica marker without being the deployed
-    // product. The app and revision markers identify an actual Container App
-    // revision while keeping local/CI zero-configuration startup intact.
-    let managed_container_app = ["CONTAINER_APP_NAME", "CONTAINER_APP_REVISION"]
-        .iter()
-        .any(|name| std::env::var(name).is_ok_and(|value| !value.trim().is_empty()));
-
-    match storage_configuration(database_url.as_deref(), managed_container_app)? {
-        Some(database_url) => connect_postgres(&database_url).await,
-        None => connect_sqlite(data_dir).await,
-    }
-}
-
-pub(crate) fn storage_configuration(
-    database_url: Option<&str>,
-    managed_container_app: bool,
-) -> anyhow::Result<Option<String>> {
-    if let Some(database_url) = database_url.map(str::trim).filter(|url| !url.is_empty()) {
-        return Ok(Some(database_url.to_owned()));
-    }
-    if managed_container_app {
-        anyhow::bail!(
-            "DATABASE_URL is required in Azure Container Apps; refusing replica-local SQLite"
-        );
-    }
-    Ok(None)
+    Ok(Database { pool, gate })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{retryable_migration_error, storage_configuration};
+    use super::retryable_migration_error;
 
     #[test]
     fn concurrent_migration_conflicts_are_retryable() {
@@ -228,23 +142,5 @@ mod tests {
         ));
         assert!(retryable_migration_error("database is locked"));
         assert!(!retryable_migration_error("migration checksum changed"));
-    }
-
-    #[test]
-    fn managed_container_app_never_falls_back_to_replica_local_sqlite() {
-        let error = storage_configuration(None, true).unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("DATABASE_URL is required in Azure Container Apps"));
-        assert!(storage_configuration(Some("   "), true).is_err());
-        assert_eq!(
-            storage_configuration(Some(" postgres://shared "), true).unwrap(),
-            Some("postgres://shared".to_owned())
-        );
-    }
-
-    #[test]
-    fn unconfigured_local_runtime_keeps_the_sqlite_default() {
-        assert_eq!(storage_configuration(None, false).unwrap(), None);
     }
 }

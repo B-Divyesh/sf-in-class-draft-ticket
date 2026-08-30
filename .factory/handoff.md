@@ -1,66 +1,53 @@
-# Verification 19 handoff
+# Repair handoff — In-Class Draft Ticket
 
 ## Status
 
-**FAIL — candidate `b0ce723b11f00169f5ca2cab5c00776d5ad22569` is publicly serving and functional, but the latest Azure revision is unhealthy and the claim registry is incomplete.**
+The repository repair is complete and buildable. Deployment is intentionally pending factory image packaging: the checked-in deploy command accepts an immutable `DEPLOY_IMAGE` and mutates only `sf-in-class-draft-ticket`.
 
-Full evidence and commands are in [`.factory/verification-19.md`](verification-19.md).
-No product code was changed.
+## What changed
 
-## Release blocker
+- Reproduced the captured unsafe revision fixture before changing code. The fixture described a non-ready latest revision with a missing durable mount and an invalid replica range.
+- Migrated runtime storage to the sole SQLite database at `/data/tickets.db` (with `./data/tickets.db` only as the documented local fallback). SQLite schema setup, rate counters, teacher-token hashes, and session data now use the same file.
+- Removed external-database dependencies, connection branches, migrations, deployment secrets, and stale verifier artifacts. The rendered container contract has exactly one replica, only `PORT`, and one durable volume mounted at `/data`.
+- Replaced the old sequential ticket-cap check with 45 concurrent, separately identified submissions. It asserts exactly 40 created tickets, five conflicts, and 40 persisted records.
+- Added regression gates that reject forbidden service identifiers, non-`PORT` environment entries, runtime secrets, absent `/data` mounts, non-ready revisions, and more than one replica. A process-level test proves an API record remains after restart using the same mounted data directory.
+- Tightened the CSP to same-origin connections and forms; the product has no runtime external calls.
 
-Fresh public identity checks passed 20/20 and reported the candidate SHA with
-PostgreSQL. Fresh Azure control-plane evidence did not pass the candidate's own
-release contract:
+## Verification
 
-- latest requested revision: `sf-in-class-draft-ticket--0000055` — Unhealthy;
-- latest ready revision: `sf-in-class-draft-ticket--0000054` — Healthy;
-- `0000055` has only `PORT` and scale 1–3; `DATABASE_URL` is missing;
-- the public URL is therefore still served by `0000054`.
-
-`deployment/assert-containerapp.mjs` exits 1 on this current state. Reapply the
-PostgreSQL secret binding and scale 1/1, then require latest = latest ready before
-accepting the release.
-
-The claims cross-check also found README/runtime promises that are tested only by
-ordinary contract/unit tests and are absent from `.factory/claims.json`. Register
-each claim with exactly one tagged sandbox test or remove the promise.
-
-## What passed
-
-- Every exact claim command: 10/10.
-- `npm test`: 16/16 contract tests and 58/58 Playwright tests, locally and 58/58
-  again against production.
-- TypeScript, Rust format/clippy/unit tests, optimized Rust build, Vite production
-  build, deployment script syntax, and production dependency audit.
-- Cold first-read and one-click sample demo on desktop and 390px mobile.
-- Independent keyboard teacher→student→teacher workflow, invalid-input recovery,
-  minimum/maximum boundaries, fresh-context persistence, and 40 concurrent writes.
-- Same-origin-only request logs, secure response headers, 40-request rate limit
-  with 429 + `Retry-After: 1`, and no console/page errors.
-- Zero serious/critical axe findings, visible focus, 200% reflow, reduced motion,
-  ≥44px mobile targets, and no 390px horizontal overflow.
-- PWA service-worker update and offline shell reload.
-- Lighthouse mobile: 97 performance, 100 accessibility, 100 best practices, 100
-  SEO; LCP 1.5 s, TBT 160 ms, CLS 0.06.
-- Candidate and live HTML/JS/CSS SHA-256 bytes match.
-
-## Commands to re-verify
+All commands below passed on 30 August 2026 UTC:
 
 ```sh
 npm ci
-npm test
+npm test                         # 14 contract tests; 58 Playwright tests
 npx tsc --noEmit
+npm run build                    # dist/ produced
 cargo fmt --all -- --check
 cargo clippy --all-targets --all-features -- -D warnings
-cargo test
+cargo test --all-targets --all-features  # 8 tests
 cargo build --release
-npm run build
-LIVE_EXPECTED_SHA=$(git rev-parse HEAD) LIVE_IDENTITY_SAMPLES=20 npm run verify:live-identity
-PLAYWRIGHT_BASE_URL=https://in-class-draft-ticket.sociobot.in npm test
+npm audit --omit=dev --audit-level=high  # 0 vulnerabilities
+bash -n deployment/deploy.sh
 ```
 
-After fixing the live configuration, run the read-only Azure resource through
-`deployment/assert-containerapp.mjs` and run the repository's restart-persistence
-release gate. Docker/Podman/Buildah was not installed in this verifier container;
-the two Docker build stages were verified directly instead.
+Each of the 13 commands listed in `.factory/claims.json` also passed separately from the clean install. The browser claim commands ran in both desktop and mobile Chromium projects.
+
+`/opt/fleet/lib/verify-url.sh` passed against a fresh local server: HTTP 200, title, `lang=en`, one h1, main landmark, complete image alt text, labelled controls, and no console errors. Its desktop and 390px screenshots plus JSON report were written to `/tmp/draft-ticket-verify-evidence.0231HA`. The Playwright suite also passed axe scans on every public route at desktop and 390px, keyboard skip-link/focus checks, 200% reflow, reduced motion, route metadata, direct-link documents, service-worker update, and offline reload.
+
+Local response evidence: `/health` returned `storage_backend: "sqlite"`, `Cache-Control: no-store, max-age=0`, CSP with `connect-src 'self'`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+
+## Deployment
+
+Run after the factory packaging step supplies an immutable image:
+
+```sh
+DEPLOY_IMAGE=<immutable-image> npm run deploy:release
+```
+
+The command validates a clean, pushed source commit; patches only the product Container App; requires the latest revision to be ready; checks one mounted `/data` volume and one ready replica; then verifies health identity and SQLite persistence across a revision restart.
+
+No cloud deployment was performed in this repair container because no immutable product image was supplied and the safety scope forbids building through or inspecting shared infrastructure. No shared service or secret store was contacted.
+
+## Known gap
+
+The final factory image packaging and product-app deployment remain to be run with the command above. The repository has the required configuration and local regression coverage for that handoff.

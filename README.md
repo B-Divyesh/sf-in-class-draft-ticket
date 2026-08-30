@@ -39,13 +39,13 @@ docker build --build-arg BUILD_SHA=$(git rev-parse HEAD) -t in-class-draft-ticke
 docker run --rm -p 8080:8080 -v draft-ticket-data:/data in-class-draft-ticket
 ```
 
-`PORT` defaults to `8080`. With no `DATABASE_URL`, local SQLite uses `/data` when it is mounted and `./data` otherwise. `DATA_DIR` chooses another local path.
+`PORT` defaults to `8080`. SQLite stores runtime state in `/data/tickets.db` when `/data` is mounted and `./data/tickets.db` otherwise. `DATA_DIR` chooses another local path.
 
 `GET /health` returns the build SHA and selected storage backend.
 
 ## Release
 
-Factory workers deploy a clean, pushed `main` commit with `npm run deploy:release`. The release gate rejects a revision that lacks the PostgreSQL secret, has more than one replica, or is not ready.
+Factory workers deploy a clean, pushed `main` commit with `DEPLOY_IMAGE=<immutable-image> npm run deploy:release`. The release gate requires one ready replica, one mounted `/data` volume, and no runtime secrets.
 
 ## Privacy and limits
 

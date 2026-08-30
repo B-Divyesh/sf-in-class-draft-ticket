@@ -58,11 +58,11 @@ The headings name their sections: “Classroom drafting record,” “Four draft
 | Copy | Words | Claim or status |
 | --- | ---: | --- |
 | `PORT` defaults to `8080`. | 4 | `runtime-defaults` |
-| With no `DATABASE_URL`, local SQLite uses `/data` when it is mounted and `./data` otherwise. | 13 | `runtime-defaults` |
+| SQLite stores runtime state in `/data/tickets.db` when `/data` is mounted and `./data/tickets.db` otherwise. | 15 | `runtime-defaults` |
 | `DATA_DIR` chooses another local path. | 5 | `runtime-defaults` |
 | `GET /health` returns the build SHA and selected storage backend. | 9 | `health-build-identity` |
 | Factory workers deploy a clean, pushed `main` commit with `npm run deploy:release`. | 10 | Release instruction |
-| The release gate rejects a revision that lacks the PostgreSQL secret, has more than one replica, or is not ready. | 19 | `release-contract` |
+| The release gate requires one ready replica, one mounted `/data` volume, and no runtime secrets. | 15 | `release-contract` |
 
 The three runtime and release promises are now entries in `.factory/claims.json`. Their declared commands run entirely in a local sandbox; the production-mutating command remains outside the claim runner.
 

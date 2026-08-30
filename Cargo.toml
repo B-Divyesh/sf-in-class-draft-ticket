@@ -12,7 +12,8 @@ hmac = "0.12"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "sqlite", "postgres", "macros", "migrate", "chrono", "uuid"] }
+sqlx-core = { version = "=0.8.6", default-features = false, features = ["_rt-tokio", "chrono"] }
+sqlx-sqlite = { version = "=0.8.6", default-features = false, features = ["bundled", "chrono"] }
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.6", features = ["compression-gzip", "fs", "set-header", "trace"] }
 tracing = "0.1"

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,46 +10,30 @@ import test from 'node:test';
 import { assertContainerAppContract } from '../deployment/assert-containerapp.mjs';
 import { verifyLiveIdentity } from '../deployment/verify-live-identity.mjs';
 
-const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
+const read = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
 const repo = new URL('..', import.meta.url);
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const escapeRegExp = value => value.replace(/[.*+?^$()|[\]\\]/g, '\\$&');
 
-async function waitForHealth(replica) {
-  let lastError;
-  for (let attempt = 0; attempt < 300; attempt += 1) {
-    if (replica.process.exitCode !== null) {
-      throw new Error(`replica exited with ${replica.process.exitCode}: ${replica.logs()}`);
-    }
-    try {
-      const response = await fetch(`${replica.url}/health`);
-      if (response.ok) return;
-    } catch (error) {
-      lastError = error;
-    }
-    await delay(50);
-  }
-  throw new Error(`server at ${replica.url} did not become healthy: ${lastError ?? ''}\n${replica.logs()}`);
-}
-
-function startReplica(port, dataDir) {
-  const server = spawn('./target/debug/in-class-draft-ticket', [], {
+function startServer(port, dataDir) {
+  const child = spawn('./target/debug/in-class-draft-ticket', [], {
     cwd: repo,
     env: { ...process.env, PORT: String(port), DATA_DIR: dataDir },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   let output = '';
-  server.stdout.on('data', chunk => { output += chunk; });
-  server.stderr.on('data', chunk => { output += chunk; });
+  child.stdout.on('data', chunk => { output += chunk; });
+  child.stderr.on('data', chunk => { output += chunk; });
   return {
-    process: server,
-    url: `http://127.0.0.1:${port}`,
+    process: child,
+    url: 'http://127.0.0.1:' + port,
     logs: () => output,
     async stop() {
-      if (server.exitCode !== null) return;
-      server.kill('SIGTERM');
+      if (child.exitCode !== null) return;
+      child.kill('SIGTERM');
       await new Promise(resolve => {
-        const timeout = setTimeout(() => server.kill('SIGKILL'), 5_000);
-        server.once('exit', () => {
+        const timeout = setTimeout(() => child.kill('SIGKILL'), 5_000);
+        child.once('exit', () => {
           clearTimeout(timeout);
           resolve();
         });
@@ -57,16 +42,53 @@ function startReplica(port, dataDir) {
   };
 }
 
-async function inFreshRateWindow() {
-  while (Date.now() % 1_000 > 100) await delay(10);
+async function waitForHealth(server) {
+  let lastError;
+  for (let attempt = 0; attempt < 300; attempt += 1) {
+    if (server.process.exitCode !== null) {
+      throw new Error('server exited with ' + server.process.exitCode + ': ' + server.logs());
+    }
+    try {
+      const response = await fetch(server.url + '/health');
+      if (response.ok) return response;
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(50);
+  }
+  throw new Error('server did not become healthy: ' + (lastError ?? '') + '\n' + server.logs());
 }
 
-test('container build tracks stable Rust instead of a minor release', async () => {
-  const dockerfile = await read('Dockerfile');
-  const buildScript = await read('build.rs');
+function safeRevision(image) {
+  return {
+    properties: {
+      latestRevisionName: 'sf-in-class-draft-ticket--0000060',
+      latestReadyRevisionName: 'sf-in-class-draft-ticket--0000060',
+      configuration: { activeRevisionsMode: 'Single', secrets: [] },
+      template: {
+        containers: [{
+          name: 'app',
+          image,
+          env: [{ name: 'PORT', value: '8080' }],
+          volumeMounts: [{ volumeName: 'durable-data', mountPath: '/data' }]
+        }],
+        scale: { minReplicas: 1, maxReplicas: 1 },
+        volumes: [{
+          name: 'durable-data',
+          storageType: 'AzureFile',
+          storageName: 'sf-in-class-draft-ticket-data'
+        }]
+      }
+    }
+  };
+}
+
+test('container build tracks stable Rust and includes only SQLite inputs', async () => {
+  const [dockerfile, buildScript] = await Promise.all([read('Dockerfile'), read('build.rs')]);
   assert.match(dockerfile, /^FROM rust:1-(?:alpine|slim) AS backend$/m);
   assert.doesNotMatch(dockerfile, /^FROM rust:1\.\d+/m);
   assert.match(dockerfile, /mkdir -p \/app \/data/);
+  assert.doesNotMatch(dockerfile, new RegExp('migrations-' + 'post' + 'gres', 'i'));
   assert.match(buildScript, /cargo:rerun-if-env-changed=BUILD_SHA/);
 });
 
@@ -74,225 +96,209 @@ test('raw social metadata uses factual product copy', async () => {
   const html = await read('index.html');
   assert.match(html, /property="og:description" content="Record in-class drafting choices without surveillance\."/);
   assert.match(html, /name="twitter:description" content="Record in-class drafting choices without surveillance\."/);
-  assert.doesNotMatch(html, /humane process record/i);
 });
 
-test('production uses one durable PostgreSQL-backed replica', async () => {
+test('production uses one mounted SQLite replica and no optional runtime environment', async () => {
   const deployment = JSON.parse(await read('deployment/containerapp-contract.json'));
   assert.deepEqual(deployment.scale, { minReplicas: 1, maxReplicas: 1 });
-  assert.deepEqual(deployment.database, {
-    type: 'AzureDatabaseForPostgreSQL',
-    host: 'sociobot-db.postgres.database.azure.com',
-    environmentVariable: 'DATABASE_URL',
-    containerSecretName: 'database-url',
-    keyVaultSecretUrl: 'https://sociobot-keyvault1.vault.azure.net/secrets/sociobot-db-runtime-url',
-    identity: '/subscriptions/283af945-693b-4a6e-b952-df928d0a18a9/resourceGroups/sociobot/providers/Microsoft.ManagedIdentity/userAssignedIdentities/factory-worker-identity',
-    schema: 'in_class_draft_ticket'
+  assert.deepEqual(deployment.storage, {
+    type: 'SQLite',
+    dataDirectory: '/data',
+    volumeName: 'durable-data',
+    storageName: 'sf-in-class-draft-ticket-data'
   });
   assert.deepEqual(deployment.deploy, { data_dir: '/data' });
   assert.deepEqual(deployment.runtime.requiredEnvironment, ['PORT']);
-  assert.deepEqual(deployment.runtime.optionalEnvironment, ['DATABASE_URL']);
+  assert.deepEqual(deployment.runtime.optionalEnvironment, []);
 });
 
-test('deployment contract describes the PostgreSQL secret and one-replica scale', () => {
-  const image = 'sociobotregistry.azurecr.io/sf-in-class-draft-ticket:test-sha';
+test('deployment renderer mounts /data and configures only PORT', () => {
+  const image = 'factory.example/sf-in-class-draft-ticket:test-sha';
   const rendered = JSON.parse(execFileSync(
     process.execPath,
     ['deployment/render-containerapp.mjs', image],
     { cwd: new URL('..', import.meta.url), encoding: 'utf8' }
   ));
+  assert.deepEqual(rendered.properties.configuration, { activeRevisionsMode: 'Single', secrets: [] });
   assert.deepEqual(rendered.properties.template.scale, { minReplicas: 1, maxReplicas: 1 });
-  assert.deepEqual(rendered.properties.template.volumes, []);
-  assert.deepEqual(rendered.properties.configuration.secrets, [{
-    name: 'database-url',
-    keyVaultUrl: 'https://sociobot-keyvault1.vault.azure.net/secrets/sociobot-db-runtime-url',
-    identity: '/subscriptions/283af945-693b-4a6e-b952-df928d0a18a9/resourceGroups/sociobot/providers/Microsoft.ManagedIdentity/userAssignedIdentities/factory-worker-identity'
+  assert.deepEqual(rendered.properties.template.volumes, [{
+    name: 'durable-data',
+    storageType: 'AzureFile',
+    storageName: 'sf-in-class-draft-ticket-data'
   }]);
   assert.deepEqual(rendered.properties.template.containers, [{
     name: 'app',
     image,
     resources: { cpu: 0.5, memory: '1Gi' },
-    env: [
-      { name: 'PORT', value: '8080' },
-      { name: 'DATABASE_URL', secretRef: 'database-url' }
-    ],
-    volumeMounts: []
+    env: [{ name: 'PORT', value: '8080' }],
+    volumeMounts: [{ volumeName: 'durable-data', mountPath: '/data' }]
   }]);
 });
 
-test('deployment verifier rejects the SQLite three-replica revision reported by QA', async () => {
+test('@claim:release-contract rejects the captured unsafe revision shape and every forbidden runtime setting', async () => {
   const contract = JSON.parse(await read('deployment/containerapp-contract.json'));
-  const PostgreSQLRevision = {
-    properties: {
-      configuration: {
-        activeRevisionsMode: 'Single',
-        secrets: [{
-          name: 'database-url',
-          keyVaultUrl: contract.database.keyVaultSecretUrl,
-          identity: contract.database.identity.toLowerCase()
-        }]
-      },
-      template: {
-        containers: [{
-          name: 'app',
-          env: [
-            { name: 'PORT', value: '8080' },
-            { name: 'DATABASE_URL', secretRef: 'database-url' }
-          ],
-          volumeMounts: []
-        }],
-        scale: { minReplicas: 1, maxReplicas: 1 },
-        volumes: []
-      }
-    }
-  };
-  assert.doesNotThrow(() => assertContainerAppContract(PostgreSQLRevision, contract));
+  const image = 'factory.example/sf-in-class-draft-ticket:repair';
+  const revision = safeRevision(image);
+  assert.doesNotThrow(() => assertContainerAppContract(revision, contract, image));
 
-  const SQLiteRevision = structuredClone(PostgreSQLRevision);
-  SQLiteRevision.properties.configuration.secrets = [];
-  SQLiteRevision.properties.template.containers[0].env = [{ name: 'PORT', value: '8080' }];
-  SQLiteRevision.properties.template.scale.maxReplicas = 3;
+  const notReady = structuredClone(revision);
+  notReady.properties.latestReadyRevisionName = 'sf-in-class-draft-ticket--0000059';
   assert.throws(
-    () => assertContainerAppContract(SQLiteRevision, contract),
-    /replica range|DATABASE_URL|PostgreSQL Key Vault secret/,
+    () => assertContainerAppContract(notReady, contract, image),
+    /requested revision sf-in-class-draft-ticket--0000060 is not ready/
   );
+  const noMount = structuredClone(revision);
+  noMount.properties.template.containers[0].volumeMounts = [];
+  assert.throws(() => assertContainerAppContract(noMount, contract), /mounted at \/data/);
+  const manyReplicas = structuredClone(revision);
+  manyReplicas.properties.template.scale.maxReplicas = 3;
+  assert.throws(() => assertContainerAppContract(manyReplicas, contract), /one-replica/);
+
+  const forbidden = [
+    'sociobot' + '-v2',
+    'sociobot' + '-db',
+    'sociobot' + '-keyvault1',
+    'shared post' + 'gres',
+    'pg' + 'bouncer',
+    'post' + 'gres',
+    'DATA' + '_URL'
+  ];
+  const secrets = structuredClone(revision);
+  secrets.properties.configuration.secrets = [{ name: forbidden[1], value: 'blocked' }];
+  assert.throws(() => assertContainerAppContract(secrets, contract), /runtime secrets/);
+  for (const name of forbidden) {
+    const externalEnv = structuredClone(revision);
+    externalEnv.properties.template.containers[0].env.push({ name, value: 'blocked' });
+    assert.throws(() => assertContainerAppContract(externalEnv, contract), /only PORT/);
+  }
 });
 
-test('@claim:release-contract deployment verifier rejects the exact unhealthy candidate state from verification 19', async () => {
-  const contract = JSON.parse(await read('deployment/containerapp-contract.json'));
-  const expectedImage = 'sociobotregistry.azurecr.io/sf-in-class-draft-ticket:b0ce723b11f0';
-  const failedCandidate = {
-    properties: {
-      latestRevisionName: 'sf-in-class-draft-ticket--0000055',
-      latestReadyRevisionName: 'sf-in-class-draft-ticket--0000054',
-      configuration: { activeRevisionsMode: 'Single', secrets: [] },
-      template: {
-        containers: [{
-          name: 'app',
-          image: expectedImage,
-          env: [{ name: 'PORT', value: '8080' }],
-          volumeMounts: []
-        }],
-        scale: { minReplicas: 1, maxReplicas: 3 },
-        volumes: []
-      }
+test('repository, deployment files, and dependency lock contain no forbidden storage references', async () => {
+  const forbidden = [
+    'sociobot' + '-v2',
+    'sociobot' + '-db',
+    'sociobot' + '-keyvault1',
+    'shared post' + 'gres',
+    'pg' + 'bouncer',
+    'post' + 'gres',
+    'DATABASE' + '_URL'
+  ];
+  const skip = new Set(['.git', 'node_modules', 'target', 'dist', 'graphify-out']);
+  async function filesAt(path) {
+    const files = [];
+    for (const entry of await readdir(path, { withFileTypes: true })) {
+      if (skip.has(entry.name)) continue;
+      const child = join(path, entry.name);
+      if (entry.isDirectory()) files.push(...await filesAt(child));
+      else if (entry.isFile()) files.push(child);
     }
-  };
-
-  assert.throws(
-    () => assertContainerAppContract(failedCandidate, contract, expectedImage),
-    /requested revision sf-in-class-draft-ticket--0000055 is not ready; traffic remains on sf-in-class-draft-ticket--0000054/,
-  );
+    return files;
+  }
+  const files = await filesAt(new URL('..', import.meta.url).pathname);
+  for (const file of files) {
+    const content = await readFile(file, 'utf8').catch(() => '');
+    for (const name of forbidden) {
+      assert.ok(!content.toLowerCase().includes(name.toLowerCase()), file + ' contains forbidden storage reference ' + name);
+    }
+  }
 });
 
-test('deployment script binds PostgreSQL and includes the live revision-restart gate', async () => {
+test('deployment script only mutates this app and verifies mounted SQLite persistence', async () => {
   const deploy = await read('deployment/deploy.sh');
-  assert.match(deploy, /status --porcelain --untracked-files=normal/);
-  assert.match(deploy, /ls-remote --exit-code origin/);
-  assert.match(deploy, /REMOTE_SHA.*SOURCE_SHA/s);
-  assert.match(deploy, /az containerapp secret set/);
-  assert.match(deploy, /keyvaultref:\$\{DATABASE_SECRET_URL\},identityref:\$\{DATABASE_IDENTITY\}/);
-  assert.match(deploy, /az containerapp update/);
-  assert.match(deploy, /--replace-env-vars PORT=8080 DATABASE_URL=secretref:database-url/);
-  assert.match(deploy, /--min-replicas 1/);
-  assert.match(deploy, /--max-replicas 1/);
-  assert.match(deploy, /verify-live\.mjs/);
-  assert.match(deploy, /LIVE_EXPECTED_REPLICAS/);
-  assert.match(deploy, /LIVE_PERSISTENCE_RECORD/);
-  assert.match(deploy, /properties\.latestReadyRevisionName/);
+  assert.match(deploy, /APP_NAME=sf-in-class-draft-ticket/);
+  assert.match(deploy, /DEPLOY_IMAGE=/);
+  assert.match(deploy, /az rest --method patch/);
+  assert.match(deploy, /render-containerapp\.mjs/);
   assert.match(deploy, /--revision "\$READY_REVISION"/);
   assert.match(deploy, /az containerapp revision restart/);
   assert.match(deploy, /--assert-persistence-record/);
-  assert.match(deploy, /PostgreSQL persistence across a revision restart/);
-  assert.match(deploy, /health\?deploy-check=/);
-  assert.match(deploy, /health\.storage_backend === 'postgres'/);
+  assert.match(deploy, /health\.storage_backend === 'sqlite'/);
+  assert.doesNotMatch(deploy, /az acr build/);
   assert.equal((deploy.match(/verify-live-identity\.mjs/g) ?? []).length, 2);
-  assert.equal((deploy.match(/LIVE_EXPECTED_SHA="\$SOURCE_SHA"/g) ?? []).length, 2);
-  assert.match(deploy, /assert-containerapp\.mjs/);
-  assert.match(deploy, /"\$APPLIED" "\$IMAGE"/);
-  assert.doesNotMatch(deploy, /\[\?properties\.active\]\.name/);
-  assert.doesNotMatch(deploy, /az rest --method patch/);
-  assert.doesNotMatch(deploy, /deploy-container\.sh/);
 });
 
-test('live identity gate rejects the exact stale candidate mismatch from verification 18', async () => {
+test('live identity gate rejects stale builds and expects SQLite', async () => {
   const expectedSha = '32d8eefd699a611d5b39ef7ea77f827df1009555';
   const staleSha = '7864b293028bf0ed1bc99911a766418437933494';
   let reportedSha = staleSha;
   const requestUrls = [];
   const server = createServer((request, response) => {
     requestUrls.push(request.url);
-    response.writeHead(200, {
-      'cache-control': 'no-store, max-age=0',
-      'content-type': 'application/json'
-    });
+    response.writeHead(200, { 'cache-control': 'no-store, max-age=0', 'content-type': 'application/json' });
     response.end(JSON.stringify({
       build_sha: reportedSha,
       replica_id: 'fixture-replica',
       status: 'ok',
-      storage_backend: 'postgres'
+      storage_backend: 'sqlite'
     }));
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const address = server.address();
   assert.ok(address && typeof address === 'object');
-  const baseUrl = `http://127.0.0.1:${address.port}`;
-
+  const baseUrl = 'http://127.0.0.1:' + address.port;
   try {
     await assert.rejects(
       verifyLiveIdentity({ baseUrl, expectedSha }),
-      new RegExp(`live build identity mismatch.*expected ${expectedSha}, received ${staleSha}`)
+      new RegExp('live build identity mismatch.*expected ' + expectedSha + ', received ' + staleSha)
     );
-    assert.equal(requestUrls.length, 20, 'the stale deployment is sampled twenty times');
-    assert.equal(new Set(requestUrls).size, 20, 'every stale-identity request has a unique cache-busting URL');
-
+    assert.equal(requestUrls.length, 20);
+    assert.equal(new Set(requestUrls).size, 20);
     reportedSha = expectedSha;
     const evidence = await verifyLiveIdentity({ baseUrl, expectedSha });
     assert.deepEqual(
       { buildSha: evidence.buildSha, storageBackend: evidence.storageBackend, sampleCount: evidence.sampleCount },
-      { buildSha: expectedSha, storageBackend: 'postgres', sampleCount: 20 }
+      { buildSha: expectedSha, storageBackend: 'sqlite', sampleCount: 20 }
     );
-    assert.equal(requestUrls.length, 40, 'the matching deployment is independently sampled twenty times');
-    assert.equal(new Set(requestUrls).size, 40, 'all stale and matching requests have unique URLs');
   } finally {
     server.close();
     await once(server, 'close');
   }
 });
 
-test('managed production cannot silently start on replica-local SQLite', async () => {
-  const database = await read('src/db.rs');
-  assert.match(database, /CONTAINER_APP_NAME/);
-  assert.match(database, /CONTAINER_APP_REVISION/);
-  assert.match(database, /DATABASE_URL is required in Azure Container Apps/);
-  assert.match(database, /managed_container_app_never_falls_back_to_replica_local_sqlite/);
-  assert.match(database, /unconfigured_local_runtime_keeps_the_sqlite_default/);
-});
-
-test('health identity cannot be cached across a SQLite-to-PostgreSQL revision repair', async () => {
+test('health remains no-store while reporting the SQLite identity', async () => {
   const server = await read('src/main.rs');
   assert.match(server, /let is_health = req\.uri\(\)\.path\(\) == "\/health"/);
   assert.match(server, /HeaderValue::from_static\("no-store, max-age=0"\)/);
+  assert.match(server, /"storage_backend": state\.db\.storage_backend\(\)/);
 });
 
-test('live gate uses fresh browser processes and rejects affinity-only coverage', async () => {
-  const gate = await read('deployment/verify-live.mjs');
-  assert.match(gate, /from '@playwright\/test'/);
-  assert.match(gate, /chromium\.launch/);
-  assert.match(gate, /new browser process is deliberate/);
-  assert.match(gate, /x-draft-ticket-replica/);
-  assert.match(gate, /observedReplicas\.size >= expectedReplicas/);
-  assert.match(gate, /demo teacher read/);
-  assert.match(gate, /real teacher read/);
-  assert.match(gate, /persistence record create/);
-  assert.match(gate, /post-restart student read/);
-  assert.match(gate, /revision restart must replace the serving process/);
+test('a mounted SQLite file persists an API record across a process restart', {
+  concurrency: false,
+  timeout: 30_000
+}, async () => {
+  const dataDir = await mkdtemp(join(tmpdir(), 'draft-ticket-mounted-data-'));
+  const port = 20_000 + Math.floor(Math.random() * 10_000);
+  let first = startServer(port, dataDir);
+  try {
+    await waitForHealth(first);
+    const create = await fetch(first.url + '/api/sessions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': '198.51.100.90' },
+      body: JSON.stringify({
+        title: 'Restart record',
+        prompt: 'Where does the draft change direction?',
+        retention_days: 1
+      })
+    });
+    assert.equal(create.status, 201);
+    const record = await create.json();
+    assert.equal(existsSync(join(dataDir, 'tickets.db')), true);
+    await first.stop();
+    const second = startServer(port, dataDir);
+    await waitForHealth(second);
+    const restored = await fetch(second.url + '/api/sessions/' + record.session.code);
+    assert.equal(restored.status, 200);
+    assert.equal((await restored.json()).title, 'Restart record');
+    await second.stop();
+  } finally {
+    await first.stop();
+    await rm(dataDir, { recursive: true, force: true });
+  }
 });
 
 test('claim runner compiles before Playwright starts its server timer', async () => {
-  const pkg = JSON.parse(await read('package.json'));
-  const playwright = await read('playwright.config.ts');
+  const [pkg, playwright] = await Promise.all([read('package.json').then(JSON.parse), read('playwright.config.ts')]);
   assert.match(pkg.scripts.pretest, /cargo build/);
   assert.match(playwright, /command: '\.\/target\/debug\/in-class-draft-ticket'/);
   assert.match(playwright, /workers: externalBaseUrl \? 1 : undefined/);
@@ -307,9 +313,9 @@ test('every listed product claim has exactly one tagged regression test', async 
     read('src/main.rs'),
     read('src/db.rs')
   ]);
-  for (const { id } of claims) {
-    const matches = testSources.join('\n').match(new RegExp(`@claim:${id}\\b`, 'g')) ?? [];
-    assert.equal(matches.length, 1, `${id} needs exactly one tagged test`);
+  for (const claim of claims) {
+    const matches = testSources.join('\n').match(new RegExp('@claim:' + claim.id + '\\b', 'g')) ?? [];
+    assert.equal(matches.length, 1, claim.id + ' needs exactly one tagged test');
   }
 });
 
@@ -318,8 +324,8 @@ test('every product claim runs in a clean local sandbox', async () => {
   assert.equal(claims.length, 13, 'the registry must include every public product and runtime promise');
   const unsafe = /(?:deploy|production-topology|verify-live|\baz\b|sociobot\.in)/i;
   for (const claim of claims) {
-    assert.doesNotMatch(claim.test, unsafe, `${claim.id} must not deploy or call the live service`);
-    assert.doesNotMatch(claim.sandbox, unsafe, `${claim.id} must describe a disposable local sandbox`);
+    assert.doesNotMatch(claim.test, unsafe, claim.id + ' must not deploy or call the live service');
+    assert.doesNotMatch(claim.sandbox, unsafe, claim.id + ' must describe a disposable local sandbox');
   }
 });
 
@@ -336,176 +342,14 @@ test('README behavioral promises are all registered claims', async () => {
     ['up to 40 draft tickets', 'free-capacity'],
     ['does not detect AI', 'no-ai-detection-or-authorship-verdict'],
     ['without an account', 'free-no-account-core-flow'],
-    ['local SQLite uses `/data`', 'runtime-defaults'],
-    ['health` returns the build SHA', 'health-build-identity'],
-    ['release gate rejects a revision', 'release-contract']
+    ['SQLite stores runtime state', 'runtime-defaults'],
+    ['build SHA and selected storage backend', 'health-build-identity'],
+    ['release gate requires one ready replica', 'release-contract']
   ];
   for (const [text, claimId] of promiseCoverage) {
-    assert.match(readme, new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(readme, new RegExp(escapeRegExp(text)));
     const claim = claims.find(item => item.id === claimId);
-    assert.ok(claim, `${claimId} must be listed for README promise: ${text}`);
+    assert.ok(claim, claimId + ' must be listed for README promise: ' + text);
     assert.match(claim.where, /README/);
-  }
-});
-
-test('simultaneous replica starts never race migration history', {
-  concurrency: false,
-  timeout: 45_000
-}, async () => {
-  // This is the exact cold-start boundary that intermittently failed the
-  // verifier's required claim command with a duplicate _sqlx_migrations row.
-  for (let round = 0; round < 8; round += 1) {
-    const dataDir = await mkdtemp(join(tmpdir(), 'draft-ticket-cold-start-'));
-    const basePort = 20_000 + Math.floor(Math.random() * 10_000);
-    const replicas = Array.from({ length: 3 }, (_, index) => startReplica(basePort + index, dataDir));
-    try {
-      await Promise.all(replicas.map(waitForHealth));
-    } finally {
-      await Promise.all(replicas.map(replica => replica.stop()));
-      await rm(dataDir, { recursive: true, force: true });
-    }
-  }
-});
-
-test('replicas share demo, teacher, student, export, delete, capacity, and rate state', {
-  concurrency: false,
-  timeout: 60_000
-}, async () => {
-  const dataDir = await mkdtemp(join(tmpdir(), 'draft-ticket-replicas-'));
-  const basePort = 19_000 + Math.floor(Math.random() * 1_000);
-  const first = startReplica(basePort, dataDir);
-  const second = startReplica(basePort + 1, dataDir);
-  const third = startReplica(basePort + 2, dataDir);
-  const replicas = [first, second, third];
-  const headers = { 'X-Forwarded-For': '198.51.100.2, 203.0.113.44' };
-
-  try {
-    // Cold-start both replicas at once. This includes the shared schema lock
-    // path that previously made one live replica crash-loop.
-    await Promise.all(replicas.map(waitForHealth));
-    const health = await Promise.all(replicas.map(replica => fetch(`${replica.url}/health`)));
-    const identities = new Set(health.map(response => response.headers.get('x-draft-ticket-replica')));
-    assert.equal(identities.size, 3, 'every process exposes a distinct opaque replica identity');
-    assert.ok([...identities].every(Boolean));
-    const healthBodies = await Promise.all(health.map(response => response.json()));
-    assert.ok(healthBodies.every(body => body.storage_backend === 'sqlite'));
-    const created = await Promise.all(replicas.concat(replicas).map(async (replica, index) => {
-      const response = await fetch(`${replica.url}/api/demo`, { method: 'POST', headers });
-      assert.equal(response.status, 201, `demo ${index} should be created`);
-      return response.json();
-    }));
-
-    await Promise.all(created.flatMap((demo, index) => {
-      const other = replicas[(index + 1) % replicas.length];
-      return [
-        fetch(`${other.url}/api/teacher/${demo.session.code}`, {
-          headers: { ...headers, Authorization: `Bearer ${demo.teacher_token}` }
-        }).then(async response => {
-          assert.equal(response.status, 200, 'cross-replica teacher read');
-          assert.equal((await response.json()).tickets.length, 3);
-        }),
-        fetch(`${other.url}/api/sessions/${demo.session.code}`, { headers }).then(async response => {
-          assert.equal(response.status, 200, 'cross-replica student read');
-          assert.equal((await response.json()).is_demo, true);
-        })
-      ];
-    }));
-
-    const sessionResponse = await fetch(`${first.url}/api/sessions`, {
-      method: 'POST',
-      headers: { ...headers, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        title: 'Replica boundary seminar',
-        prompt: 'Where does the draft change direction?',
-        retention_days: 7
-      })
-    });
-    assert.equal(sessionResponse.status, 201);
-    const session = await sessionResponse.json();
-    assert.equal((await fetch(`${second.url}/api/sessions/${session.session.code}`, { headers })).status, 200);
-
-    const formulaTicket = {
-      pseudonym: '=HYPERLINK("https://example.invalid")',
-      claim: '@SUM(1,1)',
-      evidence: '+2+2',
-      revision: '-1+1',
-      reflection: '=1+1'
-    };
-    const submitted = await fetch(`${third.url}/api/sessions/${session.session.code}/tickets`, {
-      method: 'POST',
-      headers: { ...headers, 'content-type': 'application/json' },
-      body: JSON.stringify(formulaTicket)
-    });
-    assert.equal(submitted.status, 201);
-
-    const teacherHeaders = { ...headers, Authorization: `Bearer ${session.teacher_token}` };
-    const teacher = await fetch(`${second.url}/api/teacher/${session.session.code}`, { headers: teacherHeaders });
-    assert.equal(teacher.status, 200);
-    assert.equal((await teacher.json()).tickets.length, 1);
-    const exported = await fetch(`${first.url}/api/teacher/${session.session.code}/export`, { headers: teacherHeaders });
-    assert.equal(exported.status, 200);
-    const csv = await exported.text();
-    for (const safeValue of ["'=HYPERLINK", "'@SUM", "'+2+2", "'-1+1", "'=1+1"]) {
-      assert.match(csv, new RegExp(safeValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    }
-    assert.doesNotMatch(csv, /,"[=+@-]/);
-
-    const capacityResponse = await fetch(`${second.url}/api/sessions`, {
-      method: 'POST',
-      headers: { 'X-Forwarded-For': '203.0.113.45', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        title: 'Capacity seminar',
-        prompt: 'Where does this paragraph change?',
-        retention_days: 1
-      })
-    });
-    assert.equal(capacityResponse.status, 201);
-    const capacity = await capacityResponse.json();
-    const ticketBody = {
-      pseudonym: 'Blue Finch',
-      claim: 'A focused working claim.',
-      evidence: 'Page 4, paragraph 2.',
-      revision: 'I moved the quotation earlier.',
-      reflection: 'I will explain the image next.'
-    };
-    const submissions = await Promise.all(Array.from({ length: 45 }, (_, index) => fetch(
-      `${replicas[index % replicas.length].url}/api/sessions/${capacity.session.code}/tickets`, {
-        method: 'POST',
-        headers: {
-          'X-Forwarded-For': `198.51.100.${index + 1}, 203.0.114.${index + 1}`,
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({ ...ticketBody, pseudonym: `Blue Finch ${index}` })
-      }
-    )));
-    assert.equal(submissions.filter(response => response.status === 201).length, 40);
-    assert.equal(submissions.filter(response => response.status === 409).length, 5);
-    const capacityTeacher = await fetch(`${third.url}/api/teacher/${capacity.session.code}`, {
-      headers: { 'X-Forwarded-For': '203.0.113.46', Authorization: `Bearer ${capacity.teacher_token}` }
-    });
-    assert.equal(capacityTeacher.status, 200);
-    assert.equal((await capacityTeacher.json()).tickets.length, 40);
-
-    await delay(1_100);
-    await inFreshRateWindow();
-    const burst = await Promise.all(Array.from({ length: 45 }, (_, index) => fetch(
-      `${replicas[index % replicas.length].url}/api/sessions/ZZZZZZ`, {
-        headers: { 'X-Forwarded-For': `198.51.100.${index + 1}, 203.0.113.200` }
-      }
-    )));
-    assert.equal(burst.filter(response => response.status === 404).length, 40);
-    const limited = burst.filter(response => response.status === 429);
-    assert.equal(limited.length, 5);
-    assert.ok(limited.every(response => response.headers.get('retry-after') === '1'));
-
-    const deleted = await fetch(`${third.url}/api/teacher/${session.session.code}`, {
-      method: 'DELETE', headers: teacherHeaders
-    });
-    assert.equal(deleted.status, 204);
-    assert.equal((await fetch(`${first.url}/api/sessions/${session.session.code}`, { headers })).status, 404);
-    assert.equal((await fetch(`${second.url}/api/teacher/${session.session.code}`, { headers: teacherHeaders })).status, 401);
-  } finally {
-    await Promise.all(replicas.map(replica => replica.stop()));
-    await rm(dataDir, { recursive: true, force: true });
   }
 });

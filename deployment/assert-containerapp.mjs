@@ -4,25 +4,16 @@ import { pathToFileURL } from 'node:url';
 
 const contractUrl = new URL('./containerapp-contract.json', import.meta.url);
 
-function values(items = []) {
-  return new Map(items.map(item => [item.name, item]));
-}
-
-function sameResourceId(actual, expected) {
-  return typeof actual === 'string' && actual.toLowerCase() === expected.toLowerCase();
-}
-
 /**
- * Reject a Container Apps resource that can silently fall back to local SQLite.
- * This stays separate from the browser gate so deployment configuration is
- * proven before health or ingress affinity can make an incomplete revision
- * look healthy.
+ * Proves the product revision uses exactly one durable SQLite volume. This is
+ * intentionally separate from browser checks: a healthy page cannot prove a
+ * revision has no unexpected runtime secret or replica-local state.
  */
 export function assertContainerAppContract(resource, contract, expectedImage) {
   const properties = resource?.properties ?? resource;
   const template = properties?.template;
   const container = template?.containers?.find(item => item.name === 'app');
-  const { database, scale, runtime } = contract;
+  const { scale, runtime, storage } = contract;
 
   assert.ok(container, 'the app container is missing from the revision template');
   if (expectedImage) {
@@ -34,43 +25,24 @@ export function assertContainerAppContract(resource, contract, expectedImage) {
       `the requested revision ${properties.latestRevisionName} is not ready; traffic remains on ${properties?.latestReadyRevisionName ?? 'no ready revision'}`,
     );
   }
-  assert.equal(
-    properties?.configuration?.activeRevisionsMode,
-    'Single',
-    'the release must use one active revision',
+  assert.equal(properties?.configuration?.activeRevisionsMode, 'Single', 'the release must use one active revision');
+  assert.deepEqual(
+    template?.scale && { minReplicas: template.scale.minReplicas, maxReplicas: template.scale.maxReplicas },
+    scale,
+    'the release replica range does not match the one-replica deployment contract',
+  );
+  assert.deepEqual(container.env ?? [], [{ name: 'PORT', value: String(runtime.port) }], 'only PORT may be configured');
+  assert.deepEqual(properties?.configuration?.secrets ?? [], [], 'the product must not configure runtime secrets');
+  assert.deepEqual(
+    container.volumeMounts ?? [],
+    [{ volumeName: storage.volumeName, mountPath: storage.dataDirectory }],
+    'the durable SQLite directory is not mounted at /data',
   );
   assert.deepEqual(
-    template?.scale && {
-      minReplicas: template.scale.minReplicas,
-      maxReplicas: template.scale.maxReplicas,
-    },
-    scale,
-    'the release replica range does not match the deployment contract',
+    template?.volumes ?? [],
+    [{ name: storage.volumeName, storageType: 'AzureFile', storageName: storage.storageName }],
+    'the revision does not define the product durable-data volume',
   );
-  assert.equal(
-    container?.env?.find(item => item.name === 'PORT')?.value,
-    String(runtime.port),
-    'PORT is missing from the revision template',
-  );
-  assert.equal(
-    container?.env?.find(item => item.name === database.environmentVariable)?.secretRef,
-    database.containerSecretName,
-    'DATABASE_URL is not bound to the Key Vault secret',
-  );
-
-  const secret = values(properties?.configuration?.secrets).get(database.containerSecretName);
-  assert.ok(secret, 'the PostgreSQL Key Vault secret is not configured');
-  assert.equal(
-    secret.keyVaultUrl,
-    database.keyVaultSecretUrl,
-    'the configured secret does not point at the PostgreSQL URL',
-  );
-  assert.ok(
-    sameResourceId(secret.identity, database.identity),
-    'the Key Vault secret does not use the expected managed identity',
-  );
-  assert.equal((container.volumeMounts ?? []).length, 0, 'the release must not mount a local SQLite share');
-  assert.equal((template?.volumes ?? []).length, 0, 'the release must not define a local SQLite volume');
 }
 
 function main() {
@@ -81,7 +53,7 @@ function main() {
   const resource = JSON.parse(readFileSync(resourcePath, 'utf8'));
   const contract = JSON.parse(readFileSync(contractUrl, 'utf8'));
   assertContainerAppContract(resource, contract, expectedImage);
-  process.stdout.write('Container App PostgreSQL deployment contract is applied.\n');
+  process.stdout.write('Container App SQLite deployment contract is applied.\n');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

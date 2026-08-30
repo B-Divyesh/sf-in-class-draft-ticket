@@ -6,7 +6,7 @@ const defaultBaseUrl = 'https://in-class-draft-ticket.sociobot.in';
 export async function verifyLiveIdentity({
   baseUrl = defaultBaseUrl,
   expectedSha,
-  expectedStorage = 'postgres',
+  expectedStorage = 'sqlite',
   sampleCount = 20,
   fetchImpl = fetch
 }) {
@@ -68,7 +68,7 @@ async function main() {
   const evidence = await verifyLiveIdentity({
     baseUrl: process.env.LIVE_BASE_URL,
     expectedSha: process.env.LIVE_EXPECTED_SHA,
-    expectedStorage: process.env.LIVE_EXPECTED_STORAGE ?? 'postgres',
+    expectedStorage: process.env.LIVE_EXPECTED_STORAGE ?? 'sqlite',
     sampleCount: Number(process.env.LIVE_IDENTITY_SAMPLES ?? 20)
   });
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);

@@ -155,16 +155,15 @@ test('@claim:session-retention supports every retention choice and deletes an ex
 test('@claim:free-capacity concurrent requests store exactly 40 free-session tickets', async ({request}) => {
   const created = await newSession(request);
   const body = {pseudonym:'Blue Finch',claim:'A focused working claim.',evidence:'Page 4, paragraph 2.',revision:'I moved the quotation earlier.',reflection:'I will explain the image next.'};
-  const responses = [];
-  for (let i = 0; i < 45; i++) {
-    responses.push(await request.post(
-      `/api/sessions/${created.session.code}/tickets`,
-      {data:{...body,pseudonym:`Blue Finch ${i}`}}
-    ));
-    // Two live browser projects share one ingress address. Stay below the
-    // separate 40 req/s safety boundary while proving the 40-ticket capacity.
-    await new Promise(resolve => setTimeout(resolve, 75));
-  }
+  const responses = await Promise.all(Array.from({length:45}, (_, i) => request.post(
+    `/api/sessions/${created.session.code}/tickets`,
+    {
+      data:{...body,pseudonym:`Blue Finch ${i}`},
+      // Distinct trusted client addresses isolate the ticket-cap boundary from
+      // the separately tested per-client request-rate boundary.
+      headers:{'X-Forwarded-For':`198.51.100.${i + 1}`}
+    }
+  )));
   expect(responses.filter(response => response.status() === 201)).toHaveLength(40);
   expect(responses.filter(response => response.status() === 409)).toHaveLength(5);
   const overflowBodies = await Promise.all(responses.filter(response => response.status() === 409).map(response => response.json()));
@@ -322,7 +321,7 @@ test('@claim:health-build-identity health is never cached and reports its build 
   expect(health.headers()['cache-control']).toBe('no-store, max-age=0');
   const body = await health.json();
   expect(body.build_sha).toMatch(/^(?:dev|[0-9a-f]{40})$/);
-  expect(['sqlite', 'postgres']).toContain(body.storage_backend);
+  expect(body.storage_backend).toBe('sqlite');
 });
 
 test('API rate limit ignores caller-spoofed hops and uses the ingress-appended address', async ({request}, testInfo) => {

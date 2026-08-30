@@ -15,7 +15,6 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock* build.rs ./
 COPY src ./src
 COPY migrations ./migrations
-COPY migrations-postgres ./migrations-postgres
 RUN cargo build --release
 
 FROM alpine:3.22
