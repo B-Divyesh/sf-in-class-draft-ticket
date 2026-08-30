@@ -1,0 +1,11 @@
+HTTP/1.1 404 Not Found
+content-type: text/html
+accept-ranges: bytes
+last-modified: Sun, 30 Aug 2026 00:23:36 GMT
+content-length: 2645
+x-content-type-options: nosniff
+referrer-policy: strict-origin-when-cross-origin
+content-security-policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' https://api.sociobot.in; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://api.sociobot.in; frame-ancestors 'none'
+x-draft-ticket-replica: e5a21c3c533e451c8c52f87de350e2d2
+date: Sun, 30 Aug 2026 00:32:42 GMT
+

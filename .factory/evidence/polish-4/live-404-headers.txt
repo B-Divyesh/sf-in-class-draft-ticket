@@ -1,0 +1,11 @@
+HTTP/2 404 
+content-type: text/html
+accept-ranges: bytes
+last-modified: Sun, 30 Aug 2026 00:38:45 GMT
+content-length: 2645
+x-content-type-options: nosniff
+referrer-policy: strict-origin-when-cross-origin
+content-security-policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self' https://api.sociobot.in; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://api.sociobot.in; frame-ancestors 'none'
+x-draft-ticket-replica: 69822714f3834b1485ebfec1a6414542
+date: Sun, 30 Aug 2026 00:51:25 GMT
+

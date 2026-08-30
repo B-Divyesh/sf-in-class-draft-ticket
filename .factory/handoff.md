@@ -1,22 +1,55 @@
-# Review 4 handoff
+# Polish 4 handoff
 
 ## Status
 
-**FAIL — review-only work order.** No product code was changed.
+**PASS — released repair.** The fourth drafting checkpoint is named **exit reflection** everywhere. The free limit now says **40 draft tickets per session** everywhere it appears. The product keeps its paper-ticket/constellation identity and all earlier repairs remain live.
 
-`.factory/review-4.md` records two minor first-read copy defects:
+Repair source: `beffeac4bdc7178165888184c318b844addc5295`.
 
-1. The fourth drafting checkpoint is called both “next step” and “exit reflection.”
-2. The landing says “Free for classes up to 40,” while the tested capacity is 40 draft tickets per session.
+Live deployment: <https://in-class-draft-ticket.sociobot.in>.
 
-## Verification completed
+Image: `sociobotregistry.azurecr.io/sf-in-class-draft-ticket:beffeac4bdc7` (`sha256:6e89452d7e689e524f2a83e1a1cfa0dd3ee7b7c3dfb2538f7a4bb3d5778b8678`). ACR run: `ch1b2`.
 
-- Opened the live product cold at 390 × 844 and 1440 × 900.
-- Checked the one-click demo, persistent banner, reset, Start for real, local storage, request origins, and errors.
-- Ran all ten commands in `.factory/claims.json` from `/tmp/in-class-draft-ticket-review4-clean` after `npm ci`; all passed.
-- Read all earlier review, polish, and handoff documents and reconfirmed each prior finding against live behavior and current code.
-- Checked metadata, 404, routes, link targets, navigation, privacy boundary, visual identity, and missed-feature scope.
+## What changed
 
-## Next step
+- Landing field lists now end with “exit reflection,” matching the student form, teacher sheet, and README.
+- The reflection helper asks what the student will revisit after class.
+- The landing fact, terms, README, claim registry, audit, and catalog description now say “Free sessions accept up to 40 draft tickets.”
+- Added a browser regression that compares those words across landing, student form, and terms.
 
-Apply the two exact rewrites in review 4, update the `free-capacity` claim location, and repeat the entire adversarial review. No known functional, demo, claim-test, routing, accessibility, privacy-request, or deployment-documentation failure remains in this review.
+## How to run and verify
+
+```sh
+npm ci
+npm test
+cargo test
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo build --release
+```
+
+Every declared claim is in `.factory/claims.json`. Run each listed command from a fresh clone. The repair was verified from `/tmp/in-class-draft-ticket-polish4-clean.rl405g`: all ten claims passed; `npm test` passed 15 contracts and 58 browser tests; the nine Rust tests, format, clippy, release build, and high-severity dependency audit passed.
+
+The live recheck used:
+
+```sh
+PLAYWRIGHT_BASE_URL=https://in-class-draft-ticket.sociobot.in npx playwright test
+```
+
+It passed 58/58 after deployment. The release gate also verified the SHA, PostgreSQL backend, one-replica contract, rate limit, export/delete flows, and data survival across a real revision restart.
+
+Cold screenshots and headers are in `.factory/evidence/polish-4/`. Mobile Lighthouse scored Performance 99, Accessibility 100, Best Practices 100, and SEO 100.
+
+## Deployment
+
+Authorized factory workers can deploy a clean, pushed `main` revision with:
+
+```sh
+npm run deploy:release
+```
+
+This changes production and is not a claim test.
+
+## Known gaps and next steps
+
+None. No finding of any severity remains open.
