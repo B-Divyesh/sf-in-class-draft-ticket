@@ -314,7 +314,7 @@ test('claim runner compiles before Playwright starts its server timer', async ()
   assert.doesNotMatch(playwright, /command: 'cargo run'/);
 });
 
-test('HTTP/2 release rate probe dispatches one concurrent burst and requires the exact boundary', async () => {
+test('HTTP/2 release rate probe dispatches one preconnected burst and requires the exact local boundary', async () => {
   const arrivals = [];
   let count = 0;
   const server = createHttp2Server();
@@ -340,6 +340,7 @@ test('HTTP/2 release rate probe dispatches one concurrent burst and requires the
       alignToWindow:false
     });
     assert.deepEqual(result.counts, {'404':40, '429':10});
+    assert.equal(result.exactBoundary, true);
     assert.deepEqual(result.retryAfter, ['1']);
     assert.ok(Math.max(...arrivals) - Math.min(...arrivals) < 100, 'requests must arrive as one burst');
   } finally {

@@ -319,7 +319,7 @@ test('@claim:teacher-control private token protects read, export, and delete', a
 });
 
 test('API rate limit returns Retry-After', async ({request}) => {
-  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL), 'the live boundary uses one deterministic HTTP/2 connection in the release gate');
+  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL), 'the live boundary uses a deterministic preconnected HTTP/2 burst in the release gate');
   await freshRateWindow();
   const results = await Promise.all(Array.from({length:45}, () => request.get(
     '/api/sessions/ABCDEF', {headers:{'X-Forwarded-For':'203.0.113.10'}}
@@ -378,7 +378,7 @@ test('direct demo stays below the 0.1 CLS budget on repeated cold mobile loads',
 });
 
 test('API rate limit ignores caller-spoofed hops and uses the ingress-appended address', async ({request}, testInfo) => {
-  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL), 'the live boundary uses one deterministic HTTP/2 connection in the release gate');
+  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL), 'the live boundary uses a deterministic preconnected HTTP/2 burst in the release gate');
   const trustedAddress = testInfo.project.name === 'chromium' ? '203.0.113.77' : '203.0.113.78';
   await freshRateWindow();
   const results = await Promise.all(Array.from({length:45}, (_, i) => request.get('/api/sessions/ABCDEF', {
