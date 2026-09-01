@@ -1,6 +1,7 @@
 # Demo sandbox
 
-- URL: `https://in-class-draft-ticket.sociobot.in/?demo=1` (local: `http://localhost:8080/?demo=1`; `/demo` is an equivalent route)
+- Canonical URL: `https://in-class-draft-ticket.sociobot.in/demo` (local: `http://localhost:8080/demo`)
+- Alternate entry: `/?demo=1` still opens the isolated demo and declares `/demo` as its canonical address.
 - Sample: one fictional literature seminar with three completed draft tickets from Blue Finch, Copper Kite, and Quiet Maple.
 - First result: Blue Finch's completed claim and revision appear above session controls in the initial phone and desktop viewport.
 - Loading: the bundled sample paints immediately at its final dimensions. Export remains disabled until the isolated backend workspace is ready.

@@ -4,7 +4,7 @@
     "claim": "The demo opens with three fictional draft tickets, expires after 24 hours, and leaves real classes unchanged.",
     "where": "landing action, demo banner, privacy, README",
     "test": "npm test -- --grep @claim:sample-demo",
-    "sandbox": "seed a real session and browser key; enter and reset /?demo=1; assert three records, 24-hour expiry, isolated storage, and unchanged real data"
+    "sandbox": "seed a real session and browser key; enter and reset /demo; assert three records, 24-hour expiry, isolated storage, and unchanged real data"
   },
   {
     "id": "csv-export",

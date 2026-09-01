@@ -397,3 +397,18 @@ test('README behavioral promises are all registered claims', async () => {
     assert.match(claim.where, /README/);
   }
 });
+
+test('the sitemap and public links use the canonical demo route', async () => {
+  const [sitemap, readme, app, notFound] = await Promise.all([
+    read('public/sitemap.xml'),
+    read('README.md'),
+    read('src/App.svelte'),
+    read('public/404.html')
+  ]);
+  assert.match(sitemap, /<loc>https:\/\/in-class-draft-ticket\.sociobot\.in\/demo<\/loc>/);
+  assert.doesNotMatch(sitemap, /\?demo=1/);
+  assert.match(readme, /https:\/\/in-class-draft-ticket\.sociobot\.in\/demo/);
+  assert.doesNotMatch(readme, /\?demo=1/);
+  assert.match(app, /href="\/demo"[^>]*>Try it with sample data<\/a>/);
+  assert.match(notFound, /href="\/demo">Demo<\/a>/);
+});

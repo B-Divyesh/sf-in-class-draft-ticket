@@ -1,6 +1,6 @@
 # Copy audit
 
-Checked 30 August 2026 for polish round 4. Counts treat hyphenated terms, URLs, and numbers as one word. No audited sentence exceeds 22 words or contains a banned marketing word.
+Checked 1 September 2026 for polish round 5. Counts treat hyphenated terms, URLs, and numbers as one word. No audited sentence exceeds 22 words or contains a banned marketing word.
 
 ## Landing page sentences
 
@@ -49,7 +49,7 @@ The headings name their sections: “Classroom drafting record,” “Four draft
 | Copy | Words | Claim or status |
 | --- | ---: | --- |
 | A teacher creates a session with a deletion date and shares its six-character code. | 14 | `session-retention` |
-| Open `/?demo=1` for a sample session with three completed tickets. | 10 | `sample-demo` |
+| Open `/demo` for a sample session with three completed tickets. | 10 | `sample-demo` |
 | Demo work stays separate from your classes and expires after 24 hours. | 12 | `sample-demo` |
 | Choose Reset demo for fresh sample data. | 7 | `sample-demo` |
 
@@ -93,4 +93,4 @@ The job, user, and first action fit one breath. The three privacy, retention, an
 | Fourth drafting checkpoint | exit reflection |
 | Downloaded session sheet | CSV export |
 
-Catalog description: “Record up to 40 in-class draft tickets without surveillance.” (60 characters).
+Catalog description: “Record students' in-class drafting choices without surveillance.” (64 characters).

@@ -48,7 +48,7 @@ test('@claim:sample-demo demo is isolated, seeded, and expires after 24 hours', 
     headers:{Authorization:`Bearer ${real.teacher_token}`}
   })).json();
   await page.getByRole('link', {name:'Try it with sample data'}).click();
-  await expect(page).toHaveURL(/\?demo=1$/);
+  await expect(page).toHaveURL(/\/demo$/);
   await expect(page.getByText('Demo — sample data, nothing is saved to your classes')).toBeVisible();
   await expect(page.locator('.response-ticket')).toHaveCount(3);
   await expect(page.getByRole('button', {name:'Export sample CSV'})).toBeEnabled();
@@ -258,7 +258,7 @@ test('student ticket submission preserves the form and announces a retryable ser
 test('@claim:no-ai-detection-or-authorship-verdict demo has no detection or verdict path', async ({page, request}) => {
   const requests:string[] = [];
   page.on('request', req => requests.push(req.url()));
-  await page.goto('/?demo=1');
+  await page.goto('/demo');
   await expect(page.locator('.response-ticket')).toHaveCount(3);
   await expect(page.getByRole('button', {name:'Export sample CSV'})).toBeEnabled();
   expect(requests.every(url => new URL(url).origin === new URL(page.url()).origin)).toBe(true);
@@ -360,7 +360,7 @@ test('direct demo stays below the 0.1 CLS budget on repeated cold mobile loads',
       await route.continue();
     });
     try {
-      await page.goto('/?demo=1');
+      await page.goto('/demo');
       await expect(page.locator('.response-ticket')).toHaveCount(3);
       await expect(page.getByRole('button', {name:'Export sample CSV'})).toBeEnabled();
       await page.evaluate(() => document.fonts.ready);
@@ -442,7 +442,7 @@ test('first screens show all three facts and one completed sample ticket', async
     expect(box!.y + box!.height, `${fact} must be inside ${viewport.height}px`).toBeLessThanOrEqual(viewport.height);
   }
 
-  await page.goto('/?demo=1');
+  await page.goto('/demo');
   const feature = page.locator('.demo-feature');
   await expect(feature.getByRole('heading', {name:'Blue Finch'})).toBeVisible();
   await expect(feature.getByText('Memory acts like a second setting that keeps the past present.')).toBeVisible();
@@ -503,20 +503,29 @@ test('routes expose one focused page heading and working legal links', async ({p
   }
 });
 
-test('public deep links return 200 documents and route metadata changes', async ({page, request}) => {
+test('public deep links use route metadata and one canonical demo address', async ({page, request}) => {
   for (const route of ['/demo','/join','/start','/privacy','/terms','/session/ABCDEF','/teacher/ABCDEF']) {
     const response = await request.get(route);
     expect(response.status(), route).toBe(200);
   }
+  const sitemap = await request.get('/sitemap.xml');
+  expect(sitemap.status()).toBe(200);
+  const sitemapXml = await sitemap.text();
+  expect(sitemapXml).toContain('<loc>https://in-class-draft-ticket.sociobot.in/demo</loc>');
+  expect(sitemapXml).not.toContain('?demo=1');
   await page.goto('/privacy');
   await expect(page).toHaveTitle('Privacy — In-Class Draft Ticket');
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/privacy');
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', 'Privacy — In-Class Draft Ticket');
   await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute('content', 'Read how class session data is handled');
 
+  await page.goto('/demo');
+  await expect(page).toHaveTitle('Demo — In-Class Draft Ticket');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/demo');
+
   await page.goto('/?demo=1');
   await expect(page).toHaveTitle('Demo — In-Class Draft Ticket');
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/?demo=1');
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://in-class-draft-ticket.sociobot.in/demo');
 
   await page.goto('/');
   await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', 'Record in-class drafting without surveillance');

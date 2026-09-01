@@ -68,7 +68,7 @@
     document.title = title;
     const setHead = (selector:string, value:string) => document.querySelector(selector)?.setAttribute(selector.startsWith('link') ? 'href' : 'content', value);
     setHead('meta[name="description"]', description);
-    setHead('link[rel="canonical"]', `https://in-class-draft-ticket.sociobot.in${demoMode && search ? '/?demo=1' : path}`);
+    setHead('link[rel="canonical"]', `https://in-class-draft-ticket.sociobot.in${demoMode ? '/demo' : path}`);
     setHead('meta[property="og:title"]', title);
     setHead('meta[property="og:description"]', description);
     setHead('meta[name="twitter:title"]', title);
@@ -254,7 +254,7 @@
         <h1 tabindex="-1">Record in-class drafting without surveillance</h1>
         <p class="lede">For writing teachers recording student choices during class.</p>
         <div class="hero-actions">
-          <a class="button primary" href="/?demo=1" on:click={clickLink}>Try it with sample data</a>
+          <a class="button primary" href="/demo" on:click={clickLink}>Try it with sample data</a>
           <span>See three completed tickets.</span>
         </div>
         <a class="button secondary" href="/start" on:click={clickLink}>Start a class session</a>

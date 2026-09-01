@@ -8,9 +8,9 @@ It does not detect AI, record keystrokes, use cameras, or claim to prove authors
 
 ## Try the demo
 
-Open `/?demo=1` for a sample session with three completed tickets. Demo work stays separate from your classes and expires after 24 hours. Choose **Reset demo** for fresh sample data.
+Open `/demo` for a sample session with three completed tickets. Demo work stays separate from your classes and expires after 24 hours. Choose **Reset demo** for fresh sample data.
 
-Production URL: <https://in-class-draft-ticket.sociobot.in/?demo=1>
+Production URL: <https://in-class-draft-ticket.sociobot.in/demo>
 
 ## Run locally
 
