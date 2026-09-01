@@ -6,5 +6,5 @@ data
 test-data
 test-results
 playwright-report
-.factory/evidence
+.factory
 npm-debug.log*
