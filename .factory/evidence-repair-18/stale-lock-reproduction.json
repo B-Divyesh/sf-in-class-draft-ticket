@@ -1,0 +1,18 @@
+{
+  "capturedAt": "2026-09-01T19:37:02Z",
+  "candidate": "f0ffaa8ab5e4e23f1ed7066e007e1e4bf6979019",
+  "revision": "sf-in-class-draft-ticket--0000061",
+  "storageBackend": "sqlite",
+  "dataDirectory": "/data",
+  "failure": {
+    "workflowStep": "demo teacher read 6",
+    "httpStatus": 500,
+    "sqliteCode": 5,
+    "message": "database is locked"
+  },
+  "rootCause": "unix-dotfile can leave tickets.db.lock on the durable SMB mount when a replaced container exits",
+  "regressions": [
+    "stale_sqlite_dotfile_lock_does_not_block_a_replacement_process",
+    "startup_waits_for_mounted_database_lock_instead_of_exiting"
+  ]
+}

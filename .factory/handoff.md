@@ -2,7 +2,7 @@
 
 ## Status: PASS
 
-The runtime-changing candidate `e1e16e80548ca53bb674aa7f6b83467367c9078a` is live at <https://in-class-draft-ticket.sociobot.in>. Health reports that exact SHA and `storage_backend: "sqlite"`. The final handoff commit changes only release verification and factory evidence; `deployment/deploy.sh` requires the deployed health SHA to equal the final pushed HEAD.
+Runtime-changing commits `e1e16e80548ca53bb674aa7f6b83467367c9078a` and `f398c8f2ed68fbd39f3119640f3b73935bbbdb20` repair the verifier findings and mounted-SQLite container handoff respectively. The final handoff commit changes only factory evidence; `deployment/deploy.sh` requires the deployed health SHA to equal the final pushed HEAD.
 
 The repair accessed and changed only this repository, the public product URL, its `sf-in-class-draft-ticket` Container App, its own image tag, and its existing `sf-in-class-draft-ticket-data` mount. No other service, database, vault, app settings, or storage was read or changed.
 
@@ -15,6 +15,9 @@ The repair accessed and changed only this repository, the public product URL, it
 - Replaced the timing-sensitive live Playwright burst with a preconnected HTTP/2 probe. The local protocol regression requires the exact 40 ordinary / 10 limited boundary and concurrent arrival. The live gate retries paced ingress bursts and requires an observed 429 with `Retry-After: 1`; this avoids treating Azure ingress pacing as a limiter failure.
 - All API responses now send `Cache-Control: private, no-store`. Exact browser and Rust regressions cover authenticated teacher JSON, CSV, public session responses, authorization errors, and unchanged health `no-store` behavior.
 - Bumped the service-worker cache to `draft-ticket-v4`, so an installed client receives the stable shell.
+- The first final-SHA rollout reproduced a mounted SQLite failure that the earlier gate had not exposed: revision `sf-in-class-draft-ticket--0000061` logged SQLite code 5 continuously after its predecessor left `tickets.db.lock` on the durable share. The sixth authenticated demo read returned 500.
+- SQLite now uses `unix-none` only inside the existing cross-process `tickets.db.app-lock` gate. Every migration, cleanup, rate-counter access, read, and write holds that OS-managed gate; rollback journalling and one SQLite connection remain. This keeps all state in `/data/tickets.db` while avoiding a VFS lock directory that survives a killed container.
+- New regressions create the exact stale `tickets.db.lock`, prove a replacement opens the same database, and prove a second process waits for the external gate before it accesses the mounted file.
 
 ## Local verification
 
@@ -22,7 +25,7 @@ Started from `npm ci` with Playwright `1.58.2`.
 
 ```sh
 npm test                                      # 15 contracts; 60 Playwright tests
-cargo test --all-targets --all-features       # 10 passed
+cargo test --all-targets --all-features       # 11 passed
 cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --all -- --check
 npx tsc --noEmit
