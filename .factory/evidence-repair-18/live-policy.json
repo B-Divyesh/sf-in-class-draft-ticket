@@ -1,0 +1,7 @@
+{
+  "teacher": {"status": 200, "cacheControl": "private, no-store"},
+  "csv": {"status": 200, "cacheControl": "private, no-store"},
+  "unauthorizedTeacher": {"status": 401, "cacheControl": "private, no-store"},
+  "asset": {"status": 200, "cacheControl": "public, max-age=31536000, immutable"},
+  "health": {"status": 200, "cacheControl": "no-store, max-age=0", "buildSha": "e1e16e80548ca53bb674aa7f6b83467367c9078a", "storageBackend": "sqlite"}
+}

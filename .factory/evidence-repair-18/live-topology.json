@@ -1,0 +1,10 @@
+{
+  "revision": "sf-in-class-draft-ticket--0000060",
+  "image": "sociobotregistry.azurecr.io/sf-in-class-draft-ticket:e1e16e80548c",
+  "imageDigest": "sha256:b26f3c4208df8afbdae4af589f77070f7373994a6e39fc32e0c9770925a3d889",
+  "readyReplicas": 1,
+  "scale": {"minReplicas": 1, "maxReplicas": 1},
+  "environment": [{"name": "PORT", "value": "8080"}],
+  "volumeMount": {"name": "durable-data", "mountPath": "/data", "storageName": "sf-in-class-draft-ticket-data"},
+  "restartPersistence": "passed"
+}

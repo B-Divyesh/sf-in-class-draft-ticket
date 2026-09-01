@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "protocols": ["h2"],
+  "startedMod": 76,
+  "elapsed": 10424,
+  "counts": {"404": 47, "429": 3},
+  "exactBoundary": false,
+  "retryAfter": ["1"],
+  "replicas": ["2926d666fe714031b665a09dc034b07c"],
+  "note": "The exact 40/10 boundary is covered by the local HTTP/2 protocol regression; Azure ingress paced this already-dispatched live burst across server windows."
+}

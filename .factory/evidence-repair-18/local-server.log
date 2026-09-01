@@ -1,0 +1,2 @@
+{"timestamp":"2026-09-01T18:57:05.201908Z","level":"INFO","fields":{"message":"configuration loaded; durable database and privacy-preserving rate counters enabled","port":8080,"data_dir":"/tmp/draft-repair18-lighthouse","data_dir_source":"supplied","security_material_source":"generated","database":"sqlite","build_sha":"dev"},"target":"in_class_draft_ticket"}
+{"timestamp":"2026-09-01T18:57:42.995828Z","level":"INFO","fields":{"message":"graceful shutdown started"},"target":"in_class_draft_ticket"}

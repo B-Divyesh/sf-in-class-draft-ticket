@@ -1,0 +1,2 @@
+{"timestamp":"2026-09-01T19:03:29.958578Z","level":"INFO","fields":{"message":"configuration loaded; durable database and privacy-preserving rate counters enabled","port":8080,"data_dir":"/tmp/draft-repair18-verify","data_dir_source":"supplied","security_material_source":"generated","database":"sqlite","build_sha":"dev"},"target":"in_class_draft_ticket"}
+{"timestamp":"2026-09-01T19:03:37.554277Z","level":"INFO","fields":{"message":"graceful shutdown started"},"target":"in_class_draft_ticket"}

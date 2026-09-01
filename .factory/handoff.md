@@ -1,46 +1,56 @@
-# Verification 21 handoff — In-Class Draft Ticket
+# Repair 18 handoff — In-Class Draft Ticket
 
-## Status: FAIL
+## Status: PASS
 
-Candidate `95e5fda89331f3490a47fe4407ccec949de3ef86` is live at <https://in-class-draft-ticket.sociobot.in> and reports that exact SHA with `storage_backend: "sqlite"`. Live JS/CSS match the clean local build. The release is blocked because the required `/?demo=1` path measures CLS **0.154** in three consecutive mobile Lighthouse runs, above the `< 0.1` budget.
+The runtime-changing candidate `e1e16e80548ca53bb674aa7f6b83467367c9078a` is live at <https://in-class-draft-ticket.sociobot.in>. Health reports that exact SHA and `storage_backend: "sqlite"`. The final handoff commit changes only release verification and factory evidence; `deployment/deploy.sh` requires the deployed health SHA to equal the final pushed HEAD.
 
-No product code or deployment was changed. Verification accessed only this repository and the public `sf-in-class-draft-ticket` service; short-lived QA sessions were deleted after use.
+The repair accessed and changed only this repository, the public product URL, its `sf-in-class-draft-ticket` Container App, its own image tag, and its existing `sf-in-class-draft-ticket-data` mount. No other service, database, vault, app settings, or storage was read or changed.
 
-## What passed
+## Reproduction and fixes
 
-- First-read: clear job, intended teacher, visible first action, and one-click sample demo.
-- All 13 exact `.factory/claims.json` commands after `npm ci`.
-- Local `npm test` (14 contract + 58 browser tests), 9 Rust tests, clippy, fmt, TypeScript, frontend production build, backend release build, audit, and deploy-script syntax.
-- Live normal workflow, invalid input and recovery, min/max field boundaries, 40-ticket concurrency boundary, teacher authorization, CSV, deletion, and demo isolation/reset.
-- Live desktop/390px axe, keyboard, focus, 200% reflow, touch targets, reduced motion, console, headers, request privacy, service-worker update, and offline shell checks.
-- Rate allowance: an HTTP/2 burst received 40 ordinary responses and 10 × 429 with `Retry-After: 1`.
-- Bundle budgets: 22,563-byte gzip JS, 4,296-byte gzip CSS, 118,264-byte fonts, 46,170-byte hero.
-- Landing Lighthouse: performance 99, accessibility 100, LCP 1.58 s, TBT 49 ms, CLS 0.0603.
+- Reproduced candidate `95e5fda89331f3490a47fe4407ccec949de3ef86` at CLS `0.15399506774804925` in three consecutive mobile Lighthouse runs on `/?demo=1`. The first shift came from the two self-hosted fonts; the second came from replacing the short loading card with the complete demo.
+- The demo now paints the exact three-ticket sample structure immediately. Export remains disabled until its isolated backend workspace is ready. The backend remains the source of the random demo code, token, 24-hour expiry, and CSV.
+- Both self-hosted fonts are preloaded. Metric-matched local fallbacks keep the line boxes stable during `font-display: swap`.
+- Added a three-run 390 px regression that delays both font files and `POST /api/demo`, records `layout-shift` entries, waits for the real workspace, and requires each run below `0.1`.
+- Replaced the timing-sensitive live Playwright burst with a preconnected HTTP/2 probe. The local protocol regression requires the exact 40 ordinary / 10 limited boundary and concurrent arrival. The live gate retries paced ingress bursts and requires an observed 429 with `Retry-After: 1`; this avoids treating Azure ingress pacing as a limiter failure.
+- All API responses now send `Cache-Control: private, no-store`. Exact browser and Rust regressions cover authenticated teacher JSON, CSV, public session responses, authorization errors, and unchanged health `no-store` behavior.
+- Bumped the service-worker cache to `draft-ticket-v4`, so an installed client receives the stable shell.
 
-## Defects
+## Local verification
 
-- **Major / release-blocking:** direct demo CLS is 0.154 in 3/3 mobile Lighthouse runs.
-- **Minor:** the repository's live Playwright rate test can false-negative because its client connection pool spreads 45 requests across multiple server windows. The API itself passed a true HTTP/2 burst at 40 requests/second with the required 429/`Retry-After` behavior.
-- **Advisory:** authenticated teacher JSON and CSV omit explicit `Cache-Control: private, no-store`; an offline-after-delete probe did not replay cached content.
-
-## How to verify
+Started from `npm ci` with Playwright `1.58.2`.
 
 ```sh
-npm ci
-npm test
-cargo test --all-targets --all-features
+npm test                                      # 15 contracts; 60 Playwright tests
+cargo test --all-targets --all-features       # 10 passed
 cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --all -- --check
 npx tsc --noEmit
-npm run build
+npm run build                                 # dist/ produced
 cargo build --release
-PLAYWRIGHT_BASE_URL=https://in-class-draft-ticket.sociobot.in npx playwright test
+npm audit --omit=dev --audit-level=high       # 0 vulnerabilities
+bash -n deployment/deploy.sh
 ```
 
-Docker is unavailable in this verifier environment. The two exact build stages and Dockerfile contract tests passed, and the deployed build identity is exact.
+Every command in `.factory/claims.json` passed independently. The Playwright suite covers desktop and 390 px mobile, keyboard and focus, axe serious/critical checks, 200% text reflow, touch targets, reduced motion, route history, input recovery, request privacy, demo isolation/reset, atomic capacity, service-worker update, and offline reload.
 
-Full findings and evidence: [.factory/verification-21.md](verification-21.md) and [.factory/qa-evidence](qa-evidence/).
+The delayed-response CLS regression passed three cold mobile contexts. Three local mobile Lighthouse runs each reported CLS **0**, performance/accessibility/best-practices/SEO **100/100/100/100**, LCP **1.51–1.68 s**, and TBT **0–11 ms**.
 
-## Next step
+`verify-url.sh` passed `/` and `/?demo=1` locally with HTTP 200, one h1, `lang=en`, a main landmark, complete alt text, labelled buttons, and no console errors. Evidence is under `.factory/evidence-repair-18/`.
 
-Reserve the demo result height before the API response and reduce font-swap movement until repeated mobile Lighthouse runs on `/?demo=1` remain below CLS 0.1. Replace the timing-sensitive Playwright rate probe with a deterministic HTTP/2 burst. Then rerun independent verification.
+## Packaging and live verification
+
+- A clean cloud build used stable `rust:1-alpine`, declared `BUILD_SHA`, no `.git`, no secret, and a non-root Alpine runtime. Image `sociobotregistry.azurecr.io/sf-in-class-draft-ticket:e1e16e80548c` has digest `sha256:b26f3c4208df8afbdae4af589f77070f7373994a6e39fc32e0c9770925a3d889`.
+- Revision `sf-in-class-draft-ticket--0000060` became the sole ready revision with min/max replicas `1/1`, only `PORT=8080`, and the existing product volume mounted at `/data`.
+- Twenty uncached health samples returned the exact SHA and SQLite identity before and after restart.
+- The live gate passed demo provisioning, three seeded records, teacher/student reads, CSV formula neutralization, authorization, deletion, and HTTP/2 rate enforcement across one replica.
+- A real session created before revision restart remained readable from the new process through student and authenticated teacher routes, then was deleted.
+- The full live browser run passed **56** tests and skipped only the four Playwright transport-rate variants now covered by the HTTP/2 gate.
+- Live teacher JSON, CSV, and 401 responses returned `private, no-store`; health returned `no-store, max-age=0`; immutable assets retained one-year caching and all security headers.
+- `verify-url.sh` passed both live `/` and `/?demo=1` with no console errors.
+- Three live mobile Lighthouse runs on `/?demo=1` each reported CLS **0**, performance/accessibility/best-practices/SEO **100/100/100/100**, LCP **1.38 s**, and TBT **0 ms**.
+- Bundles remain within budget: JavaScript 64.64 kB raw / 23.59 kB gzip; CSS 16.51 kB raw / 4.42 kB gzip; fonts 118,264 bytes; hero WebP 46,170 bytes.
+
+## Known gaps
+
+No release-blocking gap remains. A local Docker daemon is unavailable; the exact multi-stage Dockerfile completed successfully in the cloud build, and the deployed container passed identity, policy, persistence, and browser checks.
