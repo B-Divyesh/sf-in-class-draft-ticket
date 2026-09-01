@@ -119,12 +119,14 @@ pub async fn connect(data_dir: &Path) -> anyhow::Result<Database> {
         .filename(&database_path)
         .create_if_missing(true)
         .foreign_keys(true)
-        // Azure Files is mounted over SMB, where SQLite's default POSIX byte
-        // locks remain permanently busy after a container handoff. Dotfile
-        // locking uses atomic directory creation on the shared filesystem.
-        // Every database operation also holds FileGate, so readers and writers
-        // remain serialized across a rolling one-replica deployment.
-        .vfs("unix-dotfile")
+        // Azure Files is mounted over SMB, where SQLite's POSIX byte locks do
+        // not survive a container handoff reliably. unix-dotfile is also
+        // unsafe here: a killed container can leave tickets.db.lock behind and
+        // permanently reject every query. Every database operation, including
+        // startup migration, holds FileGate instead. Its OS-managed lock is
+        // released when a process exits, so unix-none avoids the stale SQLite
+        // lock while FileGate still serializes rolling one-replica handoffs.
+        .vfs("unix-none")
         // WAL assumes local shared memory and is not safe on a network mount.
         .journal_mode(SqliteJournalMode::Delete)
         .busy_timeout(SQLITE_BUSY_TIMEOUT);
@@ -175,35 +177,60 @@ mod tests {
         let seeded = connect(&data_dir).await.unwrap();
         seeded.close().await;
 
-        let blocker_options = SqliteConnectOptions::new()
-            .filename(data_dir.join("tickets.db"))
-            .foreign_keys(true)
-            .vfs("unix-dotfile")
-            .busy_timeout(SQLITE_BUSY_TIMEOUT);
-        let blocker = SqlitePoolOptions::new()
-            .max_connections(1)
-            .connect_with(blocker_options)
-            .await
+        let blocker = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(true)
+            .truncate(false)
+            .open(data_dir.join("tickets.db.app-lock"))
             .unwrap();
-        query("BEGIN EXCLUSIVE").execute(&blocker).await.unwrap();
+        FileExt::lock_exclusive(&blocker).unwrap();
 
         let retry_dir = data_dir.clone();
         let startup = tokio::spawn(async move { connect(&retry_dir).await });
         // The candidate exited after this busy timeout. A repaired startup is
         // still waiting for the mounted database to become writable.
-        tokio::time::sleep(SQLITE_BUSY_TIMEOUT + Duration::from_millis(300)).await;
+        tokio::time::sleep(Duration::from_millis(300)).await;
         assert!(
             !startup.is_finished(),
             "startup exited on transient SQLITE_BUSY"
         );
 
-        query("ROLLBACK").execute(&blocker).await.unwrap();
-        blocker.close().await;
+        FileExt::unlock(&blocker).unwrap();
+        drop(blocker);
         let database = tokio::time::timeout(Duration::from_secs(10), startup)
             .await
             .expect("startup did not recover after the mounted lock cleared")
             .expect("startup task panicked")
             .expect("startup returned a database error after the lock cleared");
+        let table_count: i64 = query_scalar(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'sessions'",
+        )
+        .fetch_one(database.pool())
+        .await
+        .unwrap();
+        assert_eq!(table_count, 1);
+
+        database.close().await;
+        tokio::fs::remove_dir_all(data_dir).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn stale_sqlite_dotfile_lock_does_not_block_a_replacement_process() {
+        let data_dir =
+            std::env::temp_dir().join(format!("draft-ticket-stale-lock-{}", Uuid::new_v4()));
+        let seeded = connect(&data_dir).await.unwrap();
+        seeded.close().await;
+
+        // unix-dotfile creates this directory and cannot clean it up if the
+        // container is killed. The mounted file outlives that container.
+        tokio::fs::create_dir(data_dir.join("tickets.db.lock"))
+            .await
+            .unwrap();
+        let database = tokio::time::timeout(Duration::from_secs(5), connect(&data_dir))
+            .await
+            .expect("stale SQLite dotfile lock blocked replacement startup")
+            .expect("replacement process could not open the durable database");
         let table_count: i64 = query_scalar(
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'sessions'",
         )

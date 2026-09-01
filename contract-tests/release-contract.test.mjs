@@ -268,7 +268,8 @@ test('health remains no-store while reporting the SQLite identity', async () => 
   assert.match(server, /path\.starts_with\("\/api\/"\)/);
   assert.match(server, /Some\("private, no-store"\)/);
   assert.match(server, /"storage_backend": state\.db\.storage_backend\(\)/);
-  assert.match(database, /\.vfs\("unix-dotfile"\)/, 'mounted SQLite must not use SMB byte-range locks');
+  assert.match(database, /\.vfs\("unix-none"\)/, 'mounted SQLite must not retain a VFS lock after container replacement');
+  assert.match(database, /FileExt::lock_exclusive/, 'mounted SQLite access must use the cross-process file gate');
   assert.match(database, /SqliteJournalMode::Delete/, 'mounted SQLite must use a rollback journal');
 });
 
