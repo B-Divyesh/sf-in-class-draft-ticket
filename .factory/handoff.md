@@ -1,50 +1,38 @@
-# Verification 22 handoff — In-Class Draft Ticket
+# Review 5 handoff — In-Class Draft Ticket
 
-## Status: PASS
+## Status: FAIL
 
-Independent product QA passed for candidate `e4a202425cb2fdcddb7f25d42aaa1ff6ecc88baf` at <https://in-class-draft-ticket.sociobot.in> on 1 September 2026 UTC.
+First-read product QA completed against repository base `e7a2eae6f8431227bd041765e73f04f01de6b765` and live build `e4a202425cb2fdcddb7f25d42aaa1ff6ecc88baf` on 1 September 2026 UTC.
 
-No product code, deployment, cloud configuration, or external service was changed. Verification used this clean repository and the public product URL only. Temporary QA sessions were deleted.
+No product code, deployment, or cloud configuration was changed. Temporary QA sessions were deleted or remain subject to the documented demo expiry. The repository changes are limited to the report, screenshots, and this handoff.
 
-## What was verified
+## Remaining finding
 
-- All 13 commands in `.factory/claims.json` passed after `npm ci`.
-- `npm test` passed 15 contract and 60 Playwright tests.
-- Rust tests, strict clippy, rustfmt, TypeScript, frontend production build, backend release build, production dependency audit, and deployment script syntax passed.
-- The live health identity matched the candidate in 20/20 uncached samples; deployed JS, CSS, art, and fonts matched local bytes.
-- The complete teacher → student → teacher → CSV → delete workflow passed with normal, boundary, invalid, recovery, concurrency, and persistence cases.
-- The live API enforced 40 requests per one-second client window, then returned 429 with `Retry-After: 1`.
-- Desktop and 390px mobile checks passed for keyboard use, focus, 200% reflow, 44px controls, reduced motion, axe, console, request privacy, headers, caching, service-worker update, and offline shell reload.
-- The first-read and one-click sample gate passed.
-- Fresh Lighthouse: landing 98/100/100/100; three demo runs 100/100/100/100, CLS 0, LCP 1.37–1.44 seconds.
+- `F-5-1` (minor): `/demo` is linked publicly, returns 200, and declares itself canonical, but `sitemap.xml` lists only `/?demo=1`. Use `/demo` as the single canonical demo address, list it in the sitemap, and keep the query address as an alternate that declares `/demo` canonical.
 
-Full evidence and exact results are in [verification-22.md](verification-22.md). Current captures and Lighthouse JSON are under `.factory/qa-artifacts/`.
+PASS requires this finding to be fixed and the full checklist to return zero findings.
 
-## Run again
+## Confirmed checks
+
+- Fresh 390 × 844 and 1440 × 900 first screens clearly state the job, audience, first action, and three product facts.
+- The one-click demo immediately shows a realistic completed ticket. Its banner, reset, exit, separate browser key, unchanged real key, and same-origin request behavior pass.
+- All 13 claim commands pass from a separate clean clone.
+- The full live Playwright suite passes 56 checks with four intentional local-only skips.
+- The separate live HTTP/2 rate check confirms the exact 40-request boundary and `Retry-After: 1`.
+- Public-route axe, console, keyboard, focus, Back, reflow, touch-target, offline, metadata, 404, and link checks pass.
+- Every finding from reviews 1–4 remains fixed in live behavior and current source.
+- Landing and README copy contain no overlong sentence, banned marketing word, unclear result action, unlisted end-user claim, or terminology drift.
+- No additional AI, import, export, or sync feature is clearly required by the brief.
+
+## Evidence and commands
+
+Detailed results are in `.factory/review-5.md`. Fresh screenshots are under `.factory/review-5-evidence/`.
 
 ```sh
 npm ci
-npm test
-cargo test --all-targets --all-features
-cargo clippy --all-targets --all-features -- -D warnings
-cargo fmt --all -- --check
-npx tsc --noEmit
-npm run build
-cargo build --release
-npm audit --omit=dev --audit-level=high
-```
-
-Live identity and allowance checks:
-
-```sh
-LIVE_EXPECTED_SHA=e4a202425cb2fdcddb7f25d42aaa1ff6ecc88baf npm run verify:live-identity
-npm run verify:rate-http2
+# Run each command in .factory/claims.json from a clean clone.
 PLAYWRIGHT_BASE_URL=https://in-class-draft-ticket.sociobot.in npx playwright test
+npm run verify:rate-http2
 ```
 
-## Known limits and next step
-
-- No Docker-compatible runtime was available in this verifier. Direct build stages, Dockerfile contract tests, and matching live identity passed.
-- The brief's five-class success measure needs a real teacher pilot; it is not a release gate claimed by the interface.
-
-Release the tested candidate, then use a five-class pilot to measure completion time and whether the tickets improve feedback.
+The exact claim commands and results are listed in the review report.
