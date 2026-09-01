@@ -44,6 +44,10 @@ The spacing scale is 4, 8, 12, 16, 24, 32, 48, 64, and 96px. Content measures no
 
 One signature motion joins nearby plotted points over 240ms with transform and opacity only. Nothing loops. With `prefers-reduced-motion: reduce`, lines appear immediately and all scrolling is instant.
 
+## Layout stability
+
+The demo paints its bundled three-ticket sample at the final responsive dimensions while the isolated backend workspace is prepared. The export action stays disabled until that workspace is ready. Self-hosted fonts are preloaded and use metric-matched local fallbacks during `font-display: swap`. This keeps the paper planes, ticket rows, and footer fixed without replacing the product typography or showing an empty loading card.
+
 ## Responsive intent
 
 At 390px, decorative geometry reduces to one cropped band. Teacher tables become stacked response sheets, the session code stays large, and primary actions remain visible without horizontal scrolling. The desktop two-column workspace becomes one linear task flow.

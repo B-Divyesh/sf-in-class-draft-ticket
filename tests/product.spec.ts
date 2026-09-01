@@ -51,6 +51,7 @@ test('@claim:sample-demo demo is isolated, seeded, and expires after 24 hours', 
   await expect(page).toHaveURL(/\?demo=1$/);
   await expect(page.getByText('Demo — sample data, nothing is saved to your classes')).toBeVisible();
   await expect(page.locator('.response-ticket')).toHaveCount(3);
+  await expect(page.getByRole('button', {name:'Export sample CSV'})).toBeEnabled();
   expect((await page.evaluate(() => Object.keys(localStorage).sort()))).toEqual(['demo:workspace', realKey].sort());
   expect(await page.evaluate(key => localStorage.getItem(key), realKey)).toBe(real.teacher_token);
   const firstWorkspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace')!));
@@ -65,6 +66,7 @@ test('@claim:sample-demo demo is isolated, seeded, and expires after 24 hours', 
   })).json()).toEqual(realBefore);
 
   await page.getByRole('button', {name:'Reset demo'}).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace') || 'null')?.code || '')).toMatch(/^[A-Z0-9]{6}$/);
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace') || 'null')?.code)).not.toBe(firstWorkspace.code);
   await expect(page.locator('.response-ticket')).toHaveCount(3);
   const resetWorkspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace')!));
@@ -258,6 +260,7 @@ test('@claim:no-ai-detection-or-authorship-verdict demo has no detection or verd
   page.on('request', req => requests.push(req.url()));
   await page.goto('/?demo=1');
   await expect(page.locator('.response-ticket')).toHaveCount(3);
+  await expect(page.getByRole('button', {name:'Export sample CSV'})).toBeEnabled();
   expect(requests.every(url => new URL(url).origin === new URL(page.url()).origin)).toBe(true);
   expect(requests.some(url => /detect|authorship|\/v1\/responses|\/models/i.test(new URL(url).pathname))).toBe(false);
   await expect(page.getByRole('button', {name:/detect|authorship|judge/i})).toHaveCount(0);
@@ -304,14 +307,19 @@ test('@claim:teacher-control private token protects read, export, and delete', a
   expect((await request.get(`/api/teacher/${created.session.code}`)).status()).toBe(401);
   expect((await request.get(`/api/teacher/${created.session.code}/export`)).status()).toBe(401);
   expect((await request.delete(`/api/teacher/${created.session.code}`)).status()).toBe(401);
-  expect((await request.get(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(200);
-  expect((await request.get(`/api/teacher/${created.session.code}/export`, {headers:{Authorization:`Bearer ${created.teacher_token}`}})).status()).toBe(200);
+  const teacher = await request.get(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}});
+  const csv = await request.get(`/api/teacher/${created.session.code}/export`, {headers:{Authorization:`Bearer ${created.teacher_token}`}});
+  expect(teacher.status()).toBe(200);
+  expect(csv.status()).toBe(200);
+  expect(teacher.headers()['cache-control']).toBe('private, no-store');
+  expect(csv.headers()['cache-control']).toBe('private, no-store');
   const deleted = await request.delete(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${created.teacher_token}`}});
   expect(deleted.status()).toBe(204);
   expect((await request.get(`/api/sessions/${created.session.code}`)).status()).toBe(404);
 });
 
 test('API rate limit returns Retry-After', async ({request}) => {
+  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL), 'the live boundary uses one deterministic HTTP/2 connection in the release gate');
   await freshRateWindow();
   const results = await Promise.all(Array.from({length:45}, () => request.get(
     '/api/sessions/ABCDEF', {headers:{'X-Forwarded-For':'203.0.113.10'}}
@@ -330,7 +338,47 @@ test('@claim:health-build-identity health is never cached and reports its build 
   expect(body.storage_backend).toBe('sqlite');
 });
 
+test('direct demo stays below the 0.1 CLS budget on repeated cold mobile loads', async ({browser}) => {
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8080';
+  for (let run = 1; run <= 3; run += 1) {
+    const context = await browser.newContext({baseURL, viewport:{width:390, height:844}});
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      (window as any).__draftTicketCls = 0;
+      new PerformanceObserver(list => {
+        for (const entry of list.getEntries() as any[]) {
+          if (!entry.hadRecentInput) (window as any).__draftTicketCls += entry.value;
+        }
+      }).observe({type:'layout-shift', buffered:true});
+    });
+    await page.route('**/fonts/*.ttf', async route => {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      await route.continue();
+    });
+    await page.route('**/api/demo', async route => {
+      await new Promise(resolve => setTimeout(resolve, 650));
+      await route.continue();
+    });
+    try {
+      await page.goto('/?demo=1');
+      await expect(page.locator('.response-ticket')).toHaveCount(3);
+      await expect(page.getByRole('button', {name:'Export sample CSV'})).toBeEnabled();
+      await page.evaluate(() => document.fonts.ready);
+      await page.waitForTimeout(100);
+      const workspace = await page.evaluate(() => JSON.parse(localStorage.getItem('demo:workspace') || 'null'));
+      if (workspace?.code && workspace?.token) {
+        sessionsForCleanup.push({session:{code:workspace.code}, teacher_token:workspace.token});
+      }
+      const cls = await page.evaluate(() => (window as any).__draftTicketCls as number);
+      expect(cls, `cold mobile demo run ${run}`).toBeLessThan(0.1);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
 test('API rate limit ignores caller-spoofed hops and uses the ingress-appended address', async ({request}, testInfo) => {
+  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL), 'the live boundary uses one deterministic HTTP/2 connection in the release gate');
   const trustedAddress = testInfo.project.name === 'chromium' ? '203.0.113.77' : '203.0.113.78';
   await freshRateWindow();
   const results = await Promise.all(Array.from({length:45}, (_, i) => request.get('/api/sessions/ABCDEF', {
@@ -497,7 +545,7 @@ test('direct 404 keeps the shared navigation, legal links, and complete metadata
 test('service worker installs, updates its cache, and reloads the shell offline', async ({page, context}) => {
   await page.goto('/');
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-  await expect.poll(() => page.evaluate(() => caches.keys())).toContain('draft-ticket-v3');
+  await expect.poll(() => page.evaluate(() => caches.keys())).toContain('draft-ticket-v4');
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole('heading', {name:'Record in-class drafting without surveillance'})).toBeVisible();

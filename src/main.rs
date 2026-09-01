@@ -426,24 +426,30 @@ async fn cleanup_database(db: &db::Database, now: DateTime<Utc>) -> anyhow::Resu
 }
 
 async fn cache_headers(req: Request, next: Next) -> Response {
-    let is_health = req.uri().path() == "/health";
-    let cache_long =
-        req.uri().path().starts_with("/assets/") || req.uri().path().starts_with("/fonts/");
+    let cache_control = response_cache_control(req.uri().path());
     let mut response = next.run(req).await;
-    // Deployment identity and the storage backend must always describe the
-    // process that served this request, so the health response is never cached.
-    if is_health {
-        response.headers_mut().insert(
-            header::CACHE_CONTROL,
-            HeaderValue::from_static("no-store, max-age=0"),
-        );
-    } else if cache_long {
-        response.headers_mut().insert(
-            header::CACHE_CONTROL,
-            HeaderValue::from_static("public, max-age=31536000, immutable"),
-        );
+    if let Some(value) = cache_control {
+        response
+            .headers_mut()
+            .insert(header::CACHE_CONTROL, HeaderValue::from_static(value));
     }
     response
+}
+
+fn response_cache_control(path: &str) -> Option<&'static str> {
+    if path == "/health" {
+        // Deployment identity and the storage backend must always describe the
+        // process that served this request.
+        Some("no-store, max-age=0")
+    } else if path.starts_with("/api/") {
+        // Session prompts, tickets, authorization errors, and CSV downloads
+        // are private even when an intermediary would otherwise cache them.
+        Some("private, no-store")
+    } else if path.starts_with("/assets/") || path.starts_with("/fonts/") {
+        Some("public, max-age=31536000, immutable")
+    } else {
+        None
+    }
 }
 
 fn clean(value: &str, label: &str, min: usize, max: usize) -> Result<String, ApiError> {
@@ -855,6 +861,26 @@ mod tests {
             .body(Body::empty())
             .unwrap();
         assert_eq!(client_ip(&request), "203.0.113.9");
+    }
+
+    #[test]
+    fn private_api_responses_are_never_cached() {
+        assert_eq!(
+            response_cache_control("/api/teacher/ABC234"),
+            Some("private, no-store")
+        );
+        assert_eq!(
+            response_cache_control("/api/teacher/ABC234/export"),
+            Some("private, no-store")
+        );
+        assert_eq!(
+            response_cache_control("/api/sessions/ABC234"),
+            Some("private, no-store")
+        );
+        assert_eq!(
+            response_cache_control("/health"),
+            Some("no-store, max-age=0")
+        );
     }
 
     #[tokio::test]

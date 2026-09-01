@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { createServer } from 'node:http';
+import { createServer as createHttp2Server } from 'node:http2';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { once } from 'node:events';
@@ -9,6 +10,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { assertContainerAppContract } from '../deployment/assert-containerapp.mjs';
 import { verifyLiveIdentity } from '../deployment/verify-live-identity.mjs';
+import { verifyHttp2RateLimit } from '../deployment/verify-rate-limit-http2.mjs';
 
 const read = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
 const repo = new URL('..', import.meta.url);
@@ -261,8 +263,10 @@ test('live identity gate rejects stale builds and expects SQLite', async () => {
 test('health remains no-store while reporting the SQLite identity', async () => {
   const server = await read('src/main.rs');
   const database = await read('src/db.rs');
-  assert.match(server, /let is_health = req\.uri\(\)\.path\(\) == "\/health"/);
-  assert.match(server, /HeaderValue::from_static\("no-store, max-age=0"\)/);
+  assert.match(server, /if path == "\/health"/);
+  assert.match(server, /Some\("no-store, max-age=0"\)/);
+  assert.match(server, /path\.starts_with\("\/api\/"\)/);
+  assert.match(server, /Some\("private, no-store"\)/);
   assert.match(server, /"storage_backend": state\.db\.storage_backend\(\)/);
   assert.match(database, /\.vfs\("unix-dotfile"\)/, 'mounted SQLite must not use SMB byte-range locks');
   assert.match(database, /SqliteJournalMode::Delete/, 'mounted SQLite must use a rollback journal');
@@ -308,6 +312,39 @@ test('claim runner compiles before Playwright starts its server timer', async ()
   assert.match(playwright, /command: '\.\/target\/debug\/in-class-draft-ticket'/);
   assert.match(playwright, /workers: externalBaseUrl \? 1 : undefined/);
   assert.doesNotMatch(playwright, /command: 'cargo run'/);
+});
+
+test('HTTP/2 release rate probe dispatches one concurrent burst and requires the exact boundary', async () => {
+  const arrivals = [];
+  let count = 0;
+  const server = createHttp2Server();
+  server.on('stream', stream => {
+    arrivals.push(Date.now());
+    count += 1;
+    const limited = count > 40;
+    stream.respond({
+      ':status':limited ? 429 : 404,
+      ...(limited ? {'retry-after':'1'} : {}),
+      'x-draft-ticket-replica':'local-http2-test'
+    });
+    setTimeout(() => stream.end(limited ? 'limited' : 'missing'), 150);
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address && typeof address === 'object');
+  try {
+    const result = await verifyHttp2RateLimit({
+      baseUrl:`http://127.0.0.1:${address.port}`,
+      attempts:1,
+      alignToWindow:false
+    });
+    assert.deepEqual(result.counts, {'404':40, '429':10});
+    assert.deepEqual(result.retryAfter, ['1']);
+    assert.ok(Math.max(...arrivals) - Math.min(...arrivals) < 100, 'requests must arrive as one burst');
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
 });
 
 test('every listed product claim has exactly one tagged regression test', async () => {

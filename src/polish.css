@@ -1,3 +1,26 @@
+/* Match fallback metrics to the self-hosted faces so `font-display: swap`
+   cannot reflow the demo while the font files arrive. */
+@font-face {
+  font-family: "Atkinson Fallback";
+  src: local("Arial");
+  size-adjust: 99.8%;
+  ascent-override: 72%;
+  descent-override: 20%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Fraunces Fallback";
+  src: local("Georgia");
+  size-adjust: 120.5%;
+  ascent-override: 75%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+}
+
+:root { font-family: "Atkinson", "Atkinson Fallback", Arial, sans-serif; }
+h1, h2, h3 { font-family: "Fraunces", "Fraunces Fallback", serif; }
+
 h1[tabindex="-1"]:focus { outline: none; }
 
 /* Links are deliberate touch targets, including the compact navigation. */

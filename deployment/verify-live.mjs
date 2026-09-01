@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';
+import { verifyHttp2RateLimit } from './verify-rate-limit-http2.mjs';
 
 const baseUrl = (process.env.LIVE_BASE_URL ?? 'https://in-class-draft-ticket.sociobot.in').replace(/\/$/, '');
 const expectedReplicas = Number(process.env.LIVE_EXPECTED_REPLICAS ?? 1);
@@ -39,10 +40,6 @@ async function browserJson(path, options, expected, label) {
   const response = await browserApi(path, options, label);
   assert.equal(response.status, expected, `${label}: HTTP ${response.status}: ${response.body}`);
   return response.body ? JSON.parse(response.body) : undefined;
-}
-
-async function api(path, options = {}) {
-  return fetch(`${baseUrl}/api${path}`, { signal: AbortSignal.timeout(20_000), ...options });
 }
 
 async function deleteRecord(record) {
@@ -139,13 +136,7 @@ try {
   records.splice(records.indexOf(real), 1);
   real = undefined;
 
-  await delay(1_100);
-  while (Date.now() % 1_000 > 100) await delay(10);
-  const burst = await Promise.all(Array.from({ length: 45 }, () => api('/sessions/ZZZZZZ')));
-  assert.equal(burst.filter(response => response.status === 404).length, 40, 'one client receives exactly 40 requests');
-  const limited = burst.filter(response => response.status === 429);
-  assert.equal(limited.length, 5, 'requests 41–45 are limited across replicas');
-  assert.ok(limited.every(response => response.headers.get('retry-after') === '1'), 'every 429 includes Retry-After: 1');
+  await verifyHttp2RateLimit({baseUrl});
 
   if (persistenceRecordPath) {
     // Keep one disposable real session through the deployment's actual

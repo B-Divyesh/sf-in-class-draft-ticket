@@ -5,6 +5,19 @@
   type Ticket = { id:string; session_code:string; pseudonym:string; claim:string; evidence:string; revision:string; reflection:string; created_at:string };
   type TeacherData = { session:Session; tickets:Ticket[] };
 
+  function samplePreview():TeacherData {
+    const created_at = '2026-08-29T09:00:00Z';
+    const session_code = 'SAMPLE';
+    return {
+      session:{code:session_code,title:'Room 204 · Beloved seminar',prompt:"How does Morrison use memory to shape Sethe's choices?",created_at,expires_at:'2026-08-30T09:00:00Z',is_demo:true},
+      tickets:[
+        {id:'sample-1',session_code,pseudonym:'Blue Finch',claim:'Memory acts like a second setting that keeps the past present.',evidence:'Page 43, the description after Sethe sees the dress.',revision:'I moved the scene before my explanation so readers see the image first.',reflection:"My next step is to connect the image to Sethe's decision in the next paragraph.",created_at},
+        {id:'sample-2',session_code,pseudonym:'Copper Kite',claim:'The repeated colors show how memory interrupts the present.',evidence:'Pages 38–39, especially the red light detail.',revision:'I replaced a broad theme sentence with a claim about the color pattern.',reflection:'I still need a quotation that shows the interruption, not only the color.',created_at},
+        {id:'sample-3',session_code,pseudonym:'Quiet Maple',claim:'Sethe protects herself by reshaping what she remembers.',evidence:'Notebook paragraph 2 and the scene on page 54.',revision:'I cut my opening summary and added the page 54 contrast.',reflection:'My claim is clearer, but I need to explain why the contrast matters.',created_at}
+      ]
+    };
+  }
+
   let path = window.location.pathname;
   let search = window.location.search;
   let demoMode = path === '/demo' || (path === '/' && new URLSearchParams(search).get('demo') === '1');
@@ -16,7 +29,8 @@
   let ticketBusy = false;
   let error = '';
   let notice = '';
-  let demoData: TeacherData | null = null;
+  let demoData: TeacherData | null = demoMode ? samplePreview() : null;
+  let demoReady = false;
   let demoToken = '';
   let joinCode = '';
   let session: Session | null = null;
@@ -42,6 +56,8 @@
     path = location.pathname;
     search = location.search;
     demoMode = path === '/demo' || (path === '/' && new URLSearchParams(search).get('demo') === '1');
+    demoData = demoMode ? samplePreview() : null;
+    demoReady = false;
     error = ''; notice = ''; session = null; teacherData = null;
     window.scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
     routeChanged();
@@ -64,7 +80,13 @@
     });
     if (path.startsWith('/session/')) loadStudentSession();
     if (path.startsWith('/teacher/')) loadTeacherSession();
-    if (demoMode) loadDemo(false);
+    if (demoMode) {
+      if (!demoData) demoData = samplePreview();
+      loadDemo(false);
+    } else {
+      demoData = null;
+      demoReady = false;
+    }
   }
 
   function clickLink(event:MouseEvent) {
@@ -156,12 +178,13 @@
 
   async function loadDemo(reset:boolean) {
     if (busy) return; busy = true; error = '';
-    if (reset) { localStorage.removeItem('demo:workspace'); demoData = null; }
+    demoReady = false;
+    if (reset) { localStorage.removeItem('demo:workspace'); demoData = samplePreview(); }
     try {
       let saved:{code:string;token:string}|null = null;
       try { saved = JSON.parse(localStorage.getItem('demo:workspace') || 'null'); } catch { saved = null; }
       if (saved) {
-        try { demoData = await api<TeacherData>(`/api/teacher/${saved.code}`, {headers:{Authorization:`Bearer ${saved.token}`}}); demoToken = saved.token; }
+        try { demoData = await api<TeacherData>(`/api/teacher/${saved.code}`, {headers:{Authorization:`Bearer ${saved.token}`}}); demoToken = saved.token; demoReady = true; }
         catch { saved = null; }
       }
       if (!saved) {
@@ -169,6 +192,7 @@
         demoToken = created.teacher_token;
         localStorage.setItem('demo:workspace', JSON.stringify({code:created.session.code,token:demoToken}));
         demoData = await api<TeacherData>(`/api/teacher/${created.session.code}`, {headers:{Authorization:`Bearer ${demoToken}`}});
+        demoReady = true;
       }
     } catch (e) { error = errorMessage(e); } finally { busy = false; }
   }
@@ -322,8 +346,10 @@
       {:else if error}<div class="error-panel" role="alert"><p>{error}</p><a class="button secondary" href="/start" on:click={clickLink}>Create a new session</a></div>{:else}<div class="loading" role="status">Loading class tickets…</div>{/if}
     </section>
   {:else if demoMode}
-    <section class="teacher-page section-shell demo-page">
+    <section class="teacher-page section-shell demo-page" aria-busy={!demoReady}>
       <p class="eyebrow">Sample teacher view</p><h1 tabindex="-1">Review a sample draft session</h1><p class="lede">These three fictional tickets show the session sheet after an in-class draft.</p>
+      {#if !demoReady}<p class="sr-only" role="status">Plotting sample tickets…</p>{/if}
+      {#if error}<div class="form-error" role="alert">{error} <button class="text-button" on:click={() => loadDemo(true)}>Reload sample data</button></div>{/if}
       {#if demoData}
         <article class="demo-feature" aria-labelledby="featured-ticket-heading">
           <p class="ticket-number">Completed draft ticket · 01</p>
@@ -333,12 +359,12 @@
             <div><dt>Revision choice</dt><dd>{demoData.tickets[0].revision}</dd></div>
           </dl>
         </article>
-        <div class="session-head"><div><span class="code-label">Sample code</span><strong class="big-code">{demoData.session.code}</strong><p>{demoData.session.title}</p></div><button class="button primary" on:click={() => exportCsv(demoData!, demoToken)}>Export sample CSV</button></div>
+        <div class="session-head"><div><span class="code-label">Sample code</span><strong class="big-code">{demoData.session.code}</strong><p>{demoData.session.title}</p></div><button class="button primary" disabled={!demoReady || busy} on:click={() => exportCsv(demoData!, demoToken)}>{demoReady ? 'Export sample CSV' : 'Preparing sample…'}</button></div>
         <div class="teacher-prompt"><strong>Writing prompt</strong><p>{demoData.session.prompt}</p></div>
         {#if notice}<p class="success" role="status">{notice}</p>{/if}
         <div class="response-heading"><h2>Sample draft tickets</h2><span>{demoData.tickets.length} records</span></div>
         <ol class="response-list">{#each demoData.tickets as ticket, i}<li class="response-ticket"><div class="response-meta"><span>{String(i+1).padStart(2,'0')}</span><strong>{ticket.pseudonym}</strong></div><dl><div><dt>Claim</dt><dd>{ticket.claim}</dd></div><div><dt>Evidence location</dt><dd>{ticket.evidence}</dd></div><div><dt>Revision choice</dt><dd>{ticket.revision}</dd></div><div><dt>Exit reflection</dt><dd>{ticket.reflection}</dd></div></dl></li>{/each}</ol>
-      {:else if error}<div class="error-panel" role="alert"><p>{error}</p><button class="button secondary" on:click={() => loadDemo(true)}>Reload sample data</button></div>{:else}<div class="loading" role="status">Plotting sample tickets…</div>{/if}
+      {/if}
     </section>
   {:else if path === '/privacy'}
     <article class="legal section-shell narrow"><p class="eyebrow">Effective 29 August 2026</p><h1 tabindex="-1">Privacy in plain words</h1><p>In-Class Draft Ticket stores class content and the service data needed to protect and delete each session.</p><h2>What we store</h2><p>We store class names, prompts, class nicknames, ticket answers, and creation and deletion timestamps.</p><p>Random IDs connect records without using student names. A demo marker keeps sample sessions separate.</p><p>Teacher links contain a random credential. The database stores only its one-way hash.</p><p>A random server key turns each request IP into a rotating, one-way rate-limit key before storage.</p><p>Rate-limit counters and keys are deleted within four seconds. We do not ask for student names, email addresses, or accounts.</p><h2>Why we store it</h2><p>The teacher uses this data to read and export in-class drafting choices. The ticket does not judge authorship.</p><h2>When we delete it</h2><p>The teacher chooses one, seven, or thirty days. The teacher can also delete a session at any time. Demo sessions expire after 24 hours.</p><h2>Who receives it</h2><p>Session data stays on this service. We do not run analytics or third-party tracking.</p><h2>Your choices</h2><p>Teachers can export or delete a session from the private teacher view. Contact <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a> for a data request.</p></article>
